@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-indigo-50: #F6F7F2;
+  --color-indigo-100: #ECEFE5;
+  --color-indigo-200: #D5DCC9;
+  --color-indigo-300: #B7C3A9;
+  --color-indigo-400: #93A582;
+  --color-indigo-500: #748A61;
+  --color-indigo-600: #556B43; /* Primary Deep Sage Green */
+  --color-indigo-700: #425334;
+  --color-indigo-800: #2E3A24;
+  --color-indigo-900: #1D2416;
+  --color-indigo-950: #0F130B;
+
+  --color-slate-50: #FBF9F6;  /* Warm Linen background */
+  --color-slate-100: #F4EFE6; /* Sand tint border/bg */
+  --color-slate-200: #ECE3D3;
+  --color-slate-300: #DDD3C1;
+  --color-slate-400: #B7A891;
+  --color-slate-500: #96856E;
+  --color-slate-600: #7A6953;
+  --color-slate-700: #5D4E3C;
+  --color-slate-800: #403427;
+  --color-slate-900: #261D15; /* Charcoal cocoa */
+  --color-slate-950: #18110B;
+
+  --color-amber-50: #FCF5F0;  /* Soft Warm Terracotta shades */
+  --color-amber-100: #F8E5D7;
+  --color-amber-200: #F2C3A2;
+  --color-amber-300: #EB9C6B;
+  --color-amber-400: #E27244;
+  --color-amber-500: #C25126; /* Warm Terracotta / Clay */
+  --color-amber-600: #9E3E1C;
+  --color-amber-700: #7E2F15;
+  --color-amber-800: #5F210F;
+  --color-amber-900: #41140A;
+
+  --color-emerald-50: #F5F7F3; /* Soft moss green */
+  --color-emerald-100: #E6EFE0;
+  --color-emerald-200: #CCDEC0;
+  --color-emerald-300: #AAC69B;
+  --color-emerald-400: #82A971;
+  --color-emerald-500: #5F8B4E;
+  --color-emerald-600: #486E3A;
+  --color-emerald-700: #36532B;
+}
+
+/* Custom scrollbar for natural feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-slate-50);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-slate-200);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-slate-300);
+}
+

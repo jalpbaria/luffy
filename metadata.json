@@ -1,0 +1,11 @@
+{
+  "name": "ExchangeYourSkill",
+  "description": "A full-stack skill-sharing platform where users can teach, learn, and exchange skills. Features rich user profiles, search with filters, session booking calendars, simulated voice/video chat, progress tracking, reviews, and Gemini-powered smart skill recommendations.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
