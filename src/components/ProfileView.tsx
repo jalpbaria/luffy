@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   User, Mail, FileText, GraduationCap, Globe, Clock, Award, 
-  Trash2, Plus, Save, BookOpen, Link as LinkIcon, AlertCircle, Check
+  Trash2, Plus, Save, BookOpen, Link as LinkIcon, AlertCircle, Check, LogOut
 } from 'lucide-react';
 import { UserProfile, Skill } from '../types';
 
@@ -9,6 +9,7 @@ interface ProfileViewProps {
   currentUser: UserProfile;
   onSaveProfile: (updatedProfile: UserProfile) => void;
   isSaving: boolean;
+  onLogout?: () => void;
 }
 
 const CATEGORIES = [
@@ -17,7 +18,7 @@ const CATEGORIES = [
   'Public Speaking', 'Business'
 ];
 
-export default function ProfileView({ currentUser, onSaveProfile, isSaving }: ProfileViewProps) {
+export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLogout }: ProfileViewProps) {
   // Local state for profile form fields
   const [name, setName] = useState(currentUser?.name ?? '');
   const [avatar, setAvatar] = useState(currentUser?.avatar ?? '');
@@ -486,20 +487,34 @@ export default function ProfileView({ currentUser, onSaveProfile, isSaving }: Pr
         </div>
 
         {/* Submit Actions */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
-          {saveSuccess && (
-            <span className="flex items-center gap-1 text-emerald-600 font-semibold text-xs">
-              <Check className="w-4 h-4 text-emerald-500 stroke-[3]" /> Saved successfully!
-            </span>
-          )}
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save Profile Changes'}
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
+          <div>
+            {onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out of Account</span>
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {saveSuccess && (
+              <span className="flex items-center gap-1 text-emerald-600 font-semibold text-xs">
+                <Check className="w-4 h-4 text-emerald-500 stroke-[3]" /> Saved successfully!
+              </span>
+            )}
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition flex items-center gap-2 cursor-pointer border-0"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? 'Saving...' : 'Save Profile Changes'}
+            </button>
+          </div>
         </div>
 
       </form>

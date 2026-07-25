@@ -15,6 +15,7 @@ import ProfileView from './components/ProfileView';
 import AIRecommendations from './components/AIRecommendations';
 import LoginView from './components/LoginView';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification } from './lib/supabase';
+import { useAuth } from './contexts/AuthContext';
 
 // Fallback mock data when API is unreachable
 import { fallbackUsers, fallbackBookings, fallbackNotifications, fallbackProgress } from './data/fallbackUsers';
@@ -22,6 +23,7 @@ import { fallbackUsers, fallbackBookings, fallbackNotifications, fallbackProgres
 
 
 export default function App() {
+  const { signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'profile' | 'ai-recs'>('dashboard');
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -297,7 +299,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOut();
     } catch (err) {
       console.warn('Error signing out of Supabase:', err);
     }
@@ -1092,10 +1094,11 @@ export default function App() {
 
             <button
               onClick={handleLogout}
-              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition border-0 bg-transparent cursor-pointer"
-              title="Log Out"
+              className="px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-red-600 hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded-lg transition flex items-center gap-1.5 cursor-pointer bg-white"
+              title="Log Out of your account"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Logout</span>
             </button>
 
             <div className="flex items-center gap-2">
@@ -1152,6 +1155,13 @@ export default function App() {
           <User className="w-4 h-4" />
           Profile
         </button>
+        <button 
+          onClick={handleLogout}
+          className="flex flex-col items-center gap-1 text-slate-500 hover:text-red-600"
+        >
+          <LogOut className="w-4 h-4" />
+          Logout
+        </button>
       </div>
 
       {/* Main Content Area */}
@@ -1202,6 +1212,7 @@ export default function App() {
                 currentUser={currentUser}
                 onSaveProfile={handleSaveProfile}
                 isSaving={isSaving}
+                onLogout={handleLogout}
               />
             )}
 

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, Skill } from '../types';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LoginViewProps {
   onLogin: (user: UserProfile) => void;
@@ -14,6 +15,7 @@ interface LoginViewProps {
 }
 
 export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewProps) {
+  const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   
   // Login fields
@@ -32,6 +34,7 @@ export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewPr
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
   const [regBio, setRegBio] = useState('');
   const [regEducation, setRegEducation] = useState('');
   const [regExperience, setRegExperience] = useState('');
@@ -52,6 +55,47 @@ export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewPr
 
   const [registerError, setRegisterError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Calculate Password Strength for Registration
+  const getPasswordStrength = (password: string) => {
+    if (!password) {
+      return {
+        score: 0,
+        label: '',
+        color: 'bg-slate-200',
+        textColor: 'text-slate-400',
+        percentage: 0,
+        checks: { length: false, caseMix: false, number: false, special: false }
+      };
+    }
+
+    const checks = {
+      length: password.length >= 8,
+      caseMix: /[a-z]/.test(password) && /[A-Z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[^A-Za-z0-9]/.test(password),
+    };
+
+    let score = 0;
+    if (checks.length) score++;
+    if (checks.caseMix) score++;
+    if (checks.number) score++;
+    if (checks.special) score++;
+
+    if (score === 1) {
+      return { score, label: 'Weak', color: 'bg-red-500', textColor: 'text-red-600', percentage: 25, checks };
+    } else if (score === 2) {
+      return { score, label: 'Fair', color: 'bg-amber-500', textColor: 'text-amber-600', percentage: 50, checks };
+    } else if (score === 3) {
+      return { score, label: 'Good', color: 'bg-blue-500', textColor: 'text-blue-600', percentage: 75, checks };
+    } else if (score >= 4) {
+      return { score, label: 'Strong', color: 'bg-emerald-500', textColor: 'text-emerald-600', percentage: 100, checks };
+    }
+
+    return { score: 0, label: 'Very Weak', color: 'bg-red-400', textColor: 'text-red-500', percentage: 12, checks };
+  };
+
+  const regPasswordStrength = getPasswordStrength(regPassword);
 
   // Unsplash profile image presets
   const avatarPresets = [
@@ -77,10 +121,7 @@ export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewPr
 
     setIsSubmitting(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginEmail.toLowerCase().trim(),
-        password: loginPassword,
-      });
+      const { data, error } = await signIn(loginEmail, loginPassword);
 
       if (error) {
         setLoginError(error.message);
@@ -187,10 +228,7 @@ export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewPr
     setIsSubmitting(true);
     try {
       // 1. Sign up on Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: regEmail.toLowerCase().trim(),
-        password: regPassword,
-      });
+      const { data: authData, error: authError } = await signUp(regEmail, regPassword);
 
       if (authError) {
         setRegisterError(authError.message);
@@ -458,17 +496,79 @@ export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewPr
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Password</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Password *</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
                   <input
-                    type="password"
+                    type={showRegPassword ? "text" : "password"}
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-50/50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                    className="w-full bg-slate-50/50 border border-slate-200 rounded-lg pl-9 pr-9 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0 flex items-center justify-center"
+                    title={showRegPassword ? "Hide password" : "Show password"}
+                  >
+                    {showRegPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
                 </div>
+
+                {/* Password Strength Indicator */}
+                {regPassword && (
+                  <div className="mt-2 pt-1 space-y-1.5 bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
+                    <div className="flex items-center justify-between text-[11px] font-semibold">
+                      <span className="text-slate-500">Password Strength</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        regPasswordStrength.score <= 1 ? 'bg-red-100 text-red-700' :
+                        regPasswordStrength.score === 2 ? 'bg-amber-100 text-amber-700' :
+                        regPasswordStrength.score === 3 ? 'bg-blue-100 text-blue-700' :
+                        'bg-emerald-100 text-emerald-700'
+                      }`}>
+                        {regPasswordStrength.label}
+                      </span>
+                    </div>
+
+                    {/* Progress Bar Track */}
+                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-300 rounded-full ${regPasswordStrength.color}`}
+                        style={{ width: `${regPasswordStrength.percentage}%` }}
+                      />
+                    </div>
+
+                    {/* Requirements Checklist */}
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 pt-1 text-[10px]">
+                      <div className={`flex items-center gap-1.5 ${regPasswordStrength.checks.length ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
+                        <div className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] ${regPasswordStrength.checks.length ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                          ✓
+                        </div>
+                        <span>8+ characters</span>
+                      </div>
+                      <div className={`flex items-center gap-1.5 ${regPasswordStrength.checks.caseMix ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
+                        <div className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] ${regPasswordStrength.checks.caseMix ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                          ✓
+                        </div>
+                        <span>Upper & lowercase</span>
+                      </div>
+                      <div className={`flex items-center gap-1.5 ${regPasswordStrength.checks.number ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
+                        <div className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] ${regPasswordStrength.checks.number ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                          ✓
+                        </div>
+                        <span>Number (0-9)</span>
+                      </div>
+                      <div className={`flex items-center gap-1.5 ${regPasswordStrength.checks.special ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
+                        <div className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] ${regPasswordStrength.checks.special ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                          ✓
+                        </div>
+                        <span>Special character</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
