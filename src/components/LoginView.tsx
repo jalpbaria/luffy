@@ -23,6 +23,7 @@ export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewPr
   const [loginPassword, setLoginPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [emailConfirmationNotice, setEmailConfirmationNotice] = useState('Check your Gmail for the confirmation of your email.');
 
   // Password reset fields
   const [isResetMode, setIsResetMode] = useState(false);
@@ -124,7 +125,11 @@ export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewPr
       const { data, error } = await signIn(loginEmail, loginPassword);
 
       if (error) {
-        setLoginError(error.message);
+        if (error.message?.toLowerCase().includes('confirm') || error.message?.toLowerCase().includes('email not confirmed')) {
+          setLoginError('Email not confirmed. Please check your Gmail for the confirmation of your email.');
+        } else {
+          setLoginError(`${error.message} (Note: Please check your Gmail for the confirmation of your email.)`);
+        }
         return;
       }
 
@@ -269,6 +274,9 @@ export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewPr
       const result = await onRegister(newUserPayload);
       if (result && !result.success) {
         setRegisterError(result.error || 'Failed to register profile.');
+      } else {
+        setEmailConfirmationNotice('Account created! Please check your Gmail for the confirmation of your email.');
+        setMode('login');
       }
     } catch (err: any) {
       setRegisterError(err.message || 'An error occurred during registration.');
@@ -388,6 +396,13 @@ export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewPr
             ) : (
               /* Standard Login Form */
               <form onSubmit={handleLoginSubmit} className="space-y-4">
+                {emailConfirmationNotice && (
+                  <div className="p-3 bg-blue-50/80 text-blue-900 border border-blue-200 rounded-xl flex items-start gap-2.5 text-xs font-medium">
+                    <Mail className="w-4 h-4 shrink-0 text-blue-600 mt-0.5" />
+                    <p className="leading-snug">{emailConfirmationNotice}</p>
+                  </div>
+                )}
+
                 {loginError && (
                   <div className="p-3 bg-amber-50 text-amber-900 border border-amber-200 rounded-xl flex items-start gap-2.5 text-xs">
                     <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />

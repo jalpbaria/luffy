@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Compass, LayoutDashboard, MessageSquare, Brain, User, 
   Sparkles, Globe, LogOut, ArrowLeftRight, Award, Flame, RefreshCw, Home,
-  Check, AlertCircle
+  Check, AlertCircle, Mail, X
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review, Skill } from './types';
 
@@ -35,6 +35,7 @@ export default function App() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showEmailNotice, setShowEmailNotice] = useState(true);
 
   // Password recovery modal state
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
@@ -1163,6 +1164,25 @@ export default function App() {
           Logout
         </button>
       </div>
+
+      {/* Email Confirmation Notice Banner */}
+      {showEmailNotice && (
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2.5 text-xs font-medium shadow-sm transition">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4 shrink-0 text-blue-200" />
+              <span>Please check your Gmail for the confirmation of your email.</span>
+            </div>
+            <button 
+              onClick={() => setShowEmailNotice(false)}
+              className="text-blue-100 hover:text-white hover:bg-white/20 p-1 rounded transition border-0 cursor-pointer flex items-center justify-center"
+              title="Dismiss notice"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
