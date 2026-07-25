@@ -12,9 +12,10 @@ interface LoginViewProps {
   onLogin: (user: UserProfile) => void;
   onRegister: (newUserPayload: Omit<UserProfile, 'id' | 'rating' | 'reviewsCount' | 'successfulExchanges' | 'credits' | 'badges'> & { id: string }) => Promise<{ success: boolean; error?: string }>;
   allUsers: UserProfile[];
+  accountDeletedNotice?: string;
 }
 
-export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewProps) {
+export default function LoginView({ onLogin, onRegister, allUsers, accountDeletedNotice }: LoginViewProps) {
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   
@@ -396,6 +397,13 @@ export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewPr
             ) : (
               /* Standard Login Form */
               <form onSubmit={handleLoginSubmit} className="space-y-4">
+                {accountDeletedNotice && (
+                  <div className="p-3 bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-xl flex items-start gap-2.5 text-xs font-semibold">
+                    <Check className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
+                    <p className="leading-snug">{accountDeletedNotice}</p>
+                  </div>
+                )}
+
                 {emailConfirmationNotice && (
                   <div className="p-3 bg-blue-50/80 text-blue-900 border border-blue-200 rounded-xl flex items-start gap-2.5 text-xs font-medium">
                     <Mail className="w-4 h-4 shrink-0 text-blue-600 mt-0.5" />

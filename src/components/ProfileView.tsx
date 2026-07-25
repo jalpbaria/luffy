@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   User, Mail, FileText, GraduationCap, Globe, Clock, Award, 
-  Trash2, Plus, Save, BookOpen, Link as LinkIcon, AlertCircle, Check, LogOut
+  Trash2, Plus, Save, BookOpen, Link as LinkIcon, AlertCircle, Check, LogOut,
+  AlertTriangle, Lock, Eye, EyeOff, X
 } from 'lucide-react';
 import { UserProfile, Skill } from '../types';
 
@@ -10,6 +11,7 @@ interface ProfileViewProps {
   onSaveProfile: (updatedProfile: UserProfile) => void;
   isSaving: boolean;
   onLogout?: () => void;
+  onDeleteAccount?: (password: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const CATEGORIES = [
@@ -18,7 +20,7 @@ const CATEGORIES = [
   'Public Speaking', 'Business'
 ];
 
-export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLogout }: ProfileViewProps) {
+export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLogout, onDeleteAccount }: ProfileViewProps) {
   // Local state for profile form fields
   const [name, setName] = useState(currentUser?.name ?? '');
   const [avatar, setAvatar] = useState(currentUser?.avatar ?? '');
@@ -50,6 +52,39 @@ export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLo
   const [newWantLvl, setNewWantLvl] = useState<'Beginner' | 'Intermediate' | 'Expert'>('Beginner');
 
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Delete Account Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const handleConfirmDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      setDeleteError('Please type DELETE to confirm account deletion.');
+      return;
+    }
+    if (!deletePassword) {
+      setDeleteError('Please enter your current password to verify your identity.');
+      return;
+    }
+
+    setDeleteError('');
+    setIsDeletingAccount(true);
+
+    if (onDeleteAccount) {
+      const res = await onDeleteAccount(deletePassword);
+      if (!res.success) {
+        setDeleteError(res.error || 'Failed to delete account. Please check your password and try again.');
+        setIsDeletingAccount(false);
+      }
+    } else {
+      setDeleteError('Account deletion service is not configured.');
+      setIsDeletingAccount(false);
+    }
+  };
 
   const handleToggleAvailability = (slot: 'Morning' | 'Afternoon' | 'Evening') => {
     if (availability.includes(slot)) {
@@ -518,6 +553,155 @@ export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLo
         </div>
 
       </form>
+
+      {/* Danger Zone Section */}
+      <div className="mt-10 pt-6 border-t border-slate-200">
+        <div className="bg-rose-50/70 border border-rose-200/90 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold text-rose-900 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-600" />
+              Danger Zone
+            </h4>
+            <p className="text-xs text-rose-700">
+              Permanently delete your account and all associated bookings, notifications, and profile data.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowDeleteModal(true);
+              setDeleteConfirmText('');
+              setDeletePassword('');
+              setDeleteError('');
+            }}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-xs transition shadow-sm flex items-center gap-1.5 cursor-pointer border-0 shrink-0"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Delete Account</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            
+            {/* Modal Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-rose-100 text-rose-600 rounded-xl">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Delete Account</h3>
+                  <p className="text-xs text-rose-600 font-semibold">This action cannot be undone</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText('');
+                  setDeletePassword('');
+                  setDeleteError('');
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg border-0 bg-transparent cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Warning Text */}
+            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 space-y-1.5">
+              <p className="font-bold flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                Permanent Data Removal
+              </p>
+              <p className="leading-relaxed text-rose-800">
+                Deleting your account will permanently wipe your profile, cancel pending bookings, delete notifications, and remove your chat history.
+              </p>
+            </div>
+
+            {/* Error Message */}
+            {deleteError && (
+              <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span className="leading-snug">{deleteError}</span>
+              </div>
+            )}
+
+            {/* Confirmation Inputs */}
+            <div className="space-y-3.5">
+              {/* Type DELETE field */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  To confirm, type <span className="text-rose-600 font-mono bg-rose-50 px-1 py-0.5 rounded border border-rose-200">DELETE</span>:
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                />
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Re-enter your current password:
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+                  <input
+                    type={showDeletePassword ? "text" : "password"}
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder="Your current password"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-9 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowDeletePassword(!showDeletePassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer p-0"
+                    title={showDeletePassword ? "Hide password" : "Show password"}
+                  >
+                    {showDeletePassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText('');
+                  setDeletePassword('');
+                  setDeleteError('');
+                }}
+                disabled={isDeletingAccount}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition cursor-pointer border-0"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteConfirmText !== 'DELETE' || !deletePassword || isDeletingAccount}
+                onClick={handleConfirmDeleteAccount}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer border-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {isDeletingAccount ? 'Deleting...' : 'Permanently Delete Account'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

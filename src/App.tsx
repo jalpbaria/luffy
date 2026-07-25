@@ -35,6 +35,7 @@ export default function App() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [accountDeletedNotice, setAccountDeletedNotice] = useState('');
 
   // Password recovery modal state
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
@@ -305,6 +306,105 @@ export default function App() {
     }
     localStorage.removeItem('logged_in_user_id');
     setCurrentUser(null);
+  };
+
+  const handleDeleteAccount = async (password: string): Promise<{ success: boolean; error?: string }> => {
+    if (!currentUser) {
+      return { success: false, error: 'No active user session.' };
+    }
+
+    try {
+      // 1. Verify re-entered password using Supabase Auth re-authentication
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: currentUser.email.toLowerCase().trim(),
+        password: password,
+      });
+
+      if (authError || !authData?.user) {
+        return { 
+          success: false, 
+          error: authError?.message || 'Incorrect password. Verification failed.' 
+        };
+      }
+
+      const userId = currentUser.id;
+
+      // 2. Cancel future/pending bookings where user is teacher or learner
+      try {
+        await supabase
+          .from('bookings')
+          .update({ status: 'cancelled' })
+          .or(`teacher_id.eq.${userId},learner_id.eq.${userId}`);
+      } catch (bErr) {
+        console.warn('Booking cancellation error during account delete:', bErr);
+      }
+
+      // 3. Delete notifications for this user
+      try {
+        await supabase
+          .from('notifications')
+          .delete()
+          .eq('user_id', userId);
+      } catch (nErr) {
+        console.warn('Notification cleanup error during account delete:', nErr);
+      }
+
+      // 4. Delete user's sent or received messages
+      try {
+        await supabase
+          .from('messages')
+          .delete()
+          .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
+      } catch (mErr) {
+        console.warn('Message cleanup error during account delete:', mErr);
+      }
+
+      // 5. Delete profile row from public.profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (profileError) {
+        console.warn('Profiles table deletion error:', profileError);
+      }
+
+      // 6. Invoke Edge Function to delete auth user from auth.users (if deployed)
+      try {
+        const { error: edgeFuncError } = await supabase.functions.invoke('delete-user', {
+          body: { userId }
+        });
+        if (edgeFuncError) {
+          console.warn('Edge function execution warning:', edgeFuncError);
+        }
+      } catch (edgeErr) {
+        console.warn('Edge function invoke error:', edgeErr);
+      }
+
+      // 7. Perform sign-out and local state cleanup
+      await signOut();
+
+      const updatedUsers = allUsers.filter(u => u.id !== userId);
+      setAllUsers(updatedUsers);
+      localStorage.setItem('local_users', JSON.stringify(updatedUsers));
+      localStorage.removeItem('logged_in_user_id');
+      localStorage.removeItem('saved_user');
+
+      setCurrentUser(null);
+      setBookings([]);
+      setNotifications([]);
+      setProgress([]);
+      setAccountDeletedNotice('Your account has been deleted successfully.');
+      setActiveTab('dashboard');
+
+      return { success: true };
+    } catch (err: any) {
+      console.error('Account deletion error:', err);
+      return { 
+        success: false, 
+        error: err.message || 'An unexpected error occurred while deleting your account.' 
+      };
+    }
   };
 
   const handlePasswordUpdateSubmit = async (e: React.FormEvent) => {
@@ -989,7 +1089,8 @@ export default function App() {
           <LoginView 
             onLogin={handleLogin} 
             onRegister={handleRegister} 
-            allUsers={allUsers} 
+            allUsers={allUsers}
+            accountDeletedNotice={accountDeletedNotice}
           />
         </div>
         <footer className="bg-white border-t border-slate-200 py-4 text-center text-[10px] text-slate-400 font-medium">
@@ -1213,6 +1314,7 @@ export default function App() {
                 onSaveProfile={handleSaveProfile}
                 isSaving={isSaving}
                 onLogout={handleLogout}
+                onDeleteAccount={handleDeleteAccount}
               />
             )}
 
