@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Award, Calendar, Clock, Star, MessageSquare, CheckCircle, AlertCircle, Trash2, 
-  RefreshCw, Check, X, ShieldAlert, BookOpen, ThumbsUp, Trophy, ChevronRight, UserMinus, Plus
+  RefreshCw, Check, X, ShieldAlert, BookOpen, ThumbsUp, Trophy, ChevronRight, UserMinus, Plus, Video
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review } from '../types';
 
@@ -16,6 +16,7 @@ interface DashboardViewProps {
   onMarkNotificationRead: (notifId: string) => void;
   onDeleteNotification: (notifId: string) => void;
   allUsers: UserProfile[];
+  onStartLiveSession?: (booking: Booking) => void;
 }
 
 export default function DashboardView({
@@ -27,7 +28,8 @@ export default function DashboardView({
   onLeaveReview,
   onMarkNotificationRead,
   onDeleteNotification,
-  allUsers
+  allUsers,
+  onStartLiveSession
 }: DashboardViewProps) {
   const [activeTab, setActiveTab] = useState<'sessions' | 'progress' | 'notifications'>('sessions');
   const [showRescheduleId, setShowRescheduleId] = useState<string | null>(null);
@@ -271,6 +273,15 @@ export default function DashboardView({
 
                             {/* Booking Action Buttons */}
                             <div className="flex flex-wrap items-center gap-2 justify-end pt-1">
+                              {b.status === 'confirmed' && (
+                                <button
+                                  onClick={() => onStartLiveSession?.(b)}
+                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                                >
+                                  <Video className="w-3.5 h-3.5" /> Join Live Classroom
+                                </button>
+                              )}
+
                               {b.status !== 'cancelled' && b.status !== 'completed' && (
                                 <>
                                   <button
@@ -403,12 +414,20 @@ export default function DashboardView({
                               )}
 
                               {b.status === 'confirmed' && (
-                                <button
-                                  onClick={() => onUpdateBookingStatus(b.id, 'completed', currentUser.id)}
-                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold transition flex items-center gap-1"
-                                >
-                                  <CheckCircle className="w-3.5 h-3.5" /> Complete Swap (+1 Credit)
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => onStartLiveSession?.(b)}
+                                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                                  >
+                                    <Video className="w-3.5 h-3.5" /> Join Live Classroom
+                                  </button>
+                                  <button
+                                    onClick={() => onUpdateBookingStatus(b.id, 'completed', currentUser.id)}
+                                    className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-md font-semibold transition flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" /> Complete Swap (+1 Credit)
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>

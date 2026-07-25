@@ -5,7 +5,8 @@ import {
   Sparkles, Globe, LogOut, ArrowLeftRight, Award, Flame, RefreshCw, Home,
   Check, AlertCircle, Mail, X, BookOpen
 } from 'lucide-react';
-import { UserProfile, Booking, AppNotification, ProgressTrack, Review, Skill } from './types';
+import { UserProfile, Booking, AppNotification, ProgressTrack, Review, Skill, LiveSession } from './types';
+import { getOrCreateLiveSessionForBooking, fetchLiveSessionsForUser, updateLiveSessionStatus } from './lib/liveSessions';
 
 // Import our modular components
 import DashboardView from './components/DashboardView';
@@ -14,6 +15,7 @@ import ChatView from './components/ChatView';
 import ProfileView from './components/ProfileView';
 import StudyHubView from './components/StudyHubView';
 import LoginView from './components/LoginView';
+import LiveSessionRoomView from './components/LiveSessionRoomView';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
 
@@ -24,7 +26,7 @@ import { fallbackUsers, fallbackBookings, fallbackNotifications, fallbackProgres
 
 export default function App() {
   const { signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'study-hub' | 'profile'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'study-hub' | 'profile' | 'live-room'>('dashboard');
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   
@@ -32,10 +34,82 @@ export default function App() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [progress, setProgress] = useState<ProgressTrack[]>([]);
+  const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
+
+  // Active live classroom session
+  const [activeLiveSessionBooking, setActiveLiveSessionBooking] = useState<Booking | null>(null);
+  const [activeLiveSessionData, setActiveLiveSessionData] = useState<LiveSession | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [accountDeletedNotice, setAccountDeletedNotice] = useState('');
+
+  const handleStartLiveSession = async (booking: Booking) => {
+    if (!currentUser) {
+      alert('Please log in to join the live session.');
+      return;
+    }
+
+    // 1. Check user is actually the teacher or learner for this booking
+    const isParticipant = currentUser.id === booking.teacherId || currentUser.id === booking.learnerId;
+    if (!isParticipant) {
+      alert('Access Denied: You are not a participant in this booking session.');
+      return;
+    }
+
+    // 2. Check booking status (cancelled, completed, or unconfirmed)
+    if (booking.status === 'cancelled') {
+      alert('Cannot join: This session booking has been cancelled.');
+      return;
+    }
+
+    if (booking.status === 'completed') {
+      alert('This live classroom session has already been completed.');
+      return;
+    }
+
+    if (booking.status !== 'confirmed') {
+      alert(`Cannot join: This booking status is currently "${booking.status}". Only confirmed sessions can launch the live classroom.`);
+      return;
+    }
+
+    // 5. Check scheduled session time proximity
+    const todayISO = new Date().toISOString().split('T')[0];
+    const bookingDateObj = new Date(booking.date);
+    const todayObj = new Date(todayISO);
+    const diffDays = Math.ceil((bookingDateObj.getTime() - todayObj.getTime()) / (1000 * 3600 * 24));
+
+    if (diffDays > 1) {
+      const confirmEarly = window.confirm(
+        `This session is scheduled for ${booking.date} (${booking.timeSlot}). Would you like to enter the classroom early to test your camera and microphone?`
+      );
+      if (!confirmEarly) return;
+    }
+
+    try {
+      setIsLoading(true);
+      const session = await getOrCreateLiveSessionForBooking(booking);
+
+      if (session.status === 'cancelled') {
+        alert('Cannot join: The live session has been cancelled.');
+        return;
+      }
+
+      if (session.status === 'ended') {
+        alert('This live session has ended.');
+        return;
+      }
+
+      setActiveLiveSessionBooking(booking);
+      setActiveLiveSessionData(session);
+      setActiveTab('live-room');
+    } catch (err) {
+      console.error('Failed to launch live session:', err);
+      alert('Failed to connect to live classroom. Please check your network connection.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Password recovery modal state
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
@@ -428,6 +502,15 @@ export default function App() {
       }
       setBookings(bookData);
 
+      // Ensure confirmed Live 1-on-1 bookings have a private live session initialized
+      bookData.forEach(async (b) => {
+        if (b.status === 'confirmed' && b.learningOption === 'Live 1-on-1 Session') {
+          try {
+            await getOrCreateLiveSessionForBooking(b);
+          } catch {}
+        }
+      });
+
       // 2. Fetch Notifications
       let notifData: AppNotification[] = [];
       try {
@@ -466,6 +549,14 @@ export default function App() {
         localStorage.setItem(`local_progress_${userId}`, JSON.stringify(progData));
       }
       setProgress(progData);
+
+      // 4. Fetch Live Sessions
+      try {
+        const userLiveSessions = await fetchLiveSessionsForUser(userId);
+        setLiveSessions(userLiveSessions);
+      } catch (lsErr) {
+        console.warn('Failed to fetch live sessions:', lsErr);
+      }
     } catch (err) {
       console.error('Error loading user-specific data:', err);
     }
@@ -725,6 +816,14 @@ export default function App() {
           console.warn('Failed to update progress tracker:', progErr);
         }
 
+        // If booking is completed, update connected live session if exists
+        try {
+          const liveSession = await getOrCreateLiveSessionForBooking(booking);
+          await updateLiveSessionStatus(liveSession.id, 'ended', { endTime: new Date().toISOString() });
+        } catch (lsErr) {
+          console.warn('[App] Error marking live session ended:', lsErr);
+        }
+
         // Add notifications
         await supabase.from('notifications').insert([
           {
@@ -746,6 +845,14 @@ export default function App() {
         ]);
 
       } else if (status === 'cancelled' && oldStatus !== 'cancelled') {
+        // Mark connected live session as cancelled
+        try {
+          const liveSession = await getOrCreateLiveSessionForBooking(booking);
+          await updateLiveSessionStatus(liveSession.id, 'cancelled');
+        } catch (lsErr) {
+          console.warn('[App] Error cancelling connected live session:', lsErr);
+        }
+
         // Refund 1 credit to learner profile
         const learner = allUsers.find(u => u.id === booking.learnerId);
         if (learner) {
@@ -798,15 +905,27 @@ export default function App() {
           timestamp: new Date().toISOString()
         });
 
-      } else if (status === 'confirmed' && oldStatus === 'pending') {
-        await supabase.from('notifications').insert({
-          user_id: booking.learnerId,
-          title: 'Booking Confirmed!',
-          message: `${booking.teacherName} accepted your session for ${booking.skillName} on ${extraFields?.date || booking.date}.`,
-          type: 'upcoming',
-          read: false,
-          timestamp: new Date().toISOString()
-        });
+      } else if (status === 'confirmed') {
+        // Create or retrieve the private live session for this booking
+        let sessionRoomId = '';
+        try {
+          const liveSession = await getOrCreateLiveSessionForBooking(booking);
+          sessionRoomId = liveSession.id;
+          console.log('[App] Created/verified LiveSession for booking:', booking.id, 'Room:', sessionRoomId);
+        } catch (lsErr) {
+          console.warn('[App] Failed creating LiveSession on confirmation:', lsErr);
+        }
+
+        if (oldStatus === 'pending') {
+          await supabase.from('notifications').insert({
+            user_id: booking.learnerId,
+            title: 'Booking Confirmed!',
+            message: `${booking.teacherName} accepted your session for ${booking.skillName} on ${extraFields?.date || booking.date}. Private live session room is ready.`,
+            type: 'upcoming',
+            read: false,
+            timestamp: new Date().toISOString()
+          });
+        }
       }
 
       updateSucceeded = true;
@@ -1251,6 +1370,34 @@ export default function App() {
                 onMarkNotificationRead={handleMarkNotificationRead}
                 onDeleteNotification={handleDeleteNotification}
                 allUsers={allUsers}
+                onStartLiveSession={handleStartLiveSession}
+              />
+            )}
+
+            {activeTab === 'live-room' && activeLiveSessionBooking && activeLiveSessionData && (
+              <LiveSessionRoomView 
+                booking={activeLiveSessionBooking}
+                liveSession={activeLiveSessionData}
+                currentUser={currentUser}
+                otherUser={
+                  allUsers.find(u => u.id === (currentUser.id === activeLiveSessionBooking.teacherId ? activeLiveSessionBooking.learnerId : activeLiveSessionBooking.teacherId))
+                  || {
+                    id: currentUser.id === activeLiveSessionBooking.teacherId ? activeLiveSessionBooking.learnerId : activeLiveSessionBooking.teacherId,
+                    name: currentUser.id === activeLiveSessionBooking.teacherId ? activeLiveSessionBooking.learnerName : activeLiveSessionBooking.teacherName,
+                    email: 'swapper@exchange.com',
+                    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+                    skillsToTeach: [],
+                    skillsToLearn: [],
+                    credits: 1,
+                    completedSwapsCount: 0,
+                    badges: []
+                  }
+                }
+                onLeave={() => {
+                  setActiveLiveSessionBooking(null);
+                  setActiveLiveSessionData(null);
+                  setActiveTab('dashboard');
+                }}
               />
             )}
 

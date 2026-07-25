@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { UserProfile, Booking, AppNotification, Message } from '../types';
+import { UserProfile, Booking, AppNotification, Message, LiveSession } from '../types';
 
 const metaEnv = (import.meta as any).env || {};
 const supabaseUrl = metaEnv.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
@@ -156,6 +156,35 @@ export function mapMessageToSupabase(msg: Message): any {
   };
   if (msg.id && !msg.id.startsWith('msg-')) {
     row.id = msg.id;
+  }
+  return row;
+}
+
+export function mapSupabaseToLiveSession(row: any): LiveSession {
+  return {
+    id: row.id,
+    bookingId: row.booking_id,
+    teacherId: row.teacher_id,
+    learnerId: row.learner_id,
+    status: row.status || 'scheduled',
+    startTime: row.start_time || new Date().toISOString(),
+    endTime: row.end_time || undefined,
+    createdAt: row.created_at || new Date().toISOString()
+  };
+}
+
+export function mapLiveSessionToSupabase(session: LiveSession): any {
+  const row: any = {
+    booking_id: session.bookingId,
+    teacher_id: session.teacherId,
+    learner_id: session.learnerId,
+    status: session.status,
+    start_time: session.startTime,
+    end_time: session.endTime || null,
+    created_at: session.createdAt
+  };
+  if (session.id && !session.id.startsWith('session-')) {
+    row.id = session.id;
   }
   return row;
 }

@@ -49,6 +49,19 @@ export type LearningOption =
   | 'Recorded Video'
   | 'Project-Based Learning';
 
+export type LiveSessionStatus = 'scheduled' | 'waiting' | 'live' | 'ended' | 'cancelled';
+
+export interface LiveSession {
+  id: string;
+  bookingId: string;
+  teacherId: string;
+  learnerId: string;
+  status: LiveSessionStatus;
+  startTime: string; // ISO timestamp
+  endTime?: string;  // ISO timestamp
+  createdAt: string;
+}
+
 export interface Booking {
   id: string;
   teacherId: string;
@@ -117,4 +130,5 @@ export interface DBState {
   reviews: Review[];
   notifications: AppNotification[];
   progress: ProgressTrack[];
+  liveSessions?: LiveSession[];
 }
