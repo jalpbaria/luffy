@@ -1185,45 +1185,45 @@ export default function App() {
       </header>
 
       {/* Mobile Navigation Header */}
-      <div className="md:hidden sticky top-14 bg-white border-b border-slate-150 z-30 flex items-center justify-around py-2.5 text-[10px] font-bold text-slate-500 shadow-xs">
+      <div className="md:hidden sticky top-14 bg-white border-b border-slate-150 z-30 flex items-center justify-around py-1 text-[10px] font-bold text-slate-500 shadow-xs">
         <button 
           onClick={() => setActiveTab('dashboard')}
-          className={`flex flex-col items-center gap-1 ${activeTab === 'dashboard' ? 'text-indigo-600' : ''}`}
+          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'dashboard' ? 'text-indigo-600' : ''}`}
         >
           <Home className="w-4 h-4" />
           Home
         </button>
         <button 
           onClick={() => setActiveTab('explore')}
-          className={`flex flex-col items-center gap-1 ${activeTab === 'explore' ? 'text-indigo-600' : ''}`}
+          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'explore' ? 'text-indigo-600' : ''}`}
         >
           <Compass className="w-4 h-4" />
           Swappers
         </button>
         <button 
           onClick={() => setActiveTab('chat')}
-          className={`flex flex-col items-center gap-1 ${activeTab === 'chat' ? 'text-indigo-600' : ''}`}
+          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'chat' ? 'text-indigo-600' : ''}`}
         >
           <MessageSquare className="w-4 h-4" />
           Chat
         </button>
         <button 
           onClick={() => setActiveTab('ai-recs')}
-          className={`flex flex-col items-center gap-1 ${activeTab === 'ai-recs' ? 'text-indigo-600' : ''}`}
+          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'ai-recs' ? 'text-indigo-600' : ''}`}
         >
           <Brain className="w-4 h-4" />
           Advisor
         </button>
         <button 
           onClick={() => setActiveTab('profile')}
-          className={`flex flex-col items-center gap-1 ${activeTab === 'profile' ? 'text-indigo-600' : ''}`}
+          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'profile' ? 'text-indigo-600' : ''}`}
         >
           <User className="w-4 h-4" />
           Profile
         </button>
         <button 
           onClick={handleLogout}
-          className="flex flex-col items-center gap-1 text-slate-500 hover:text-red-600"
+          className="flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 text-slate-500 hover:text-red-600"
         >
           <LogOut className="w-4 h-4" />
           Logout
@@ -1231,7 +1231,7 @@ export default function App() {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-4 sm:py-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

@@ -102,7 +102,7 @@ export default function DashboardView({
         </div>
 
         {/* Dynamic Credit Counter & Badges */}
-        <div className="flex flex-row md:flex-col gap-3 flex-shrink-0 relative z-10">
+        <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0 relative z-10">
           <div className="bg-white/10 backdrop-blur-xs border border-white/10 rounded-xl p-4 flex items-center gap-4">
             <div className="w-12 h-12 bg-indigo-500 rounded-lg flex items-center justify-center text-2xl shadow-sm">
               ✨

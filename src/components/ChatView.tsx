@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Send, Phone, Paperclip, Mic, MicOff, 
-  X, PhoneOff, Circle, Check, CheckCheck, Smile, HelpCircle, FileText, Image, Globe
+  X, PhoneOff, Circle, Check, CheckCheck, Smile, HelpCircle, FileText, Image, Globe, ArrowLeft
 } from 'lucide-react';
 import { UserProfile, Message } from '../types';
 import { supabase, mapSupabaseToMessage, mapMessageToSupabase } from '../lib/supabase';
@@ -655,10 +655,10 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
   };
 
   return (
-    <div id="chat-view-root" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex h-[620px] text-xs text-slate-700">
+    <div id="chat-view-root" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row h-[calc(100vh-140px)] min-h-[500px] max-h-[680px] md:h-[620px] text-xs text-slate-700">
       
       {/* Sidebar Contacts List */}
-      <div className="w-64 border-r border-slate-200 flex flex-col bg-slate-50">
+      <div className={`w-full md:w-64 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col bg-slate-50 shrink-0 h-full ${activeContactId ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-slate-200">
           <h3 className="font-semibold text-slate-800 text-sm">Direct Contacts</h3>
           <p className="text-slate-400 text-[10px] mt-0.5">Click a contact to exchange messages</p>
@@ -694,7 +694,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                   src={contact.avatar} 
                   alt={contact.name} 
                   referrerPolicy="no-referrer"
-                  className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                  className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
@@ -710,20 +710,28 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
       </div>
 
       {/* Primary Conversation Screen */}
-      <div className="flex-1 flex flex-col bg-white relative">
+      <div className={`flex-1 flex flex-col bg-white relative h-full min-h-0 ${!activeContactId ? 'hidden md:flex' : 'flex'}`}>
         {activeContact ? (
           <>
             {/* Conversation Header */}
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <div className="flex items-center gap-3">
+            <div className="p-3 sm:p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <button
+                  onClick={() => setActiveContactId(null)}
+                  className="md:hidden p-1.5 -ml-1 text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 rounded-lg transition shrink-0 cursor-pointer border-0 bg-transparent flex items-center justify-center min-w-[36px] min-h-[36px]"
+                  title="Back to swappers list"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+
                 <img 
                   src={activeContact.avatar} 
                   alt={activeContact.name} 
                   referrerPolicy="no-referrer"
-                  className="w-9 h-9 rounded-full object-cover border border-slate-200"
+                  className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0"
                 />
-                <div>
-                  <h4 className="font-semibold text-slate-800 text-sm">{activeContact.name}</h4>
+                <div className="min-w-0">
+                  <h4 className="font-semibold text-slate-800 text-xs sm:text-sm truncate">{activeContact.name}</h4>
                   {(() => {
                     const isContactOnline = onlineUsers[activeContact.id] || DEFAULT_USER_IDS.includes(activeContact.id);
                     return (
@@ -736,7 +744,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
               </div>
 
               {/* Call Control Triggers */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={() => triggerCall()}
                   className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-slate-150 rounded-lg transition cursor-pointer"
@@ -748,7 +756,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
             </div>
 
             {/* Messages Feed */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50/40">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3.5 bg-slate-50/40 min-h-0">
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center h-full text-slate-400">
                   <span>Loading chat history...</span>
@@ -759,28 +767,28 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                   return (
                     <div 
                       key={m.id}
-                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} w-full`}
                     >
-                      <div className={`max-w-[70%] p-3 rounded-2xl shadow-xs space-y-1 ${
+                      <div className={`max-w-[85%] sm:max-w-[75%] p-3 rounded-2xl shadow-xs space-y-1 min-w-0 break-words overflow-hidden ${
                         isCurrentUser ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'
                       }`}>
                         
                         {/* File asset layout */}
                         {m.fileName && (
-                          <div className={`p-2 rounded-lg border flex items-center gap-2 mb-1.5 ${
+                          <div className={`p-2 rounded-lg border flex items-center gap-2 mb-1.5 min-w-0 ${
                             isCurrentUser ? 'bg-white/10 border-white/15 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                           }`}>
-                            <FileText className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-                            <div className="min-w-0">
+                            <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
+                            <div className="min-w-0 flex-1">
                               <p className="font-semibold text-[10px] truncate leading-tight">{m.fileName}</p>
-                              <span className="text-[9px] opacity-75">Simulated resource attachment</span>
+                              <span className="text-[9px] opacity-75 block truncate">Simulated resource attachment</span>
                             </div>
                           </div>
                         )}
 
-                        <p className="leading-relaxed text-xs break-words">{m.text}</p>
+                        <p className="leading-relaxed text-xs break-words whitespace-pre-wrap max-w-full">{m.text}</p>
                         
-                        <div className="flex items-center justify-end gap-1 text-[9px] opacity-70">
+                        <div className="flex items-center justify-end gap-1 text-[9px] opacity-70 shrink-0">
                           <span>{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           {isCurrentUser && (
                             <CheckCheck className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -807,7 +815,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
             </div>
 
             {/* Text Input Footer */}
-            <div className="p-3 border-t border-slate-200 bg-white flex items-center gap-2">
+            <div className="p-2.5 sm:p-3 border-t border-slate-200 bg-white flex items-center gap-2 sticky bottom-0 z-10 shrink-0">
               <input 
                 type="file" 
                 ref={fileInputRef}
@@ -816,7 +824,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
                 title="Share simulated file"
               >
                 <Paperclip className="w-4 h-4" />
@@ -824,16 +832,16 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
 
               <input
                 type="text"
-                placeholder="Type your message, share files, or coordinate calendar slots..."
+                placeholder="Type your message..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputText)}
-                className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
 
               <button
                 onClick={() => handleSendMessage(inputText)}
-                className="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition"
+                className="p-2.5 sm:p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
               >
                 <Send className="w-3.5 h-3.5" />
               </button>
