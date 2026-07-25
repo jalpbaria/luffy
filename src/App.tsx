@@ -12,7 +12,6 @@ import DashboardView from './components/DashboardView';
 import ExploreView from './components/ExploreView';
 import ChatView from './components/ChatView';
 import ProfileView from './components/ProfileView';
-import AIRecommendations from './components/AIRecommendations';
 import StudyHubView from './components/StudyHubView';
 import LoginView from './components/LoginView';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification } from './lib/supabase';
@@ -25,7 +24,7 @@ import { fallbackUsers, fallbackBookings, fallbackNotifications, fallbackProgres
 
 export default function App() {
   const { signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'study-hub' | 'ai-recs' | 'profile'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'study-hub' | 'profile'>('dashboard');
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   
@@ -1137,17 +1136,6 @@ export default function App() {
               <span>Study Hub</span>
             </button>
             <button
-              onClick={() => setActiveTab('ai-recs')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
-                activeTab === 'ai-recs' 
-                  ? 'bg-indigo-50 text-indigo-700' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <Brain className="w-3.5 h-3.5" />
-              Skill Advisor
-            </button>
-            <button
               onClick={() => setActiveTab('profile')}
               className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
                 activeTab === 'profile' 
@@ -1227,13 +1215,6 @@ export default function App() {
           Study
         </button>
         <button 
-          onClick={() => setActiveTab('ai-recs')}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'ai-recs' ? 'text-indigo-600' : ''}`}
-        >
-          <Brain className="w-4 h-4" />
-          Advisor
-        </button>
-        <button 
           onClick={() => setActiveTab('profile')}
           className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'profile' ? 'text-indigo-600' : ''}`}
         >
@@ -1305,13 +1286,6 @@ export default function App() {
             {activeTab === 'study-hub' && (
               <StudyHubView 
                 currentUser={currentUser}
-              />
-            )}
-
-            {activeTab === 'ai-recs' && (
-              <AIRecommendations 
-                currentUser={currentUser}
-                onSelectRecommendedSkill={handleSelectRecommendedSkill}
               />
             )}
           </motion.div>
