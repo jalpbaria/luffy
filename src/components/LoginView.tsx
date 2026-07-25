@@ -23,7 +23,7 @@ export default function LoginView({ onLogin, onRegister, allUsers }: LoginViewPr
   const [loginPassword, setLoginPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const [emailConfirmationNotice, setEmailConfirmationNotice] = useState('Check your Gmail for the confirmation of your email.');
+  const [emailConfirmationNotice, setEmailConfirmationNotice] = useState('');
 
   // Password reset fields
   const [isResetMode, setIsResetMode] = useState(false);
