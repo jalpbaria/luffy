@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Compass, LayoutDashboard, MessageSquare, Brain, User, 
   Sparkles, Globe, LogOut, ArrowLeftRight, Award, Flame, RefreshCw, Home,
-  Check, AlertCircle, Mail, X
+  Check, AlertCircle, Mail, X, BookOpen
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review, Skill } from './types';
 
@@ -13,6 +13,7 @@ import ExploreView from './components/ExploreView';
 import ChatView from './components/ChatView';
 import ProfileView from './components/ProfileView';
 import AIRecommendations from './components/AIRecommendations';
+import StudyHubView from './components/StudyHubView';
 import LoginView from './components/LoginView';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
@@ -24,7 +25,7 @@ import { fallbackUsers, fallbackBookings, fallbackNotifications, fallbackProgres
 
 export default function App() {
   const { signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'profile' | 'ai-recs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'study-hub' | 'ai-recs' | 'profile'>('dashboard');
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   
@@ -1125,6 +1126,17 @@ export default function App() {
               Chat & Live Call
             </button>
             <button
+              onClick={() => setActiveTab('study-hub')}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+                activeTab === 'study-hub' 
+                  ? 'bg-emerald-50 text-emerald-800 font-semibold' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Study Hub</span>
+            </button>
+            <button
               onClick={() => setActiveTab('ai-recs')}
               className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
                 activeTab === 'ai-recs' 
@@ -1208,6 +1220,13 @@ export default function App() {
           Chat
         </button>
         <button 
+          onClick={() => setActiveTab('study-hub')}
+          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'study-hub' ? 'text-emerald-700 font-bold' : ''}`}
+        >
+          <BookOpen className="w-4 h-4 text-emerald-600" />
+          Study
+        </button>
+        <button 
           onClick={() => setActiveTab('ai-recs')}
           className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'ai-recs' ? 'text-indigo-600' : ''}`}
         >
@@ -1280,6 +1299,12 @@ export default function App() {
                 isSaving={isSaving}
                 onLogout={handleLogout}
                 onDeleteAccount={handleDeleteAccount}
+              />
+            )}
+
+            {activeTab === 'study-hub' && (
+              <StudyHubView 
+                currentUser={currentUser}
               />
             )}
 
