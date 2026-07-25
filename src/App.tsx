@@ -94,47 +94,12 @@ export default function App() {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
+            const userId = session.user.id;
             const userEmail = session.user.email?.toLowerCase().trim();
-            initialUser = data.find((u: any) => u.email?.toLowerCase().trim() === userEmail);
+            initialUser = data.find((u: any) => u.id === userId || u.email?.toLowerCase().trim() === userEmail);
             
             if (!initialUser) {
-              // Create dynamic profile if user exists in Supabase Auth but not in JSON db
-              const uniqueId = session.user.id;
-              const dummyProfile: UserProfile = {
-                id: uniqueId,
-                name: session.user.email?.split('@')[0] || 'User',
-                email: session.user.email || '',
-                avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80`,
-                bio: 'Self-starter on Skill Swap!',
-                education: 'Self-taught practitioner',
-                experience: 'Enthusiastic explorer',
-                languages: ['English'],
-                availability: ['Morning', 'Afternoon'] as any,
-                skillLevel: 'Beginner' as any,
-                portfolio: {},
-                skillsOffered: [],
-                skillsWanted: [],
-                timeZone: 'EST',
-                rating: 5,
-                reviewsCount: 0,
-                successfulExchanges: 0,
-                credits: 5,
-                badges: []
-              };
-              
-              try {
-                const mappedRow = mapProfileToSupabase(dummyProfile);
-                const { error: insertErr } = await supabase.from('profiles').upsert(mappedRow);
-                if (!insertErr) {
-                  initialUser = dummyProfile;
-                  data.push(initialUser);
-                  setAllUsers([...data]);
-                } else {
-                  initialUser = dummyProfile;
-                }
-              } catch {
-                initialUser = dummyProfile;
-              }
+              console.error(`Account data not found in profiles table for session user ID ${userId} (${userEmail}). Please contact support.`);
             }
           }
         } catch (sessionErr) {

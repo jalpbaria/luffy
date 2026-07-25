@@ -126,41 +126,23 @@ export default function LoginView({ onLogin, onRegister, allUsers, accountDelete
       const { data, error } = await signIn(loginEmail, loginPassword);
 
       if (error) {
-        if (error.message?.toLowerCase().includes('confirm') || error.message?.toLowerCase().includes('email not confirmed')) {
-          setLoginError('Email not confirmed. Please check your Gmail for the confirmation of your email.');
-        } else {
-          setLoginError(`${error.message} (Note: Please check your Gmail for the confirmation of your email.)`);
-        }
+        setLoginError(error.message);
         return;
       }
 
-      // Try finding user by email in database
+      // Find user by ID or email in profile records
+      const authUserId = data.user?.id;
+      const cleanEmail = loginEmail.toLowerCase().trim();
+
       const matchedUser = allUsers.find(
-        u => u.email.toLowerCase().trim() === loginEmail.toLowerCase().trim()
+        u => (authUserId && u.id === authUserId) || u.email.toLowerCase().trim() === cleanEmail
       );
 
       if (matchedUser) {
         onLogin(matchedUser);
       } else {
-        // Create an on-the-fly profile if it doesn't exist in local/JSON database yet
-        const uniqueId = data.user?.id || `user-${Date.now()}`;
-        const dummyProfile = {
-          id: uniqueId,
-          name: loginEmail.split('@')[0],
-          email: loginEmail.toLowerCase().trim(),
-          avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80`,
-          bio: 'Self-starter on Skill Swap!',
-          education: 'Self-taught practitioner',
-          experience: 'Enthusiastic explorer',
-          languages: ['English'],
-          availability: ['Morning', 'Afternoon'] as any,
-          skillLevel: 'Beginner' as any,
-          portfolio: {},
-          skillsOffered: [],
-          skillsWanted: [],
-          timeZone: 'EST'
-        };
-        await onRegister(dummyProfile);
+        console.error("Account data not found. Auth user ID mismatch for user ID:", authUserId, "email:", cleanEmail);
+        setLoginError("Account data not found. Please contact support.");
       }
     } catch (err: any) {
       setLoginError(err.message || 'An error occurred during sign in.');
