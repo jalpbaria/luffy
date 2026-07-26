@@ -33,7 +33,8 @@ export function mapSupabaseToProfile(row: any): UserProfile {
     successfulExchanges: row.successful_exchanges || 0,
     credits: row.credits || 0,
     timeZone: row.time_zone || 'EST',
-    badges: Array.isArray(row.badges) ? row.badges : []
+    badges: Array.isArray(row.badges) ? row.badges : [],
+    hasSeenOnboarding: row.has_seen_onboarding ?? true
   };
 }
 
@@ -62,7 +63,8 @@ export function mapProfileToSupabase(profile: UserProfile): any {
     successful_exchanges: profile.successfulExchanges,
     credits: profile.credits,
     time_zone: profile.timeZone,
-    badges: profile.badges
+    badges: profile.badges,
+    has_seen_onboarding: profile.hasSeenOnboarding ?? false
   };
 }
 

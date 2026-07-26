@@ -39,6 +39,7 @@ export interface UserProfile {
   credits: number;
   timeZone: string;
   badges: Badge[];
+  hasSeenOnboarding?: boolean;
 }
 
 export type LearningOption =

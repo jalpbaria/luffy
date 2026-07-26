@@ -26,8 +26,11 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   successful_exchanges integer DEFAULT 0,
   credits integer DEFAULT 5,
   time_zone text,
-  badges jsonb DEFAULT '[]'::jsonb
+  badges jsonb DEFAULT '[]'::jsonb,
+  has_seen_onboarding boolean DEFAULT false
 );
+
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS has_seen_onboarding boolean DEFAULT false;
 
 -- Enable Row Level Security
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;

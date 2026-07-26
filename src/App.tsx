@@ -16,6 +16,7 @@ import ProfileView from './components/ProfileView';
 import StudyHubView from './components/StudyHubView';
 import LoginView from './components/LoginView';
 import LiveSessionRoomView from './components/LiveSessionRoomView';
+import OnboardingTour from './components/OnboardingTour';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
 
@@ -49,6 +50,32 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [accountDeletedNotice, setAccountDeletedNotice] = useState('');
+  const [showOnboardingTour, setShowOnboardingTour] = useState(false);
+
+  useEffect(() => {
+    if (currentUser && currentUser.hasSeenOnboarding === false) {
+      setShowOnboardingTour(true);
+    }
+  }, [currentUser?.id, currentUser?.hasSeenOnboarding]);
+
+  const handleCompleteOnboarding = async () => {
+    setShowOnboardingTour(false);
+    if (!currentUser) return;
+
+    const updatedUser = { ...currentUser, hasSeenOnboarding: true };
+    setCurrentUser(updatedUser);
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ has_seen_onboarding: true })
+        .eq('id', currentUser.id);
+    } catch (err) {
+      console.warn('Failed to update has_seen_onboarding in Supabase:', err);
+    }
+
+    setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+  };
 
   const handleStartLiveSession = async (booking: Booking) => {
     if (!currentUser) {
@@ -412,7 +439,8 @@ export default function App() {
         reviewsCount: 0,
         successfulExchanges: 0,
         credits: 5,
-        badges: []
+        badges: [],
+        hasSeenOnboarding: false
       };
       const mappedRow = mapProfileToSupabase(fullPayload);
       const { data: dbData, error: dbError } = await supabase
@@ -428,7 +456,10 @@ export default function App() {
         return { success: false, error: 'Registration failed: profile could not be created in database.' };
       }
 
-      const registeredUser = mapSupabaseToProfile(dbData[0]);
+      const registeredUser = {
+        ...mapSupabaseToProfile(dbData[0]),
+        hasSeenOnboarding: false
+      };
 
       setIsLoading(true);
 
@@ -442,6 +473,7 @@ export default function App() {
 
       localStorage.setItem('logged_in_user_id', registeredUser.id);
       setCurrentUser(registeredUser);
+      setShowOnboardingTour(true);
       await loadUserSpecificData(registeredUser.id);
       setIsLoading(false);
       return { success: true };
@@ -1656,6 +1688,14 @@ export default function App() {
             )}
           </div>
         </div>
+      )}
+
+      {/* New User Onboarding Tour Modal */}
+      {showOnboardingTour && (
+        <OnboardingTour
+          userName={currentUser?.name}
+          onComplete={handleCompleteOnboarding}
+        />
       )}
 
     </div>
