@@ -97,10 +97,13 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   title text NOT NULL,
   message text NOT NULL,
-  type text NOT NULL, -- 'match' | 'request' | 'upcoming' | 'message' | 'credit' | 'system'
+  type text NOT NULL, -- 'match' | 'request' | 'upcoming' | 'message' | 'credit' | 'system' | 'call'
+  booking_id text,
   read boolean DEFAULT false NOT NULL,
   timestamp timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS booking_id text;
 
 -- Enable Row Level Security
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;

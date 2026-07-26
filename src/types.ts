@@ -108,7 +108,8 @@ export interface AppNotification {
   userId: string;
   title: string;
   message: string;
-  type: 'match' | 'request' | 'upcoming' | 'message' | 'credit' | 'system';
+  type: 'match' | 'request' | 'upcoming' | 'message' | 'credit' | 'system' | 'call';
+  bookingId?: string;
   read: boolean;
   timestamp: string;
 }

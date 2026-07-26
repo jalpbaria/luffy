@@ -112,6 +112,7 @@ export function mapSupabaseToNotification(row: any): AppNotification {
     title: row.title,
     message: row.message,
     type: row.type,
+    bookingId: row.booking_id || undefined,
     read: row.read,
     timestamp: row.timestamp || new Date().toISOString()
   };
@@ -123,6 +124,7 @@ export function mapNotificationToSupabase(notif: AppNotification): any {
     title: notif.title,
     message: notif.message,
     type: notif.type,
+    booking_id: notif.bookingId || null,
     read: notif.read,
     timestamp: notif.timestamp
   };

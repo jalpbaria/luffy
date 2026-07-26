@@ -4,21 +4,29 @@ import {
   Send, Phone, Paperclip, Mic, MicOff, 
   X, PhoneOff, Circle, Check, CheckCheck, Smile, HelpCircle, FileText, Image, Globe, ArrowLeft
 } from 'lucide-react';
-import { UserProfile, Message } from '../types';
+import { UserProfile, Message, Booking } from '../types';
 import { supabase, mapSupabaseToMessage, mapMessageToSupabase } from '../lib/supabase';
 
 interface ChatViewProps {
   currentUser: UserProfile;
   contacts: UserProfile[];
   initialActiveContactId?: string | null;
+  bookings: Booking[];
 }
 
-export default function ChatView({ currentUser, contacts, initialActiveContactId }: ChatViewProps) {
+export default function ChatView({ currentUser, contacts, initialActiveContactId, bookings }: ChatViewProps) {
   const DEFAULT_USER_IDS = [
     'user-alex', 'user-sofia', 'user-marcus', 'user-elena', 'user-david',
     'user-maya', 'user-liam', 'user-yuki', 'user-zara', 'user-tyler'
   ];
   const isCreatedAccount = !DEFAULT_USER_IDS.includes(currentUser.id);
+
+  const hasConfirmedBookingWith = (otherUserId: string) =>
+    bookings.some(b =>
+      b.status === 'confirmed' &&
+      ((b.teacherId === currentUser.id && b.learnerId === otherUserId) ||
+       (b.learnerId === currentUser.id && b.teacherId === otherUserId))
+    );
 
   const [activeContactId, setActiveContactId] = useState<string | null>(initialActiveContactId || (contacts[0]?.id || null));
   const [messages, setMessages] = useState<Message[]>([]);
@@ -419,6 +427,10 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
 
   const triggerCall = async () => {
     if (!activeContactId) return;
+    if (!hasConfirmedBookingWith(activeContactId)) {
+      alert('A confirmed swap booking is required before calling this person.');
+      return;
+    }
     setMediaError(null);
     setCallState('calling');
     
@@ -677,35 +689,44 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
         </div>
 
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-          {contacts.map((contact) => {
-            const isContactOnline = onlineUsers[contact.id] || DEFAULT_USER_IDS.includes(contact.id);
-            return (
-              <div
-                key={contact.id}
-                onClick={() => {
-                  setActiveContactId(contact.id);
-                  cleanupCall();
-                }}
-                className={`p-3.5 flex items-center gap-3 cursor-pointer transition ${
-                  activeContactId === contact.id ? 'bg-indigo-50 border-l-4 border-indigo-600' : 'hover:bg-slate-100'
-                }`}
-              >
-                <img 
-                  src={contact.avatar} 
-                  alt={contact.name} 
-                  referrerPolicy="no-referrer"
-                  className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-800 truncate">{contact.name}</span>
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isContactOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} title={isContactOnline ? 'Online' : 'Offline'}></span>
+          {contacts.length === 0 ? (
+            <div className="p-6 text-center text-slate-400">
+              <p className="text-xs font-medium text-slate-600">No contacts yet</p>
+              <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                Book a skill swap or click <span className="font-semibold text-slate-600">"Chat First"</span> on a profile in Explore to start messaging.
+              </p>
+            </div>
+          ) : (
+            contacts.map((contact) => {
+              const isContactOnline = onlineUsers[contact.id] || DEFAULT_USER_IDS.includes(contact.id);
+              return (
+                <div
+                  key={contact.id}
+                  onClick={() => {
+                    setActiveContactId(contact.id);
+                    cleanupCall();
+                  }}
+                  className={`p-3.5 flex items-center gap-3 cursor-pointer transition ${
+                    activeContactId === contact.id ? 'bg-indigo-50 border-l-4 border-indigo-600' : 'hover:bg-slate-100'
+                  }`}
+                >
+                  <img 
+                    src={contact.avatar} 
+                    alt={contact.name} 
+                    referrerPolicy="no-referrer"
+                    className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-800 truncate">{contact.name}</span>
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isContactOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} title={isContactOnline ? 'Online' : 'Offline'}></span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 truncate mt-0.5">{contact.skillsOffered[0]?.name || 'Explorer'}</p>
                   </div>
-                  <p className="text-[10px] text-slate-500 truncate mt-0.5">{contact.skillsOffered[0]?.name || 'Explorer'}</p>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -745,13 +766,28 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
 
               {/* Call Control Triggers */}
               <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  onClick={() => triggerCall()}
-                  className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-slate-150 rounded-lg transition cursor-pointer"
-                  title="Voice Call"
-                >
-                  <Phone className="w-4 h-4 animate-bounce" />
-                </button>
+                {(() => {
+                  const canCall = hasConfirmedBookingWith(activeContact.id);
+                  return (
+                    <button
+                      onClick={() => {
+                        if (!canCall) {
+                          alert(`Voice calling requires a confirmed swap booking with ${activeContact.name}.`);
+                          return;
+                        }
+                        triggerCall();
+                      }}
+                      className={`p-2 rounded-lg transition ${
+                        canCall 
+                          ? 'text-slate-600 hover:text-indigo-600 hover:bg-slate-150 cursor-pointer' 
+                          : 'text-slate-300 cursor-not-allowed opacity-50'
+                      }`}
+                      title={canCall ? "Voice Call" : "Book a confirmed swap with this person to enable calling"}
+                    >
+                      <Phone className={`w-4 h-4 ${canCall ? 'animate-bounce' : ''}`} />
+                    </button>
+                  );
+                })()}
               </div>
             </div>
 
@@ -851,7 +887,11 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
           <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center bg-slate-50/50">
             <Smile className="w-12 h-12 text-slate-300 mb-3 animate-pulse" />
             <h3 className="font-semibold text-slate-600 text-sm">Welcome to Skill Chat</h3>
-            <p className="text-slate-500 text-xs mt-1 max-w-xs">Select a swapper from the list to discuss, arrange dates, or conduct audio calls.</p>
+            <p className="text-slate-500 text-xs mt-1 max-w-xs">
+              {contacts.length === 0 
+                ? "You don't have any conversations yet — book a swap or start a chat from someone's profile to begin." 
+                : "Select a swapper from the list to discuss, arrange dates, or conduct audio calls."}
+            </p>
           </div>
         )}
 

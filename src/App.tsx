@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Compass, LayoutDashboard, MessageSquare, Brain, User, 
   Sparkles, Globe, LogOut, ArrowLeftRight, Award, Flame, RefreshCw, Home,
-  Check, AlertCircle, Mail, X, BookOpen
+  Check, AlertCircle, Mail, X, BookOpen, PhoneCall
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review, Skill, LiveSession } from './types';
 import { getOrCreateLiveSessionForBooking, fetchLiveSessionsForUser, updateLiveSessionStatus } from './lib/liveSessions';
@@ -39,6 +39,12 @@ export default function App() {
   // Active live classroom session
   const [activeLiveSessionBooking, setActiveLiveSessionBooking] = useState<Booking | null>(null);
   const [activeLiveSessionData, setActiveLiveSessionData] = useState<LiveSession | null>(null);
+  const [incomingCall, setIncomingCall] = useState<{ bookingId: string; callerName: string } | null>(null);
+
+  // Chat messaging contacts filter state
+  const [messagePartnerIds, setMessagePartnerIds] = useState<Set<string>>(new Set());
+  const [sessionInitiatedChatIds, setSessionInitiatedChatIds] = useState<Set<string>>(new Set());
+  const [initialActiveContactId, setInitialActiveContactId] = useState<string | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -103,6 +109,25 @@ export default function App() {
       setActiveLiveSessionBooking(booking);
       setActiveLiveSessionData(session);
       setActiveTab('live-room');
+
+      // Send incoming call notification to the other participant
+      const otherParticipantId = booking.teacherId === currentUser.id ? booking.learnerId : booking.teacherId;
+      try {
+        const { error: notifErr } = await supabase.from('notifications').insert({
+          user_id: otherParticipantId,
+          title: `Incoming call from ${currentUser.name}`,
+          message: `${currentUser.name} started a live classroom session for your booking. Join now to connect.`,
+          type: 'call',
+          booking_id: booking.id,
+          read: false,
+          timestamp: new Date().toISOString()
+        });
+        if (notifErr) {
+          console.warn('[App] Failed to insert call notification for recipient:', notifErr.message);
+        }
+      } catch (notifErr) {
+        console.warn('[App] Error sending call notification:', notifErr);
+      }
     } catch (err) {
       console.error('Failed to launch live session:', err);
       alert('Failed to connect to live classroom. Please check your network connection.');
@@ -235,6 +260,16 @@ export default function App() {
               localStorage.setItem(`local_notifications_${currentUser.id}`, JSON.stringify(updated));
               return updated;
             });
+
+            if (newNotif.type === 'call' && newNotif.bookingId) {
+              const callerName = newNotif.title.startsWith('Incoming call from ')
+                ? newNotif.title.replace('Incoming call from ', '').trim()
+                : 'Someone';
+              setIncomingCall({
+                bookingId: newNotif.bookingId,
+                callerName: callerName || 'A user'
+              });
+            }
           } else if (payload.eventType === 'UPDATE') {
             const updatedNotif = mapSupabaseToNotification(payload.new);
             setNotifications((prev) => {
@@ -257,6 +292,44 @@ export default function App() {
     return () => {
       supabase.removeChannel(channel);
     };
+  }, [currentUser?.id]);
+
+  // Fetch message partner IDs when currentUser changes
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setMessagePartnerIds(new Set());
+      return;
+    }
+
+    const fetchMessagePartners = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .select('sender_id, receiver_id')
+          .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+
+        if (error) {
+          console.error('Error fetching message partner IDs:', error);
+          return;
+        }
+
+        if (data && Array.isArray(data)) {
+          const partnerIds = new Set<string>();
+          data.forEach((msg: { sender_id: string; receiver_id: string }) => {
+            if (msg.sender_id === currentUser.id && msg.receiver_id !== currentUser.id) {
+              partnerIds.add(msg.receiver_id);
+            } else if (msg.receiver_id === currentUser.id && msg.sender_id !== currentUser.id) {
+              partnerIds.add(msg.sender_id);
+            }
+          });
+          setMessagePartnerIds(partnerIds);
+        }
+      } catch (err) {
+        console.error('Failed to load message partner IDs:', err);
+      }
+    };
+
+    fetchMessagePartners();
   }, [currentUser?.id]);
 
   const handleLogin = async (user: UserProfile) => {
@@ -1069,8 +1142,25 @@ export default function App() {
     setActiveTab('explore');
   };
 
-  // Contacts list (everyone except the logged-in user)
-  const contacts = allUsers.filter(u => currentUser && u.id !== currentUser.id);
+  // Contacts list (only users with confirmed bookings, message history, or session-initiated chat)
+  const contacts = allUsers.filter(u => {
+    if (!currentUser || u.id === currentUser.id) return false;
+
+    // 1. Confirmed booking between them and currentUser
+    const hasConfirmedBooking = bookings.some(
+      b => b.status === 'confirmed' &&
+        ((b.teacherId === currentUser.id && b.learnerId === u.id) ||
+         (b.learnerId === currentUser.id && b.teacherId === u.id))
+    );
+
+    // 2. In message partner IDs
+    const hasMessaged = messagePartnerIds.has(u.id);
+
+    // 3. In session initiated chat IDs
+    const hasInitiatedChat = sessionInitiatedChatIds.has(u.id);
+
+    return hasConfirmedBooking || hasMessaged || hasInitiatedChat;
+  });
 
   if (isLoading) {
     return (
@@ -1325,6 +1415,8 @@ export default function App() {
                 users={allUsers}
                 onBookSession={handleBookSession}
                 onOpenChat={(id) => {
+                  setSessionInitiatedChatIds(prev => new Set(prev).add(id));
+                  setInitialActiveContactId(id);
                   setActiveTab('chat');
                 }}
                 isLoading={isLoading}
@@ -1335,6 +1427,8 @@ export default function App() {
               <ChatView 
                 currentUser={currentUser}
                 contacts={contacts}
+                initialActiveContactId={initialActiveContactId}
+                bookings={bookings}
               />
             )}
 
@@ -1363,6 +1457,46 @@ export default function App() {
           <p>© 2026 ExchangeYourSkill. Built for mutual skill barters. No money required. Powered by Spark Economy.</p>
         </div>
       </footer>
+
+      {/* Incoming Call Banner / Modal */}
+      {incomingCall && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[120] w-[92%] max-w-md bg-indigo-950 text-white rounded-2xl p-4 shadow-2xl border border-indigo-700/50 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 animate-pulse">
+              <PhoneCall className="w-5 h-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="font-bold text-sm truncate text-white">Incoming Live Call</h4>
+              <p className="text-xs text-indigo-200 truncate">
+                <span className="font-semibold text-white">{incomingCall.callerName}</span> is calling you
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                const targetBooking = bookings.find(b => b.id === incomingCall.bookingId);
+                if (targetBooking) {
+                  handleStartLiveSession(targetBooking);
+                } else {
+                  alert('Booking for this call could not be found.');
+                }
+                setIncomingCall(null);
+              }}
+              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md"
+            >
+              <PhoneCall className="w-3.5 h-3.5" />
+              Join Call
+            </button>
+            <button
+              onClick={() => setIncomingCall(null)}
+              className="px-2.5 py-1.5 bg-indigo-900 hover:bg-indigo-800 text-indigo-200 font-medium text-xs rounded-xl transition cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Password Reset Recovery Modal */}
       {showPasswordResetModal && (
