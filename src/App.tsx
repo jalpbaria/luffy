@@ -274,53 +274,35 @@ export default function App() {
 
   const handleRegister = async (newUserPayload: any): Promise<{ success: boolean; error?: string }> => {
     try {
-      let registeredUser = null;
-      try {
-        const fullPayload: UserProfile = {
-          ...newUserPayload,
-          rating: 5,
-          reviewsCount: 0,
-          successfulExchanges: 0,
-          credits: 5,
-          badges: []
-        };
-        const mappedRow = mapProfileToSupabase(fullPayload);
-        const { data: dbData, error: dbError } = await supabase
-          .from('profiles')
-          .upsert(mappedRow)
-          .select('*');
-          
-        if (dbError) throw dbError;
-        if (dbData && dbData[0]) {
-          registeredUser = mapSupabaseToProfile(dbData[0]);
-        }
-      } catch (e) {
-        console.warn('Supabase registration failed, performing local registration instead:', e);
+      const fullPayload: UserProfile = {
+        ...newUserPayload,
+        rating: 5,
+        reviewsCount: 0,
+        successfulExchanges: 0,
+        credits: 5,
+        badges: []
+      };
+      const mappedRow = mapProfileToSupabase(fullPayload);
+      const { data: dbData, error: dbError } = await supabase
+        .from('profiles')
+        .upsert(mappedRow)
+        .select('*');
+        
+      if (dbError) {
+        return { success: false, error: dbError.message || 'Database registration failed.' };
       }
+
+      if (!dbData || !dbData[0]) {
+        return { success: false, error: 'Registration failed: profile could not be created in database.' };
+      }
+
+      const registeredUser = mapSupabaseToProfile(dbData[0]);
 
       setIsLoading(true);
 
-      // Add to list of all users
       let updatedUsers = [...allUsers];
-      if (registeredUser) {
-        // If server register succeeded, make sure we merge it
-        if (!updatedUsers.some(u => u.id === registeredUser.id)) {
-          updatedUsers.push(registeredUser);
-        }
-      } else {
-        // Local register fallback
-        const localNewUser: UserProfile = {
-          ...newUserPayload,
-          rating: 5,
-          reviewsCount: 0,
-          successfulExchanges: 0,
-          credits: 5,
-          badges: []
-        };
-        registeredUser = localNewUser;
-        if (!updatedUsers.some(u => u.id === localNewUser.id)) {
-          updatedUsers.push(localNewUser);
-        }
+      if (!updatedUsers.some(u => u.id === registeredUser.id)) {
+        updatedUsers.push(registeredUser);
       }
 
       setAllUsers(updatedUsers);
@@ -405,7 +387,11 @@ export default function App() {
         .eq('id', userId);
 
       if (profileError) {
-        console.warn('Profiles table deletion error:', profileError);
+        console.error('Profiles table deletion failed:', profileError);
+        return { 
+          success: false, 
+          error: `Failed to delete profile record: ${profileError.message}` 
+        };
       }
 
       // 6. Invoke Edge Function to delete auth user from auth.users (if deployed)
@@ -595,7 +581,6 @@ export default function App() {
       createdAt: new Date().toISOString()
     };
 
-    let bookingSucceeded = false;
     try {
       // 1. Deduct 1 credit from learner profile in Supabase
       const updatedLearner = {
@@ -608,7 +593,10 @@ export default function App() {
         .update(mapProfileToSupabase(updatedLearner))
         .eq('id', currentUser.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        alert(`Booking failed: ${profileError.message}`);
+        return;
+      }
 
       // 2. Insert booking row into Supabase bookings table
       const mappedBooking = mapBookingToSupabase(bookingPayload);
@@ -616,11 +604,19 @@ export default function App() {
         .from('bookings')
         .insert(mappedBooking);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        // Rollback credit deduction if possible
+        await supabase
+          .from('profiles')
+          .update(mapProfileToSupabase(currentUser))
+          .eq('id', currentUser.id);
+        alert(`Booking failed: ${insertError.message}`);
+        return;
+      }
 
       // 3. Create notifications using Supabase
       // Notification to Teacher
-      await supabase.from('notifications').insert({
+      const { error: notif1Err } = await supabase.from('notifications').insert({
         user_id: teacher.id,
         title: 'New Session Request',
         message: `${currentUser.name} wants to book a session with you for ${skill.name}.`,
@@ -628,9 +624,10 @@ export default function App() {
         read: false,
         timestamp: new Date().toISOString()
       });
+      if (notif1Err) console.warn('Teacher notification warning:', notif1Err.message);
 
       // Notification to Learner
-      await supabase.from('notifications').insert({
+      const { error: notif2Err } = await supabase.from('notifications').insert({
         user_id: currentUser.id,
         title: 'Session Requested',
         message: `You requested a session with ${teacher.name} for ${skill.name}. 1 credit reserved.`,
@@ -638,46 +635,12 @@ export default function App() {
         read: false,
         timestamp: new Date().toISOString()
       });
+      if (notif2Err) console.warn('Learner notification warning:', notif2Err.message);
 
-      bookingSucceeded = true;
-    } catch (err) {
-      console.warn('API booking failed, registering local booking:', err);
-    }
-
-    if (!bookingSucceeded) {
-      // Create local fallback booking
-      const localBooking: Booking = {
-        id: `local-booking-${Date.now()}`,
-        teacherId: teacher.id,
-        teacherName: teacher.name,
-        learnerId: currentUser.id,
-        learnerName: currentUser.name,
-        skillName: skill.name,
-        category: skill.category,
-        learningOption: learningOption as any,
-        date,
-        timeSlot,
-        notes,
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      };
-
-      const currentBookings = [...bookings, localBooking];
-      setBookings(currentBookings);
-      localStorage.setItem(`local_bookings_${currentUser.id}`, JSON.stringify(currentBookings));
-
-      // Also deduct 1 credit from currentUser locally
-      const updatedUser = {
-        ...currentUser,
-        credits: Math.max(0, currentUser.credits - 1)
-      };
-      setCurrentUser(updatedUser);
-      const updatedUsers = allUsers.map(u => u.id === currentUser.id ? updatedUser : u);
-      setAllUsers(updatedUsers);
-      localStorage.setItem('local_users', JSON.stringify(updatedUsers));
-      alert('Session requested successfully! (Offline Sandbox Mode)');
-    } else {
       await syncAllState();
+    } catch (err: any) {
+      console.error('Booking operation failed:', err);
+      alert(`Booking failed: ${err.message || 'An error occurred during booking.'}`);
     }
   };
 
@@ -928,41 +891,10 @@ export default function App() {
         }
       }
 
-      updateSucceeded = true;
-    } catch (err) {
-      console.warn('Supabase update status failed, saving locally:', err);
-    }
-
-    if (!updateSucceeded && currentUser) {
-      const updatedBookings = bookings.map(b => {
-        if (b.id === bookingId) {
-          return { ...b, status, ...extraFields };
-        }
-        return b;
-      });
-      setBookings(updatedBookings);
-      localStorage.setItem(`local_bookings_${currentUser.id}`, JSON.stringify(updatedBookings));
-
-      // If completing, we also credit the teacher
-      if (status === 'completed') {
-        const targetBooking = bookings.find(b => b.id === bookingId);
-        if (targetBooking) {
-          const updatedUsers = allUsers.map(u => {
-            if (u.id === targetBooking.teacherId) {
-              return { 
-                ...u, 
-                credits: u.credits + 1, 
-                successfulExchanges: u.successfulExchanges + 1 
-              };
-            }
-            return u;
-          });
-          setAllUsers(updatedUsers);
-          localStorage.setItem('local_users', JSON.stringify(updatedUsers));
-        }
-      }
-    } else {
       await syncAllState();
+    } catch (err: any) {
+      console.error('Failed to update booking status:', err);
+      alert(`Failed to update booking status: ${err.message || 'Database update error occurred.'}`);
     }
   };
 
@@ -994,7 +926,7 @@ export default function App() {
       if (updateErr) throw updateErr;
 
       // Also insert review notification to Supabase
-      await supabase.from('notifications').insert({
+      const { error: notifErr } = await supabase.from('notifications').insert({
         user_id: reviewData.teacherId,
         title: 'New Review Received!',
         message: `${reviewData.learnerName} left you a ${reviewData.rating}-star review: "${reviewData.comment.substring(0, 40)}..."`,
@@ -1002,26 +934,12 @@ export default function App() {
         read: false,
         timestamp: new Date().toISOString()
       });
+      if (notifErr) throw notifErr;
 
       await syncAllState();
-    } catch (err) {
-      console.warn('Supabase review update failed, saving review locally:', err);
-      
-      // Fallback
-      const updatedUsers = allUsers.map(u => {
-        if (u.id === reviewData.teacherId) {
-          const newCount = u.reviewsCount + 1;
-          const newRating = Number(((u.rating * u.reviewsCount + reviewData.rating) / newCount).toFixed(1));
-          return {
-            ...u,
-            reviewsCount: newCount,
-            rating: newRating
-          };
-        }
-        return u;
-      });
-      setAllUsers(updatedUsers);
-      localStorage.setItem('local_users', JSON.stringify(updatedUsers));
+    } catch (err: any) {
+      console.error('Failed to submit review:', err);
+      alert(`Failed to submit review: ${err.message || 'Database error occurred.'}`);
     }
   };
 
@@ -1032,19 +950,22 @@ export default function App() {
           .from('notifications')
           .update({ read: true })
           .eq('id', notifId);
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase notification read update failed:', error.message);
+          return;
+        }
       }
-    } catch (err) {
-      console.warn('Supabase notification read failed, continuing offline:', err);
-    }
 
-    setNotifications(prev => {
-      const next = prev.map(n => n.id === notifId ? { ...n, read: true } : n);
-      if (currentUser) {
-        localStorage.setItem(`local_notifications_${currentUser.id}`, JSON.stringify(next));
-      }
-      return next;
-    });
+      setNotifications(prev => {
+        const next = prev.map(n => n.id === notifId ? { ...n, read: true } : n);
+        if (currentUser) {
+          localStorage.setItem(`local_notifications_${currentUser.id}`, JSON.stringify(next));
+        }
+        return next;
+      });
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+    }
   };
 
   const handleDeleteNotification = async (notifId: string) => {
@@ -1054,26 +975,28 @@ export default function App() {
           .from('notifications')
           .delete()
           .eq('id', notifId);
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase notification delete failed:', error.message);
+          return;
+        }
       }
-    } catch (err) {
-      console.warn('Supabase notification delete failed, continuing offline:', err);
-    }
 
-    setNotifications(prev => {
-      const next = prev.filter(n => n.id !== notifId);
-      if (currentUser) {
-        localStorage.setItem(`local_notifications_${currentUser.id}`, JSON.stringify(next));
-      }
-      return next;
-    });
+      setNotifications(prev => {
+        const next = prev.filter(n => n.id !== notifId);
+        if (currentUser) {
+          localStorage.setItem(`local_notifications_${currentUser.id}`, JSON.stringify(next));
+        }
+        return next;
+      });
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+    }
   };
 
   const handleSaveProfile = async (updatedProfile: UserProfile) => {
     if (!currentUser) return;
     setIsSaving(true);
 
-    let saveSucceeded = false;
     try {
       const mappedRow = mapProfileToSupabase(updatedProfile);
       const { data: dbData, error: dbError } = await supabase
@@ -1082,32 +1005,27 @@ export default function App() {
         .select('*');
 
       if (dbError) throw dbError;
-      if (dbData && dbData[0]) {
-        const savedUser = mapSupabaseToProfile(dbData[0]);
-        setCurrentUser(savedUser);
-        saveSucceeded = true;
-      }
-    } catch (err) {
-      console.warn('Supabase save profile failed, performing locally:', err);
-    }
 
-    if (!saveSucceeded) {
-      setCurrentUser(updatedProfile);
-      const updatedUsers = allUsers.map(u => u.id === updatedProfile.id ? updatedProfile : u);
-      setAllUsers(updatedUsers);
-      localStorage.setItem('local_users', JSON.stringify(updatedUsers));
-    } else {
-      // Refresh the complete users list
-      try {
-        const { data: dbRows, error: dbError } = await supabase.from('profiles').select('*');
-        if (!dbError && dbRows) {
-          setAllUsers(dbRows.map(mapSupabaseToProfile));
-        }
-      } catch {
-        // Fall back to local update
+      if (!dbData || !dbData[0]) {
+        throw new Error('Profile update returned no data from database');
       }
+
+      const savedUser = mapSupabaseToProfile(dbData[0]);
+      setCurrentUser(savedUser);
+
+      // Refresh the complete users list
+      const { data: dbRows, error: fetchUsersErr } = await supabase.from('profiles').select('*');
+      if (!fetchUsersErr && dbRows) {
+        const mappedUsers = dbRows.map(mapSupabaseToProfile);
+        setAllUsers(mappedUsers);
+        localStorage.setItem('local_users', JSON.stringify(mappedUsers));
+      }
+    } catch (err: any) {
+      console.error('Failed to save profile to database:', err);
+      alert(`Failed to save profile: ${err.message || 'Database operation failed'}`);
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
   };
 
   const syncAllState = async () => {
