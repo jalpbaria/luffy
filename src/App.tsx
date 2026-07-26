@@ -74,8 +74,8 @@ export default function App() {
       return;
     }
 
-    if (booking.status !== 'confirmed') {
-      alert(`Cannot join: This booking status is currently "${booking.status}". Only confirmed sessions can launch the live classroom.`);
+    if (booking.status !== 'confirmed' && booking.status !== 'rescheduled') {
+      alert(`Cannot join: This booking status is currently "${booking.status}". Only confirmed or rescheduled sessions can launch the live classroom.`);
       return;
     }
 
@@ -620,9 +620,9 @@ export default function App() {
       }
       setBookings(bookData);
 
-      // Ensure confirmed Live 1-on-1 bookings have a private live session initialized
+      // Ensure confirmed or rescheduled Live 1-on-1 bookings have a private live session initialized
       bookData.forEach(async (b) => {
-        if (b.status === 'confirmed' && b.learningOption === 'Live 1-on-1 Session') {
+        if ((b.status === 'confirmed' || b.status === 'rescheduled') && b.learningOption === 'Live 1-on-1 Session') {
           try {
             await getOrCreateLiveSessionForBooking(b);
           } catch {}
@@ -994,6 +994,17 @@ export default function App() {
         const notifierId = booking.learnerId === actionUserId ? booking.teacherId : booking.learnerId;
         const actionUserName = booking.learnerId === actionUserId ? booking.learnerName : booking.teacherName;
 
+        try {
+          await getOrCreateLiveSessionForBooking({
+            ...booking,
+            date: extraFields?.date || booking.date,
+            timeSlot: extraFields?.timeSlot || booking.timeSlot,
+            scheduledTime: extraFields?.scheduledTime || booking.scheduledTime
+          });
+        } catch (lsErr) {
+          console.warn('[App] Failed creating/updating LiveSession on reschedule:', lsErr);
+        }
+
         await supabase.from('notifications').insert({
           user_id: notifierId,
           title: 'Session Rescheduled',
@@ -1208,9 +1219,9 @@ export default function App() {
   const contacts = allUsers.filter(u => {
     if (!currentUser || u.id === currentUser.id) return false;
 
-    // 1. Confirmed booking between them and currentUser
+    // 1. Confirmed or rescheduled booking between them and currentUser
     const hasConfirmedBooking = bookings.some(
-      b => b.status === 'confirmed' &&
+      b => (b.status === 'confirmed' || b.status === 'rescheduled') &&
         ((b.teacherId === currentUser.id && b.learnerId === u.id) ||
          (b.learnerId === currentUser.id && b.teacherId === u.id))
     );

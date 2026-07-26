@@ -23,7 +23,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
 
   const hasConfirmedBookingWith = (otherUserId: string) =>
     bookings.some(b =>
-      b.status === 'confirmed' &&
+      (b.status === 'confirmed' || b.status === 'rescheduled') &&
       ((b.teacherId === currentUser.id && b.learnerId === otherUserId) ||
        (b.learnerId === currentUser.id && b.teacherId === otherUserId))
     );

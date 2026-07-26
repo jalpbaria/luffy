@@ -367,7 +367,7 @@ export default function DashboardView({
 
                             {/* Booking Action Buttons */}
                             <div className="flex flex-wrap items-center gap-2 justify-end pt-1">
-                              {b.status === 'confirmed' && (
+                              {(b.status === 'confirmed' || b.status === 'rescheduled') && (
                                 <SessionJoinGateButton booking={b} onStartLiveSession={onStartLiveSession} />
                               )}
 
@@ -515,7 +515,7 @@ export default function DashboardView({
                                 </>
                               )}
 
-                              {b.status === 'confirmed' && (
+                              {(b.status === 'confirmed' || b.status === 'rescheduled') && (
                                 <>
                                   <SessionJoinGateButton booking={b} onStartLiveSession={onStartLiveSession} />
                                   <button
