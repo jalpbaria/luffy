@@ -294,6 +294,67 @@ export default function App() {
     };
   }, [currentUser?.id]);
 
+  // Set up Supabase Realtime subscription for bookings when currentUser changes
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const handleBookingPayload = (payload: any) => {
+      console.log('Realtime booking change received:', payload);
+      if (payload.eventType === 'INSERT') {
+        const newBooking = mapSupabaseToBooking(payload.new);
+        setBookings((prev) => {
+          if (prev.some((b) => b.id === newBooking.id)) return prev;
+          const updated = [newBooking, ...prev];
+          localStorage.setItem(`local_bookings_${currentUser.id}`, JSON.stringify(updated));
+          return updated;
+        });
+      } else if (payload.eventType === 'UPDATE') {
+        const updatedBooking = mapSupabaseToBooking(payload.new);
+        setBookings((prev) => {
+          const updated = prev.map((b) => (b.id === updatedBooking.id ? updatedBooking : b));
+          localStorage.setItem(`local_bookings_${currentUser.id}`, JSON.stringify(updated));
+          return updated;
+        });
+      } else if (payload.eventType === 'DELETE') {
+        const deletedId = payload.old?.id;
+        if (!deletedId) return;
+        setBookings((prev) => {
+          const updated = prev.filter((b) => b.id !== deletedId);
+          localStorage.setItem(`local_bookings_${currentUser.id}`, JSON.stringify(updated));
+          return updated;
+        });
+      }
+    };
+
+    const channel = supabase
+      .channel(`realtime-bookings-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+          filter: `teacher_id=eq.${currentUser.id}`,
+        },
+        handleBookingPayload
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+          filter: `learner_id=eq.${currentUser.id}`,
+        },
+        handleBookingPayload
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id]);
+
   // Fetch message partner IDs when currentUser changes
   useEffect(() => {
     if (!currentUser?.id) {
