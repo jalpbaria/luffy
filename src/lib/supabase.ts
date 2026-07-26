@@ -78,6 +78,7 @@ export function mapSupabaseToBooking(row: any): Booking {
     learningOption: row.learning_option,
     date: row.date,
     timeSlot: row.time_slot,
+    scheduledTime: row.scheduled_time || undefined,
     status: row.status,
     notes: row.notes || undefined,
     createdAt: row.created_at || new Date().toISOString()
@@ -95,6 +96,7 @@ export function mapBookingToSupabase(booking: Booking): any {
     learning_option: booking.learningOption,
     date: booking.date,
     time_slot: booking.timeSlot,
+    scheduled_time: booking.scheduledTime || null,
     status: booking.status,
     notes: booking.notes || null,
   };

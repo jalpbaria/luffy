@@ -14,7 +14,7 @@ import { FREE_CATEGORY_RESOURCES, CategoryResource } from '../data/freeResources
 interface ExploreViewProps {
   currentUser: UserProfile;
   users: UserProfile[];
-  onBookSession: (teacher: UserProfile, skill: Skill, option: LearningOption, date: string, slot: 'Morning' | 'Afternoon' | 'Evening', notes: string) => void;
+  onBookSession: (teacher: UserProfile, skill: Skill, option: LearningOption, date: string, slot: 'Morning' | 'Afternoon' | 'Evening', notes: string, scheduledTime?: string) => void;
   onOpenChat: (userId: string) => void;
   isLoading: boolean;
 }
@@ -52,6 +52,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
   const [isBookingMode, setIsBookingMode] = useState(false);
   const [chosenOption, setChosenOption] = useState<LearningOption>('Live 1-on-1 Session');
   const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('14:00');
   const [bookingSlot, setBookingSlot] = useState<'Morning' | 'Afternoon' | 'Evening'>('Afternoon');
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -229,23 +230,33 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
   const handleStartBooking = () => {
     setIsBookingMode(true);
-    // Set default date to tomorrow
+    // Set default date to tomorrow and time to 14:00
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     setBookingDate(tomorrow.toISOString().split('T')[0]);
+    setBookingTime('14:00');
   };
 
   const submitBooking = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTeacher || !selectedSkillToLearn) return;
     
+    let scheduledTimeStr: string | undefined = undefined;
+    if (bookingDate && bookingTime) {
+      const d = new Date(`${bookingDate}T${bookingTime}:00`);
+      if (!isNaN(d.getTime())) {
+        scheduledTimeStr = d.toISOString();
+      }
+    }
+
     onBookSession(
       selectedTeacher,
       selectedSkillToLearn,
       chosenOption,
       bookingDate,
       bookingSlot,
-      bookingNotes
+      bookingNotes,
+      scheduledTimeStr
     );
 
     setBookingSuccess(true);
@@ -751,14 +762,23 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                         {/* Calendar / Date / Time */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                           <div>
-                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Select Date</label>
-                            <input 
-                              type="date" 
-                              required
-                              value={bookingDate}
-                              onChange={(e) => setBookingDate(e.target.value)}
-                              className="w-full border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Select Date & Time</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <input 
+                                type="date" 
+                                required
+                                value={bookingDate}
+                                onChange={(e) => setBookingDate(e.target.value)}
+                                className="w-full border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              />
+                              <input 
+                                type="time" 
+                                required
+                                value={bookingTime}
+                                onChange={(e) => setBookingTime(e.target.value)}
+                                className="w-full border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              />
+                            </div>
                           </div>
                           <div>
                             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Time Slot Availability</label>

@@ -64,10 +64,13 @@ CREATE TABLE IF NOT EXISTS public.bookings (
   learning_option text NOT NULL,
   date text NOT NULL, -- YYYY-MM-DD
   time_slot text NOT NULL, -- 'Morning' | 'Afternoon' | 'Evening'
+  scheduled_time timestamp with time zone, -- ISO datetime string for exact appointment time
   status text DEFAULT 'pending' NOT NULL, -- 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled'
   notes text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS scheduled_time timestamp with time zone;
 
 -- Enable Row Level Security
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;

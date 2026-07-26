@@ -6,7 +6,7 @@ import {
   Check, AlertCircle, Mail, X, BookOpen, PhoneCall
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review, Skill, LiveSession } from './types';
-import { getOrCreateLiveSessionForBooking, fetchLiveSessionsForUser, updateLiveSessionStatus } from './lib/liveSessions';
+import { getOrCreateLiveSessionForBooking, fetchLiveSessionsForUser, updateLiveSessionStatus, getSessionGateStatus } from './lib/liveSessions';
 
 // Import our modular components
 import DashboardView from './components/DashboardView';
@@ -79,17 +79,15 @@ export default function App() {
       return;
     }
 
-    // 5. Check scheduled session time proximity
-    const todayISO = new Date().toISOString().split('T')[0];
-    const bookingDateObj = new Date(booking.date);
-    const todayObj = new Date(todayISO);
-    const diffDays = Math.ceil((bookingDateObj.getTime() - todayObj.getTime()) / (1000 * 3600 * 24));
-
-    if (diffDays > 1) {
-      const confirmEarly = window.confirm(
-        `This session is scheduled for ${booking.date} (${booking.timeSlot}). Would you like to enter the classroom early to test your camera and microphone?`
-      );
-      if (!confirmEarly) return;
+    // 5. Check scheduled session time window (10 min before to 60 min after)
+    const gate = getSessionGateStatus(booking);
+    if (gate.status === 'too_early') {
+      alert(`This session starts at ${gate.formattedTime}. You can join 10 minutes before.`);
+      return;
+    }
+    if (gate.status === 'passed') {
+      alert("This session's scheduled time has passed.");
+      return;
     }
 
     try {
@@ -690,7 +688,8 @@ export default function App() {
     learningOption: string,
     date: string,
     timeSlot: 'Morning' | 'Afternoon' | 'Evening',
-    notes: string
+    notes: string,
+    scheduledTime?: string
   ) => {
     if (!currentUser) return;
 
@@ -710,6 +709,7 @@ export default function App() {
       learningOption: learningOption as any,
       date,
       timeSlot,
+      scheduledTime,
       status: 'pending',
       notes,
       createdAt: new Date().toISOString()
@@ -794,6 +794,7 @@ export default function App() {
       if (extraFields?.notes !== undefined) updatePayload.notes = extraFields.notes;
       if (extraFields?.date !== undefined) updatePayload.date = extraFields.date;
       if (extraFields?.timeSlot !== undefined) updatePayload.time_slot = extraFields.timeSlot;
+      if (extraFields?.scheduledTime !== undefined) updatePayload.scheduled_time = extraFields.scheduledTime;
 
       const { error: updateError } = await supabase
         .from('bookings')

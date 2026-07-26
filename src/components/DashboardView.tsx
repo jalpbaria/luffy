@@ -1,10 +1,92 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Award, Calendar, Clock, Star, MessageSquare, CheckCircle, AlertCircle, Trash2, 
   RefreshCw, Check, X, ShieldAlert, BookOpen, ThumbsUp, Trophy, ChevronRight, UserMinus, Plus, Video
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review } from '../types';
+import { getSessionGateStatus } from '../lib/liveSessions';
+
+export function SessionJoinGateButton({
+  booking,
+  onStartLiveSession
+}: {
+  booking: Booking;
+  onStartLiveSession?: (booking: Booking) => void;
+}) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const gate = getSessionGateStatus(booking);
+
+  if (gate.status === 'joinable') {
+    return (
+      <div className="flex flex-col items-end gap-1">
+        <button
+          onClick={() => onStartLiveSession?.(booking)}
+          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold transition flex items-center gap-1.5 shadow-xs cursor-pointer text-xs"
+        >
+          <Video className="w-3.5 h-3.5 animate-pulse" /> Join Live Classroom
+        </button>
+        <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" /> Room open now
+        </span>
+      </div>
+    );
+  }
+
+  if (gate.status === 'too_early') {
+    const totalSecs = Math.max(0, Math.floor((gate.windowStart.getTime() - now) / 1000));
+    const mins = Math.floor(totalSecs / 60);
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    const remSecs = totalSecs % 60;
+
+    let countdownStr = '';
+    if (hrs > 0) {
+      countdownStr = `Opens in ${hrs}h ${remMins}m`;
+    } else if (mins > 0) {
+      countdownStr = `Opens in ${mins}m ${remSecs}s`;
+    } else {
+      countdownStr = `Opens in ${remSecs}s`;
+    }
+
+    return (
+      <div className="flex flex-col items-end gap-1">
+        <button
+          disabled
+          onClick={() => alert(`This session starts at ${gate.formattedTime}. You can join 10 minutes before.`)}
+          title={`This session starts at ${gate.formattedTime}. You can join 10 minutes before.`}
+          className="px-3.5 py-1.5 bg-slate-100 text-slate-400 border border-slate-200 rounded-md font-semibold transition flex items-center gap-1.5 cursor-not-allowed opacity-80 text-xs"
+        >
+          <Video className="w-3.5 h-3.5" /> Join Live Classroom
+        </button>
+        <div className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/80 font-medium flex items-center gap-1">
+          <Clock className="w-3 h-3 text-amber-600" /> Starts at {gate.formattedTime} • {countdownStr}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        disabled
+        title="This session's scheduled time has passed."
+        className="px-3.5 py-1.5 bg-slate-100 text-slate-400 border border-slate-200 rounded-md font-semibold transition flex items-center gap-1.5 cursor-not-allowed text-xs"
+      >
+        <Video className="w-3.5 h-3.5" /> Session Window Expired
+      </button>
+      <span className="text-[10px] text-slate-400 font-medium">
+        Scheduled time has passed
+      </span>
+    </div>
+  );
+}
 
 interface DashboardViewProps {
   currentUser: UserProfile;
@@ -34,6 +116,7 @@ export default function DashboardView({
   const [activeTab, setActiveTab] = useState<'sessions' | 'progress' | 'notifications'>('sessions');
   const [showRescheduleId, setShowRescheduleId] = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('14:00');
   const [rescheduleSlot, setRescheduleSlot] = useState<'Morning' | 'Afternoon' | 'Evening'>('Afternoon');
   
   // Review Modal State
@@ -54,9 +137,15 @@ export default function DashboardView({
 
   const handleRescheduleSubmit = (bookingId: string) => {
     if (!rescheduleDate) return;
+    let scheduledTime: string | undefined = undefined;
+    if (rescheduleDate && rescheduleTime) {
+      const d = new Date(`${rescheduleDate}T${rescheduleTime}:00`);
+      if (!isNaN(d.getTime())) scheduledTime = d.toISOString();
+    }
     onUpdateBookingStatus(bookingId, 'rescheduled', currentUser.id, {
       date: rescheduleDate,
-      timeSlot: rescheduleSlot
+      timeSlot: rescheduleSlot,
+      scheduledTime
     });
     setShowRescheduleId(null);
     setRescheduleDate('');
@@ -267,19 +356,19 @@ export default function DashboardView({
 
                             <div className="flex flex-wrap items-center gap-4 text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                               <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-slate-400" />{b.date}</span>
-                              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-slate-400" />{b.timeSlot}</span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                {b.scheduledTime 
+                                  ? new Date(b.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                                  : b.timeSlot}
+                              </span>
                               {b.notes && <span className="text-slate-400 truncate max-w-xs">💬 Notes: "{b.notes}"</span>}
                             </div>
 
                             {/* Booking Action Buttons */}
                             <div className="flex flex-wrap items-center gap-2 justify-end pt-1">
                               {b.status === 'confirmed' && (
-                                <button
-                                  onClick={() => onStartLiveSession?.(b)}
-                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-                                >
-                                  <Video className="w-3.5 h-3.5" /> Join Live Classroom
-                                </button>
+                                <SessionJoinGateButton booking={b} onStartLiveSession={onStartLiveSession} />
                               )}
 
                               {b.status !== 'cancelled' && b.status !== 'completed' && (
@@ -318,12 +407,20 @@ export default function DashboardView({
                               <div className="mt-3 p-3.5 bg-slate-50 border border-slate-150 rounded-xl space-y-3">
                                 <p className="font-semibold text-slate-700">Choose New Date & Time</p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                  <input 
-                                    type="date" 
-                                    value={rescheduleDate}
-                                    onChange={(e) => setRescheduleDate(e.target.value)}
-                                    className="border border-slate-200 rounded p-2 focus:outline-none"
-                                  />
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <input 
+                                      type="date" 
+                                      value={rescheduleDate}
+                                      onChange={(e) => setRescheduleDate(e.target.value)}
+                                      className="border border-slate-200 rounded p-2 focus:outline-none text-xs"
+                                    />
+                                    <input 
+                                      type="time" 
+                                      value={rescheduleTime}
+                                      onChange={(e) => setRescheduleTime(e.target.value)}
+                                      className="border border-slate-200 rounded p-2 focus:outline-none text-xs"
+                                    />
+                                  </div>
                                   <div className="grid grid-cols-3 gap-1">
                                     {(['Morning', 'Afternoon', 'Evening'] as const).map(slot => (
                                       <button
@@ -390,7 +487,12 @@ export default function DashboardView({
 
                             <div className="flex flex-wrap items-center gap-4 text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                               <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-slate-400" />{b.date}</span>
-                              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-slate-400" />{b.timeSlot}</span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                {b.scheduledTime 
+                                  ? new Date(b.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                                  : b.timeSlot}
+                              </span>
                               {b.notes && <span className="text-slate-400 truncate max-w-xs">💬 Goal: "{b.notes}"</span>}
                             </div>
 
@@ -415,12 +517,7 @@ export default function DashboardView({
 
                               {b.status === 'confirmed' && (
                                 <>
-                                  <button
-                                    onClick={() => onStartLiveSession?.(b)}
-                                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-                                  >
-                                    <Video className="w-3.5 h-3.5" /> Join Live Classroom
-                                  </button>
+                                  <SessionJoinGateButton booking={b} onStartLiveSession={onStartLiveSession} />
                                   <button
                                     onClick={() => onUpdateBookingStatus(b.id, 'completed', currentUser.id)}
                                     className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-md font-semibold transition flex items-center gap-1 cursor-pointer"

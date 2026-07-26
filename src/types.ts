@@ -73,6 +73,7 @@ export interface Booking {
   learningOption: LearningOption;
   date: string; // YYYY-MM-DD
   timeSlot: 'Morning' | 'Afternoon' | 'Evening';
+  scheduledTime?: string; // ISO datetime string for exact scheduled appointment time
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
   notes?: string;
   createdAt: string;

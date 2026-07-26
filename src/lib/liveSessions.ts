@@ -36,7 +36,11 @@ function generateRoomId(): string {
   return `room-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-function computeStartTime(dateStr: string, timeSlot: string): string {
+function computeStartTime(dateStr: string, timeSlot: string, scheduledTime?: string): string {
+  if (scheduledTime) {
+    const d = new Date(scheduledTime);
+    if (!isNaN(d.getTime())) return d.toISOString();
+  }
   try {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) {
@@ -50,6 +54,56 @@ function computeStartTime(dateStr: string, timeSlot: string): string {
   } catch {
     return new Date().toISOString();
   }
+}
+
+export interface SessionGateResult {
+  status: 'too_early' | 'joinable' | 'passed';
+  startTime: Date;
+  windowStart: Date;
+  windowEnd: Date;
+  formattedTime: string;
+  formattedDate: string;
+}
+
+export function getSessionGateStatus(booking: Booking): SessionGateResult {
+  let startTime: Date;
+  if (booking.scheduledTime) {
+    startTime = new Date(booking.scheduledTime);
+    if (isNaN(startTime.getTime())) {
+      startTime = fallbackStartTime(booking);
+    }
+  } else {
+    startTime = fallbackStartTime(booking);
+  }
+
+  // 10 minutes before through 60 minutes after
+  const windowStart = new Date(startTime.getTime() - 10 * 60 * 1000);
+  const windowEnd = new Date(startTime.getTime() + 60 * 60 * 1000);
+  const now = new Date();
+
+  let status: 'too_early' | 'joinable' | 'passed';
+  if (now.getTime() < windowStart.getTime()) {
+    status = 'too_early';
+  } else if (now.getTime() > windowEnd.getTime()) {
+    status = 'passed';
+  } else {
+    status = 'joinable';
+  }
+
+  const formattedTime = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formattedDate = startTime.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+  return { status, startTime, windowStart, windowEnd, formattedTime, formattedDate };
+}
+
+function fallbackStartTime(booking: Booking): Date {
+  const d = new Date(booking.date);
+  if (isNaN(d.getTime())) return new Date();
+  if (booking.timeSlot === 'Morning') d.setHours(9, 0, 0, 0);
+  else if (booking.timeSlot === 'Afternoon') d.setHours(14, 0, 0, 0);
+  else if (booking.timeSlot === 'Evening') d.setHours(19, 0, 0, 0);
+  else d.setHours(12, 0, 0, 0);
+  return d;
 }
 
 /**
@@ -81,7 +135,7 @@ export async function getOrCreateLiveSessionForBooking(booking: Booking): Promis
     teacherId: booking.teacherId,
     learnerId: booking.learnerId,
     status: 'scheduled',
-    startTime: computeStartTime(booking.date, booking.timeSlot),
+    startTime: computeStartTime(booking.date, booking.timeSlot, booking.scheduledTime),
     createdAt: new Date().toISOString()
   };
 
