@@ -77,6 +77,8 @@ export interface Booking {
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
   notes?: string;
   createdAt: string;
+  completedAt?: string; // ISO datetime string when session was marked completed
+  cancelledAt?: string; // ISO datetime string when session was marked cancelled
 }
 
 export interface Message {

@@ -128,12 +128,42 @@ export default function DashboardView({
   const [reviewPunct, setReviewPunct] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
 
+  // Live timer for auto-disappearing completed/cancelled bookings
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const isBookingVisibleInCalendar = (b: Booking) => {
+    const TEN_MINUTES_MS = 10 * 60 * 1000;
+
+    if (b.status === 'completed') {
+      const timeStr = b.completedAt || b.createdAt;
+      if (!timeStr) return true;
+      const t = new Date(timeStr).getTime();
+      if (isNaN(t)) return true;
+      return (now - t) <= TEN_MINUTES_MS;
+    }
+
+    if (b.status === 'cancelled') {
+      const timeStr = b.cancelledAt || b.createdAt;
+      if (!timeStr) return true;
+      const t = new Date(timeStr).getTime();
+      if (isNaN(t)) return true;
+      return (now - t) <= TEN_MINUTES_MS;
+    }
+
+    return true;
+  };
+
   // Notifications filtering
   const userNotifications = notifications.filter(n => n.userId === currentUser.id);
 
   // Bookings where user is Learner or Teacher
-  const asLearnerBookings = bookings.filter(b => b.learnerId === currentUser.id);
-  const asTeacherBookings = bookings.filter(b => b.teacherId === currentUser.id);
+  const asLearnerBookings = bookings.filter(b => b.learnerId === currentUser.id && isBookingVisibleInCalendar(b));
+  const asTeacherBookings = bookings.filter(b => b.teacherId === currentUser.id && isBookingVisibleInCalendar(b));
 
   const handleRescheduleSubmit = (bookingId: string) => {
     if (!rescheduleDate) return;

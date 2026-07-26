@@ -791,6 +791,12 @@ export default function App() {
 
       // 1. Update status on Supabase bookings table
       const updatePayload: any = { status };
+      const nowIso = new Date().toISOString();
+      if (status === 'completed') {
+        updatePayload.completed_at = nowIso;
+      } else if (status === 'cancelled') {
+        updatePayload.cancelled_at = nowIso;
+      }
       if (extraFields?.notes !== undefined) updatePayload.notes = extraFields.notes;
       if (extraFields?.date !== undefined) updatePayload.date = extraFields.date;
       if (extraFields?.timeSlot !== undefined) updatePayload.time_slot = extraFields.timeSlot;
@@ -1036,6 +1042,19 @@ export default function App() {
           });
         }
       }
+
+      setBookings(prev => prev.map(b => {
+        if (b.id === bookingId) {
+          return {
+            ...b,
+            status,
+            completedAt: status === 'completed' ? nowIso : b.completedAt,
+            cancelledAt: status === 'cancelled' ? nowIso : b.cancelledAt,
+            ...(extraFields || {})
+          };
+        }
+        return b;
+      }));
 
       await syncAllState();
     } catch (err: any) {
