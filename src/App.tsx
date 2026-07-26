@@ -729,14 +729,14 @@ export default function App() {
       if (!booking) throw new Error('Booking not found in local state');
 
       // 1. Update status on Supabase bookings table
+      const updatePayload: any = { status };
+      if (extraFields?.notes !== undefined) updatePayload.notes = extraFields.notes;
+      if (extraFields?.date !== undefined) updatePayload.date = extraFields.date;
+      if (extraFields?.timeSlot !== undefined) updatePayload.time_slot = extraFields.timeSlot;
+
       const { error: updateError } = await supabase
         .from('bookings')
-        .update({
-          status,
-          notes: extraFields?.notes || null,
-          date: extraFields?.date || null,
-          time_slot: extraFields?.timeSlot || null
-        })
+        .update(updatePayload)
         .eq('id', bookingId);
 
       if (updateError) throw updateError;
