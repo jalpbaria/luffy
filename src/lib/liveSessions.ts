@@ -53,37 +53,28 @@ function computeStartTime(dateStr: string, timeSlot: string): string {
 }
 
 /**
- * Ensures exactly ONE live session exists for a given booking.
+ * Ensures exactly ONE live session exists for a given booking in Supabase.
  * Idempotent: checks for existing session by booking_id before creating.
+ * Throws an error if Supabase query or insert fails.
  */
 export async function getOrCreateLiveSessionForBooking(booking: Booking): Promise<LiveSession> {
-  const localCacheKey = `local_live_sessions_${booking.teacherId}`;
-  
   // 1. Try fetching existing session from Supabase
-  try {
-    const { data, error } = await supabase
-      .from('live_sessions')
-      .select('*')
-      .eq('booking_id', booking.id)
-      .maybeSingle();
+  const { data, error } = await supabase
+    .from('live_sessions')
+    .select('*')
+    .eq('booking_id', booking.id)
+    .maybeSingle();
 
-    if (!error && data) {
-      const session = mapSupabaseToLiveSession(data);
-      saveToLocalCache(session);
-      return session;
-    }
-  } catch (err) {
-    console.warn('[LiveSessions] Supabase query failed, checking local cache:', err);
+  if (error) {
+    console.error('[LiveSessions] Error querying live session from database:', error);
+    throw new Error(`Failed to check existing live session: ${error.message}`);
   }
 
-  // 2. Check local storage cache
-  const cachedSessions = getLocalCacheForUser(booking.teacherId).concat(getLocalCacheForUser(booking.learnerId));
-  const existingCached = cachedSessions.find(s => s.bookingId === booking.id);
-  if (existingCached) {
-    return existingCached;
+  if (data) {
+    return mapSupabaseToLiveSession(data);
   }
 
-  // 3. Create new LiveSession record
+  // 2. Create new LiveSession record
   const newSession: LiveSession = {
     id: generateRoomId(),
     bookingId: booking.id,
@@ -94,30 +85,27 @@ export async function getOrCreateLiveSessionForBooking(booking: Booking): Promis
     createdAt: new Date().toISOString()
   };
 
-  // 4. Insert into Supabase
-  try {
-    const { data: insertedData, error: insertError } = await supabase
-      .from('live_sessions')
-      .insert([mapLiveSessionToSupabase(newSession)])
-      .select()
-      .maybeSingle();
+  // 3. Insert into Supabase
+  const { data: insertedData, error: insertError } = await supabase
+    .from('live_sessions')
+    .insert([mapLiveSessionToSupabase(newSession)])
+    .select()
+    .single();
 
-    if (!insertError && insertedData) {
-      const createdSession = mapSupabaseToLiveSession(insertedData);
-      saveToLocalCache(createdSession);
-      return createdSession;
-    }
-  } catch (err) {
-    console.warn('[LiveSessions] Failed to insert into Supabase live_sessions, persisting locally:', err);
+  if (insertError) {
+    console.error('[LiveSessions] Failed to insert live session into database:', insertError);
+    throw new Error(`Failed to create live session in database: ${insertError.message}`);
   }
 
-  // Fallback to local storage persistence
-  saveToLocalCache(newSession);
-  return newSession;
+  if (!insertedData) {
+    throw new Error('Failed to create live session: No data returned from database.');
+  }
+
+  return mapSupabaseToLiveSession(insertedData);
 }
 
 /**
- * Fetches all live sessions for a user (as teacher or learner).
+ * Fetches all live sessions for a user (as teacher or learner) directly from Supabase.
  */
 export async function fetchLiveSessionsForUser(userId: string): Promise<LiveSession[]> {
   try {
@@ -126,20 +114,24 @@ export async function fetchLiveSessionsForUser(userId: string): Promise<LiveSess
       .select('*')
       .or(`teacher_id.eq.${userId},learner_id.eq.${userId}`);
 
-    if (!error && data && Array.isArray(data)) {
-      const sessions = data.map(mapSupabaseToLiveSession);
-      sessions.forEach(saveToLocalCache);
-      return sessions;
+    if (error) {
+      console.error('[LiveSessions] Failed to fetch live sessions from Supabase:', error.message);
+      return [];
     }
-  } catch (err) {
-    console.warn('[LiveSessions] Failed to fetch live sessions from Supabase:', err);
+
+    if (data && Array.isArray(data)) {
+      return data.map(mapSupabaseToLiveSession);
+    }
+  } catch (err: any) {
+    console.error('[LiveSessions] Failed to fetch live sessions from Supabase:', err);
   }
 
-  return getLocalCacheForUser(userId);
+  return [];
 }
 
 /**
- * Updates status of a live session.
+ * Updates status of a live session in Supabase.
+ * Throws an error if the update fails.
  */
 export async function updateLiveSessionStatus(
   sessionId: string,
@@ -151,50 +143,36 @@ export async function updateLiveSessionStatus(
     updatePayload.end_time = extra.endTime;
   }
 
-  try {
-    const { error } = await supabase
-      .from('live_sessions')
-      .update(updatePayload)
-      .eq('id', sessionId);
+  const { error } = await supabase
+    .from('live_sessions')
+    .update(updatePayload)
+    .eq('id', sessionId);
 
-    if (error) {
-      console.warn('[LiveSessions] Supabase status update error:', error);
-    }
-  } catch (err) {
-    console.warn('[LiveSessions] Exception during status update:', err);
+  if (error) {
+    console.error('[LiveSessions] Supabase status update error:', error.message);
+    throw new Error(`Failed to update live session status in database: ${error.message}`);
   }
-
-  // Update local cache across all local keys
-  updateLocalCacheSession(sessionId, status, extra?.endTime);
 }
 
 /**
- * Retrieves a session by ID and enforces security permission checking.
+ * Retrieves a session by ID directly from Supabase and enforces security permission checking.
  * Only teacher and learner can access.
  */
 export async function getLiveSessionById(sessionId: string, userId: string): Promise<LiveSession | null> {
-  let session: LiveSession | null = null;
+  const { data, error } = await supabase
+    .from('live_sessions')
+    .select('*')
+    .eq('id', sessionId)
+    .maybeSingle();
 
-  try {
-    const { data, error } = await supabase
-      .from('live_sessions')
-      .select('*')
-      .eq('id', sessionId)
-      .maybeSingle();
-
-    if (!error && data) {
-      session = mapSupabaseToLiveSession(data);
-    }
-  } catch (err) {
-    console.warn('[LiveSessions] Error fetching session by id:', err);
+  if (error) {
+    console.error('[LiveSessions] Error fetching session by id:', error.message);
+    throw new Error(`Failed to fetch session: ${error.message}`);
   }
 
-  if (!session) {
-    const cached = findSessionInLocalCache(sessionId);
-    if (cached) session = cached;
-  }
+  if (!data) return null;
 
-  if (!session) return null;
+  const session = mapSupabaseToLiveSession(data);
 
   // Security enforcement: verify userId is teacher or learner
   if (session.teacherId !== userId && session.learnerId !== userId) {
@@ -205,79 +183,3 @@ export async function getLiveSessionById(sessionId: string, userId: string): Pro
   return session;
 }
 
-// Local cache helpers
-function saveToLocalCache(session: LiveSession): void {
-  const teacherKey = `local_live_sessions_${session.teacherId}`;
-  const learnerKey = `local_live_sessions_${session.learnerId}`;
-
-  [teacherKey, learnerKey].forEach(key => {
-    try {
-      const raw = localStorage.getItem(key);
-      const list: LiveSession[] = raw ? JSON.parse(raw) : [];
-      const idx = list.findIndex(s => s.id === session.id || s.bookingId === session.bookingId);
-      if (idx >= 0) {
-        list[idx] = { ...list[idx], ...session };
-      } else {
-        list.push(session);
-      }
-      localStorage.setItem(key, JSON.stringify(list));
-    } catch (e) {
-      console.warn('Local storage write failed:', e);
-    }
-  });
-}
-
-function getLocalCacheForUser(userId: string): LiveSession[] {
-  try {
-    const raw = localStorage.getItem(`local_live_sessions_${userId}`);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function findSessionInLocalCache(sessionId: string): LiveSession | null {
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('local_live_sessions_')) {
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          const list: LiveSession[] = JSON.parse(raw);
-          const found = list.find(s => s.id === sessionId);
-          if (found) return found;
-        }
-      }
-    }
-  } catch {}
-  return null;
-}
-
-function updateLocalCacheSession(sessionId: string, status: LiveSessionStatus, endTime?: string): void {
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('local_live_sessions_')) {
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          const list: LiveSession[] = JSON.parse(raw);
-          let updated = false;
-          const newList = list.map(s => {
-            if (s.id === sessionId) {
-              updated = true;
-              return {
-                ...s,
-                status,
-                endTime: endTime || s.endTime
-              };
-            }
-            return s;
-          });
-          if (updated) {
-            localStorage.setItem(key, JSON.stringify(newList));
-          }
-        }
-      }
-    }
-  } catch {}
-}

@@ -402,10 +402,16 @@ export default function LiveSessionRoomView({
       localVideoRef.current.srcObject = localStreamRef.current;
     }
 
-    // Update status in database
-    await updateLiveSessionStatus(liveSession.id, 'live');
+    try {
+      // Update status in database
+      await updateLiveSessionStatus(liveSession.id, 'live');
 
-    setupWebRTCAndSignaling();
+      // Setup WebRTC and signaling only if database status update succeeded
+      setupWebRTCAndSignaling();
+    } catch (err) {
+      console.error('[LiveSessionRoomView] Failed to update session status to live in database:', err);
+      setConnectionStatus('failed');
+    }
   };
 
   // 6. WebRTC Core Setup with Supabase Realtime Channel
@@ -665,9 +671,13 @@ export default function LiveSessionRoomView({
     }
 
     // Update status in database
-    await updateLiveSessionStatus(liveSession.id, 'ended', { endTime: new Date().toISOString() });
-
-    onLeave();
+    try {
+      await updateLiveSessionStatus(liveSession.id, 'ended', { endTime: new Date().toISOString() });
+    } catch (err) {
+      console.warn('[LiveSessionRoomView] Failed to update session status to ended in database:', err);
+    } finally {
+      onLeave();
+    }
   };
 
   const formatTimer = (totalSeconds: number) => {
@@ -1105,8 +1115,7 @@ export default function LiveSessionRoomView({
                 {(connectionStatus === 'failed' || connectionStatus === 'disconnected') && (
                   <button
                     onClick={() => {
-                      setConnectionStatus('connecting');
-                      setupWebRTCAndSignaling();
+                      enterClassroom();
                     }}
                     className="mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-2 shadow-md"
                   >
