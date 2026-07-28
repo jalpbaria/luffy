@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, SlidersHorizontal, Star, Award, GraduationCap, 
   MapPin, Clock, Languages, Globe, Calendar, Check, MessageSquare,
   ArrowRight, ExternalLink, X, Compass, CheckCircle2, ChevronRight,
-  BookOpen, Sparkles, Send, CheckSquare, ArrowLeft, Code
+  BookOpen, Sparkles, Send, CheckSquare, ArrowLeft, Code, RefreshCw, Layers
 } from 'lucide-react';
 import { UserProfile, Skill, LearningOption } from '../types';
 import { getSkillGuide } from '../data/skillGuides';
 import { getAISkillTutorReply } from '../lib/gemini';
+import { computeAllUserMatches, calculateMatch, UserMatchResult } from '../lib/matchUtils';
 
 interface ExploreViewProps {
   currentUser: UserProfile;
@@ -41,6 +42,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
   const [selectedAvailability, setSelectedAvailability] = useState<string>('All');
   const [selectedTimeZone, setSelectedTimeZone] = useState<string>('All');
   const [showFilters, setShowFilters] = useState(false);
+  const [matchFilter, setMatchFilter] = useState<'all' | 'perfect' | 'partial'>('all');
   
   // Selected teacher for full details
   const [selectedTeacher, setSelectedTeacher] = useState<UserProfile | null>(null);
@@ -179,41 +181,76 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
     });
   };
 
-  // Filter users based on query state
-  const otherUsers = users.filter(u => u.id !== currentUser?.id);
+  // Filter users based on query state & compute mutual matches
+  const otherUsers = useMemo(() => users.filter(u => u.id !== currentUser?.id), [users, currentUser?.id]);
+
+  // Compute matches for all users relative to currentUser
+  const userMatches = useMemo(() => {
+    return computeAllUserMatches(currentUser, users);
+  }, [currentUser, users]);
+
+  const matchMap = useMemo(() => {
+    const map = new Map<string, UserMatchResult>();
+    userMatches.forEach(m => map.set(m.user.id, m));
+    return map;
+  }, [userMatches]);
+
+  const perfectMatches = useMemo(() => {
+    return userMatches.filter(m => m.isPerfectMatch);
+  }, [userMatches]);
+
+  const partialMatches = useMemo(() => {
+    return userMatches.filter(m => m.isPartialMatch);
+  }, [userMatches]);
   
-  const filteredUsers = otherUsers.filter(user => {
-    // Search match
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = searchQuery === '' || 
-      user.name.toLowerCase().includes(searchLower) ||
-      (user.bio || '').toLowerCase().includes(searchLower) ||
-      (user.skillsOffered ?? []).some(s => s.name.toLowerCase().includes(searchLower)) ||
-      (user.skillsWanted ?? []).some(s => s.name.toLowerCase().includes(searchLower));
+  const filteredUsers = useMemo(() => {
+    let result = otherUsers.filter(user => {
+      // Search match
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch = searchQuery === '' || 
+        user.name.toLowerCase().includes(searchLower) ||
+        (user.bio || '').toLowerCase().includes(searchLower) ||
+        (user.skillsOffered ?? []).some(s => s.name.toLowerCase().includes(searchLower)) ||
+        (user.skillsWanted ?? []).some(s => s.name.toLowerCase().includes(searchLower));
 
-    // Category match
-    const matchesCategory = selectedCategory === 'All' || 
-      (user.skillsOffered ?? []).some(s => s.category === selectedCategory);
+      // Category match
+      const matchesCategory = selectedCategory === 'All' || 
+        (user.skillsOffered ?? []).some(s => s.category === selectedCategory);
 
-    // Level match
-    const matchesLevel = selectedLevel === 'All' || 
-      user.skillLevel === selectedLevel ||
-      (user.skillsOffered ?? []).some(s => s.level === selectedLevel);
+      // Level match
+      const matchesLevel = selectedLevel === 'All' || 
+        user.skillLevel === selectedLevel ||
+        (user.skillsOffered ?? []).some(s => s.level === selectedLevel);
 
-    // Language match
-    const matchesLanguage = selectedLanguage === 'All' ||
-      (user.languages ?? []).some(l => l.includes(selectedLanguage));
+      // Language match
+      const matchesLanguage = selectedLanguage === 'All' ||
+        (user.languages ?? []).some(l => l.includes(selectedLanguage));
 
-    // Availability match
-    const matchesAvailability = selectedAvailability === 'All' ||
-      (user.availability ?? []).includes(selectedAvailability as any);
+      // Availability match
+      const matchesAvailability = selectedAvailability === 'All' ||
+        (user.availability ?? []).includes(selectedAvailability as any);
 
-    // Time zone match
-    const matchesTimeZone = selectedTimeZone === 'All' ||
-      user.timeZone === selectedTimeZone;
+      // Time zone match
+      const matchesTimeZone = selectedTimeZone === 'All' ||
+        user.timeZone === selectedTimeZone;
 
-    return matchesSearch && matchesCategory && matchesLevel && matchesLanguage && matchesAvailability && matchesTimeZone;
-  });
+      return matchesSearch && matchesCategory && matchesLevel && matchesLanguage && matchesAvailability && matchesTimeZone;
+    });
+
+    // Apply match filter if selected
+    if (matchFilter === 'perfect') {
+      result = result.filter(u => matchMap.get(u.id)?.isPerfectMatch);
+    } else if (matchFilter === 'partial') {
+      result = result.filter(u => matchMap.get(u.id)?.isPartialMatch);
+    }
+
+    // Sort by match score (Perfect matches with higher skill overlap count appear first)
+    return result.sort((a, b) => {
+      const scoreA = matchMap.get(a.id)?.score || 0;
+      const scoreB = matchMap.get(b.id)?.score || 0;
+      return scoreB - scoreA;
+    });
+  }, [otherUsers, searchQuery, selectedCategory, selectedLevel, selectedLanguage, selectedAvailability, selectedTimeZone, matchFilter, matchMap]);
 
   // Get list of unique languages and time zones across all users
   const allLanguages = Array.from(new Set(otherUsers.flatMap(u => (u.languages ?? []).map(l => l.split(' ')[0]))));
@@ -284,6 +321,66 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
       {/* Search and Filters bar */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-4">
+        {/* Match Fit Filter Mode Tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-1.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
+            <button
+              onClick={() => setMatchFilter('all')}
+              className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                matchFilter === 'all'
+                  ? 'bg-white text-slate-800 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>All Swappers</span>
+              <span className="px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[10px] font-bold">
+                {otherUsers.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setMatchFilter('perfect')}
+              className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                matchFilter === 'perfect'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs'
+                  : 'text-emerald-800 hover:bg-emerald-100/60'
+              }`}
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${matchFilter === 'perfect' ? 'text-amber-300 fill-amber-300' : 'text-emerald-600'}`} />
+              <span>Perfect Matches</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                matchFilter === 'perfect' ? 'bg-emerald-800 text-emerald-100' : 'bg-emerald-100 text-emerald-800'
+              }`}>
+                {perfectMatches.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setMatchFilter('partial')}
+              className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                matchFilter === 'partial'
+                  ? 'bg-white text-indigo-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>Partial Matches</span>
+              <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded-full text-[10px] font-bold">
+                {partialMatches.length}
+              </span>
+            </button>
+          </div>
+
+          {perfectMatches.length > 0 && matchFilter !== 'perfect' && (
+            <button
+              onClick={() => setMatchFilter('perfect')}
+              className="text-xs text-emerald-700 font-bold hover:underline flex items-center gap-1 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-lg cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600 fill-emerald-200" />
+              <span>{perfectMatches.length} Perfect Barter Match{perfectMatches.length > 1 ? 'es' : ''} Found!</span>
+            </button>
+          )}
+        </div>
+
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -411,83 +508,150 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredUsers.map((user) => (
-            <motion.div 
-              key={user.id}
-              layoutId={`user-card-${user.id}`}
-              className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col overflow-hidden"
-              onClick={() => handleOpenDetails(user)}
-            >
-              {/* Header card info */}
-              <div className="p-5 flex items-start gap-4 cursor-pointer">
-                <img 
-                  src={user.avatar} 
-                  alt={user.name} 
-                  referrerPolicy="no-referrer"
-                  className="w-14 h-14 rounded-full object-cover border-2 border-slate-100 flex-shrink-0"
-                />
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="font-semibold text-slate-900 truncate text-base hover:text-indigo-600 transition">{user.name}</h3>
-                    <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium">{user.skillLevel}</span>
-                  </div>
-                  
-                  {/* Rating */}
-                  <div className="flex items-center gap-1 text-xs text-amber-500 font-semibold">
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                    <span>{user.rating.toFixed(1)}</span>
-                    <span className="text-slate-400 font-normal">({user.reviewsCount} reviews)</span>
-                  </div>
+          {filteredUsers.map((user) => {
+            const matchInfo = matchMap.get(user.id);
+            const isPerfect = matchInfo?.isPerfectMatch;
+            const isPartial = matchInfo?.isPartialMatch;
 
-                  {/* Timezone / Availability info */}
-                  <div className="flex items-center gap-1 text-xs text-slate-500">
-                    <Globe className="w-3 h-3 text-slate-400" />
-                    <span>{user.timeZone}</span>
-                    <span className="text-slate-300">•</span>
-                    <Clock className="w-3 h-3 text-slate-400" />
-                    <span className="truncate">{(user.availability ?? []).join(', ')}</span>
+            return (
+              <motion.div 
+                key={user.id}
+                layoutId={`user-card-${user.id}`}
+                className={`bg-white rounded-xl border transition-all duration-200 flex flex-col overflow-hidden cursor-pointer ${
+                  isPerfect 
+                    ? 'border-emerald-300 shadow-md hover:shadow-lg ring-1 ring-emerald-400/30' 
+                    : isPartial
+                    ? 'border-indigo-200 hover:border-indigo-300 shadow-xs hover:shadow-md'
+                    : 'border-slate-200 hover:border-slate-300 shadow-2xs hover:shadow-md'
+                }`}
+                onClick={() => handleOpenDetails(user)}
+              >
+                {/* Perfect Match Top Banner */}
+                {isPerfect && (
+                  <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white px-4 py-1.5 flex items-center justify-between text-xs font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300 animate-pulse" />
+                      Perfect 2-Way Skill Fit
+                    </span>
+                    <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide">
+                      100% Mutual Match
+                    </span>
+                  </div>
+                )}
+
+                {/* Header card info */}
+                <div className="p-5 flex items-start gap-4 cursor-pointer">
+                  <img 
+                    src={user.avatar} 
+                    alt={user.name} 
+                    referrerPolicy="no-referrer"
+                    className={`w-14 h-14 rounded-full object-cover border-2 flex-shrink-0 ${
+                      isPerfect ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100'
+                    }`}
+                  />
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1.5">
+                      <h3 className="font-semibold text-slate-900 truncate text-base hover:text-indigo-600 transition">{user.name}</h3>
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium shrink-0">{user.skillLevel}</span>
+                    </div>
+                    
+                    {/* Rating */}
+                    <div className="flex items-center gap-1 text-xs text-amber-500 font-semibold">
+                      <Star className="w-3.5 h-3.5 fill-current" />
+                      <span>{user.rating.toFixed(1)}</span>
+                      <span className="text-slate-400 font-normal">({user.reviewsCount} reviews)</span>
+                    </div>
+
+                    {/* Timezone / Availability info */}
+                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                      <Globe className="w-3 h-3 text-slate-400" />
+                      <span>{user.timeZone}</span>
+                      <span className="text-slate-300">•</span>
+                      <Clock className="w-3 h-3 text-slate-400" />
+                      <span className="truncate">{(user.availability ?? []).join(', ')}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Teaching skills */}
-              <div className="px-5 pb-4 flex-1 space-y-3 cursor-pointer">
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">Teaches</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {(user.skillsOffered ?? []).map((sk, idx) => (
-                      <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md text-xs font-medium">
-                        <Award className="w-3 h-3 text-indigo-500" />
-                        {sk.name}
-                      </span>
-                    ))}
+                {/* Perfect Mutual Match Highlight Box */}
+                {isPerfect && matchInfo && (
+                  <div className="mx-5 mb-3 p-3 bg-gradient-to-br from-emerald-50/90 to-indigo-50/90 border border-emerald-200 rounded-xl space-y-2 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                      <div className="bg-white/90 p-2 rounded-lg border border-emerald-100/80 shadow-2xs">
+                        <span className="text-emerald-700 block text-[10px] font-extrabold uppercase tracking-wider">They Teach ➔ You Want</span>
+                        <span className="font-bold text-slate-900">
+                          {matchInfo.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}
+                        </span>
+                      </div>
+                      <div className="bg-white/90 p-2 rounded-lg border border-indigo-100/80 shadow-2xs">
+                        <span className="text-indigo-700 block text-[10px] font-extrabold uppercase tracking-wider">You Teach ➔ They Want</span>
+                        <span className="font-bold text-slate-900">
+                          {matchInfo.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Partial Match Box */}
+                {isPartial && matchInfo && !isPerfect && (
+                  <div className="mx-5 mb-3 p-2.5 bg-indigo-50/60 border border-indigo-100 rounded-xl text-[11px] space-y-1">
+                    <span className="font-bold text-indigo-900 flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3 text-indigo-600" />
+                      Partial Skill Match
+                    </span>
+                    {matchInfo.theyTeachUserWants.length > 0 && (
+                      <p className="text-slate-600">
+                        They teach <strong className="text-emerald-800">{matchInfo.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}</strong> (you want to learn)
+                      </p>
+                    )}
+                    {matchInfo.userTeachesTheyWant.length > 0 && (
+                      <p className="text-slate-600">
+                        They want <strong className="text-indigo-800">{matchInfo.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}</strong> (you teach)
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Teaching skills */}
+                <div className="px-5 pb-4 flex-1 space-y-3 cursor-pointer">
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">Teaches</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {(user.skillsOffered ?? []).map((sk, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md text-xs font-medium">
+                          <Award className="w-3 h-3 text-indigo-500" />
+                          {sk.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">Wants to Learn</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {(user.skillsWanted ?? []).map((sk, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-100 text-amber-800 rounded-md text-xs font-medium">
+                          <GraduationCap className="w-3 h-3 text-amber-500" />
+                          {sk.name}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">Wants to Learn</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {(user.skillsWanted ?? []).map((sk, idx) => (
-                      <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-100 text-amber-800 rounded-md text-xs font-medium">
-                        <GraduationCap className="w-3 h-3 text-amber-500" />
-                        {sk.name}
-                      </span>
-                    ))}
-                  </div>
+                {/* Successful Exchanges and CTA */}
+                <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">
+                    <span className="font-semibold text-slate-700">{user.successfulExchanges}</span> successful swaps
+                  </span>
+                  <span className="text-indigo-600 font-semibold group flex items-center gap-1 cursor-pointer">
+                    View Profile <ChevronRight className="w-4 h-4 transition group-hover:translate-x-0.5" />
+                  </span>
                 </div>
-              </div>
-
-              {/* Successful Exchanges and CTA */}
-              <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
-                <span className="text-slate-500">
-                  <span className="font-semibold text-slate-700">{user.successfulExchanges}</span> successful swaps
-                </span>
-                <span className="text-indigo-600 font-semibold group flex items-center gap-1 cursor-pointer">
-                  View Profile <ChevronRight className="w-4 h-4 transition group-hover:translate-x-0.5" />
-                </span>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       )}
 
@@ -534,6 +698,60 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {!isBookingMode ? (
                   <>
+                    {/* Mutual Skill Barter Match Banner */}
+                    {(() => {
+                      const teacherMatch = calculateMatch(currentUser, selectedTeacher);
+                      if (teacherMatch.isPerfectMatch) {
+                        return (
+                          <div className="p-4 bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-300 rounded-xl space-y-2 shadow-2xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-extrabold text-emerald-900 text-xs flex items-center gap-1.5">
+                                <Sparkles className="w-4 h-4 text-emerald-600 fill-emerald-200 animate-pulse" />
+                                Perfect 2-Way Skill Barter Fit!
+                              </span>
+                              <span className="px-2.5 py-0.5 bg-emerald-600 text-white text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+                                100% Mutual Match
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+                              <div className="bg-white/90 p-2.5 rounded-lg border border-emerald-200">
+                                <span className="text-emerald-800 block text-[10px] font-bold uppercase tracking-wider">They Teach (You Want)</span>
+                                <span className="font-bold text-slate-900">
+                                  {teacherMatch.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}
+                                </span>
+                              </div>
+                              <div className="bg-white/90 p-2.5 rounded-lg border border-indigo-200">
+                                <span className="text-indigo-800 block text-[10px] font-bold uppercase tracking-wider">You Teach (They Want)</span>
+                                <span className="font-bold text-slate-900">
+                                  {teacherMatch.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      } else if (teacherMatch.isPartialMatch) {
+                        return (
+                          <div className="p-3 bg-indigo-50/80 border border-indigo-200 rounded-xl text-xs space-y-1">
+                            <span className="font-bold text-indigo-900 flex items-center gap-1">
+                              <RefreshCw className="w-3.5 h-3.5 text-indigo-600" />
+                              Partial Skill Barter Match
+                            </span>
+                            {teacherMatch.theyTeachUserWants.length > 0 && (
+                              <p className="text-slate-700">
+                                They teach <strong className="text-emerald-900">{teacherMatch.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}</strong> which matches your wishlist.
+                              </p>
+                            )}
+                            {teacherMatch.userTeachesTheyWant.length > 0 && (
+                              <p className="text-slate-700">
+                                They want to learn <strong className="text-indigo-900">{teacherMatch.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}</strong> which you teach.
+                              </p>
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
                     {/* Bio */}
                     <div>
                       <h4 className="text-xs font-semibold text-slate-400 tracking-wider uppercase mb-1.5">Introduction</h4>

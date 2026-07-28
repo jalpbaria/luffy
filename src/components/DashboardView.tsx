@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Award, Calendar, Clock, Star, MessageSquare, CheckCircle, AlertCircle, Trash2, 
-  RefreshCw, Check, X, ShieldAlert, BookOpen, ThumbsUp, Trophy, ChevronRight, UserMinus, Plus, Video
+  RefreshCw, Check, X, ShieldAlert, BookOpen, ThumbsUp, Trophy, ChevronRight, UserMinus, Plus, Video, Sparkles
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review } from '../types';
 import { getSessionGateStatus } from '../lib/liveSessions';
+import { computeAllUserMatches } from '../lib/matchUtils';
 
 export function SessionJoinGateButton({
   booking,
@@ -99,6 +100,7 @@ interface DashboardViewProps {
   onDeleteNotification: (notifId: string) => void;
   allUsers: UserProfile[];
   onStartLiveSession?: (booking: Booking) => void;
+  onNavigateToExplore?: () => void;
 }
 
 export default function DashboardView({
@@ -111,13 +113,18 @@ export default function DashboardView({
   onMarkNotificationRead,
   onDeleteNotification,
   allUsers,
-  onStartLiveSession
+  onStartLiveSession,
+  onNavigateToExplore
 }: DashboardViewProps) {
   const [activeTab, setActiveTab] = useState<'sessions' | 'progress' | 'notifications'>('sessions');
   const [showRescheduleId, setShowRescheduleId] = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('14:00');
   const [rescheduleSlot, setRescheduleSlot] = useState<'Morning' | 'Afternoon' | 'Evening'>('Afternoon');
+
+  // Compute Perfect Skill Barter Matches for Home Dashboard
+  const allUserMatches = useMemo(() => computeAllUserMatches(currentUser, allUsers), [currentUser, allUsers]);
+  const perfectMatches = useMemo(() => allUserMatches.filter(m => m.isPerfectMatch), [allUserMatches]);
   
   // Review Modal State
   const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
@@ -243,6 +250,41 @@ export default function DashboardView({
         {/* Ambient absolute graphics to prevent tech larping visual noise */}
         <div className="absolute right-0 top-0 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
       </div>
+
+      {/* Perfect Skill Barter Matches Featured Banner */}
+      {perfectMatches.length > 0 && (
+        <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white rounded-2xl p-5 shadow-sm border border-emerald-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full text-xs font-bold flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300 animate-pulse" />
+                {perfectMatches.length} Perfect Barter Match{perfectMatches.length > 1 ? 'es' : ''} Available
+              </span>
+            </div>
+            <h3 className="text-lg font-bold text-white">Mutual Skill Fit Discovered!</h3>
+            <p className="text-emerald-100/80 text-xs">
+              We found members who teach skills on your wishlist and want to learn what you teach.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {perfectMatches.slice(0, 3).map(m => (
+              <img
+                key={m.user.id}
+                src={m.user.avatar}
+                alt={m.user.name}
+                title={`${m.user.name}: Perfect Fit!`}
+                className="w-10 h-10 rounded-full object-cover border-2 border-emerald-400 ring-2 ring-emerald-500/30"
+              />
+            ))}
+            <button
+              onClick={() => onNavigateToExplore?.()}
+              className="ml-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+            >
+              Explore Matches <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Grid of details */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

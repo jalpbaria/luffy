@@ -1503,6 +1503,7 @@ export default function App() {
                 onDeleteNotification={handleDeleteNotification}
                 allUsers={allUsers}
                 onStartLiveSession={handleStartLiveSession}
+                onNavigateToExplore={() => setActiveTab('explore')}
               />
             )}
 
