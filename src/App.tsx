@@ -17,7 +17,6 @@ import StudyHubView from './components/StudyHubView';
 import LoginView from './components/LoginView';
 import LiveSessionRoomView from './components/LiveSessionRoomView';
 import OnboardingTour from './components/OnboardingTour';
-import { PublicProfileView } from './components/PublicProfileView';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification, mapNotificationToSupabase, mapSupabaseToReview, mapReviewToSupabase } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
 
@@ -54,52 +53,6 @@ export default function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [accountDeletedNotice, setAccountDeletedNotice] = useState('');
   const [showOnboardingTour, setShowOnboardingTour] = useState(false);
-  const [publicProfileUserId, setPublicProfileUserId] = useState<string | null>(null);
-
-  // Helper function to parse public profile URL (/profile/:userId or ?profile=:userId or #/profile/:userId)
-  const parsePublicProfileUrl = (): string | null => {
-    if (typeof window === 'undefined') return null;
-
-    // 1. Pathname check: /profile/:userId
-    const pathMatch = window.location.pathname.match(/^\/profile\/([^/]+)/);
-    if (pathMatch && pathMatch[1]) return decodeURIComponent(pathMatch[1]);
-
-    // 2. Query param check: ?profile=:userId
-    const searchParams = new URLSearchParams(window.location.search);
-    const paramProfile = searchParams.get('profile');
-    if (paramProfile) return paramProfile;
-
-    // 3. Hash check: #/profile/:userId
-    const hashMatch = window.location.hash.match(/^#\/profile\/([^/]+)/);
-    if (hashMatch && hashMatch[1]) return decodeURIComponent(hashMatch[1]);
-
-    return null;
-  };
-
-  useEffect(() => {
-    const initialId = parsePublicProfileUrl();
-    if (initialId) {
-      setPublicProfileUserId(initialId);
-    }
-
-    const handlePopState = () => {
-      const profileId = parsePublicProfileUrl();
-      setPublicProfileUserId(profileId);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  const handleViewPublicProfile = (userId: string) => {
-    setPublicProfileUserId(userId);
-    window.history.pushState({}, '', `/profile/${userId}`);
-  };
-
-  const handleClosePublicProfile = () => {
-    setPublicProfileUserId(null);
-    window.history.pushState({}, '', '/');
-  };
 
   useEffect(() => {
     if (currentUser && currentUser.hasSeenOnboarding === false) {
@@ -1495,35 +1448,6 @@ export default function App() {
     );
   }
 
-  if (publicProfileUserId) {
-    return (
-      <PublicProfileView
-        userId={publicProfileUserId}
-        currentUser={currentUser}
-        allUsers={allUsers}
-        allReviews={allReviews}
-        onClose={handleClosePublicProfile}
-        onRequireLogin={() => {
-          handleClosePublicProfile();
-        }}
-        onBookSession={(teacher, skill) => {
-          handleClosePublicProfile();
-          if (currentUser) {
-            setActiveTab('explore');
-          }
-        }}
-        onOpenChat={(targetUserId) => {
-          handleClosePublicProfile();
-          if (currentUser) {
-            setSessionInitiatedChatIds(prev => new Set(prev).add(targetUserId));
-            setInitialActiveContactId(targetUserId);
-            setActiveTab('chat');
-          }
-        }}
-      />
-    );
-  }
-
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-700 antialiased justify-between">
@@ -1773,7 +1697,6 @@ export default function App() {
                 }}
                 isLoading={isLoading}
                 allReviews={allReviews}
-                onViewPublicProfile={handleViewPublicProfile}
               />
             )}
 
@@ -1794,7 +1717,6 @@ export default function App() {
                 onLogout={handleLogout}
                 onDeleteAccount={handleDeleteAccount}
                 allReviews={allReviews}
-                onViewPublicProfile={handleViewPublicProfile}
               />
             )}
 

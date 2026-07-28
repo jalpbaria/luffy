@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   User, Mail, FileText, GraduationCap, Globe, Clock, Award, 
   Trash2, Plus, Save, BookOpen, Link as LinkIcon, AlertCircle, Check, LogOut,
-  AlertTriangle, Lock, Eye, EyeOff, X, Star, Share2, ExternalLink
+  AlertTriangle, Lock, Eye, EyeOff, X, Star
 } from 'lucide-react';
 import { UserProfile, Skill, Review } from '../types';
 import { VerifiedSkillBadge } from './VerifiedSkillBadge';
@@ -14,7 +14,6 @@ interface ProfileViewProps {
   onLogout?: () => void;
   onDeleteAccount?: (password: string) => Promise<{ success: boolean; error?: string }>;
   allReviews?: Review[];
-  onViewPublicProfile?: (userId: string) => void;
 }
 
 const CATEGORIES = [
@@ -23,26 +22,7 @@ const CATEGORIES = [
   'Public Speaking', 'Business'
 ];
 
-export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLogout, onDeleteAccount, allReviews = [], onViewPublicProfile }: ProfileViewProps) {
-  const [copiedShareLink, setCopiedShareLink] = useState(false);
-
-  const handleCopyProfileLink = async () => {
-    const shareUrl = `${window.location.origin}/profile/${currentUser.id}`;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopiedShareLink(true);
-      setTimeout(() => setCopiedShareLink(false), 2500);
-    } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = shareUrl;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      setCopiedShareLink(true);
-      setTimeout(() => setCopiedShareLink(false), 2500);
-    }
-  };
+export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLogout, onDeleteAccount, allReviews = [] }: ProfileViewProps) {
   // Local state for profile form fields
   const [name, setName] = useState(currentUser?.name ?? '');
   const [avatar, setAvatar] = useState(currentUser?.avatar ?? '');
@@ -177,41 +157,6 @@ export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLo
         <div>
           <h1 className="text-3xl font-serif font-semibold tracking-tight text-slate-900">Manage Swap Profile</h1>
           <p className="text-slate-500 mt-1 text-sm">Refine your profile to get discovered and get more matching swap requests.</p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleCopyProfileLink}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition border ${
-              copiedShareLink 
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-700' 
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
-            }`}
-          >
-            {copiedShareLink ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Link Copied!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Share Profile</span>
-              </>
-            )}
-          </button>
-
-          {onViewPublicProfile && (
-            <button
-              type="button"
-              onClick={() => onViewPublicProfile(currentUser.id)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-semibold hover:bg-indigo-100 transition shadow-2xs"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Preview Public Profile</span>
-            </button>
-          )}
         </div>
       </div>
 
