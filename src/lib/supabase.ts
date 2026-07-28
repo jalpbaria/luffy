@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { UserProfile, Booking, AppNotification, Message, LiveSession } from '../types';
+import { UserProfile, Booking, AppNotification, Message, LiveSession, Review } from '../types';
 
 const metaEnv = (import.meta as any).env || {};
 const supabaseUrl = metaEnv.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
@@ -195,6 +195,45 @@ export function mapLiveSessionToSupabase(session: LiveSession): any {
   };
   if (session.id && !session.id.startsWith('session-')) {
     row.id = session.id;
+  }
+  return row;
+}
+
+export function mapSupabaseToReview(row: any): Review {
+  return {
+    id: row.id,
+    bookingId: row.booking_id || '',
+    teacherId: row.teacher_id,
+    learnerId: row.learner_id,
+    learnerName: row.learner_name || '',
+    skillName: row.skill_name || '',
+    rating: typeof row.rating === 'number' ? row.rating : parseInt(row.rating || '5', 10),
+    teachingQuality: row.teaching_quality || 5,
+    communication: row.communication || 5,
+    helpfulness: row.helpfulness || 5,
+    punctuality: row.punctuality || 5,
+    comment: row.comment || '',
+    createdAt: row.created_at || new Date().toISOString()
+  };
+}
+
+export function mapReviewToSupabase(review: Review): any {
+  const row: any = {
+    booking_id: review.bookingId,
+    teacher_id: review.teacherId,
+    learner_id: review.learnerId,
+    learner_name: review.learnerName,
+    skill_name: review.skillName,
+    rating: review.rating,
+    teaching_quality: review.teachingQuality || 5,
+    communication: review.communication || 5,
+    helpfulness: review.helpfulness || 5,
+    punctuality: review.punctuality || 5,
+    comment: review.comment,
+    created_at: review.createdAt
+  };
+  if (review.id && !review.id.startsWith('review-')) {
+    row.id = review.id;
   }
   return row;
 }

@@ -7,6 +7,7 @@ import {
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review } from '../types';
 import { getSessionGateStatus } from '../lib/liveSessions';
 import { computeAllUserMatches } from '../lib/matchUtils';
+import { VerifiedSkillBadge } from './VerifiedSkillBadge';
 
 export function SessionJoinGateButton({
   booking,
@@ -101,6 +102,7 @@ interface DashboardViewProps {
   allUsers: UserProfile[];
   onStartLiveSession?: (booking: Booking) => void;
   onNavigateToExplore?: () => void;
+  allReviews?: Review[];
 }
 
 export default function DashboardView({
@@ -114,7 +116,8 @@ export default function DashboardView({
   onDeleteNotification,
   allUsers,
   onStartLiveSession,
-  onNavigateToExplore
+  onNavigateToExplore,
+  allReviews = []
 }: DashboardViewProps) {
   const [activeTab, setActiveTab] = useState<'sessions' | 'progress' | 'notifications'>('sessions');
   const [showRescheduleId, setShowRescheduleId] = useState<string | null>(null);
@@ -197,6 +200,7 @@ export default function DashboardView({
       teacherId: reviewBooking.teacherId,
       learnerId: currentUser.id,
       learnerName: currentUser.name,
+      skillName: reviewBooking.skillName,
       rating: reviewRating,
       teachingQuality: reviewTeaching,
       communication: reviewComm,
@@ -304,8 +308,11 @@ export default function DashboardView({
                 <div className="space-y-1.5 mt-1.5">
                   {(currentUser?.skillsOffered ?? []).map((sk, idx) => (
                     <div key={idx} className="flex items-center justify-between text-xs p-2 bg-indigo-50/50 border border-indigo-100 rounded-lg">
-                      <span className="font-semibold text-slate-800">{sk.name}</span>
-                      <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-medium text-[10px]">{sk.level}</span>
+                      <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                        <span className="font-semibold text-slate-800 truncate">{sk.name}</span>
+                        <VerifiedSkillBadge teacherId={currentUser.id} skillName={sk.name} allReviews={allReviews} />
+                      </div>
+                      <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-medium text-[10px] shrink-0">{sk.level}</span>
                     </div>
                   ))}
                 </div>

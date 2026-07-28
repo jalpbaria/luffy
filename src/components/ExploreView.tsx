@@ -6,10 +6,11 @@ import {
   ArrowRight, ExternalLink, X, Compass, CheckCircle2, ChevronRight,
   BookOpen, Sparkles, Send, CheckSquare, ArrowLeft, Code, RefreshCw, Layers
 } from 'lucide-react';
-import { UserProfile, Skill, LearningOption } from '../types';
+import { UserProfile, Skill, LearningOption, Review } from '../types';
 import { getSkillGuide } from '../data/skillGuides';
 import { getAISkillTutorReply } from '../lib/gemini';
 import { computeAllUserMatches, calculateMatch, UserMatchResult } from '../lib/matchUtils';
+import { VerifiedSkillBadge } from './VerifiedSkillBadge';
 
 interface ExploreViewProps {
   currentUser: UserProfile;
@@ -17,6 +18,7 @@ interface ExploreViewProps {
   onBookSession: (teacher: UserProfile, skill: Skill, option: LearningOption, date: string, slot: 'Morning' | 'Afternoon' | 'Evening', notes: string, scheduledTime?: string) => void;
   onOpenChat: (userId: string) => void;
   isLoading: boolean;
+  allReviews?: Review[];
 }
 
 const CATEGORIES = [
@@ -34,7 +36,7 @@ const LEARNING_OPTIONS: { value: LearningOption; icon: string; desc: string }[] 
   { value: 'Project-Based Learning', icon: '🛠', desc: 'Build a practical, real-world project together' }
 ];
 
-export default function ExploreView({ currentUser, users, onBookSession, onOpenChat, isLoading }: ExploreViewProps) {
+export default function ExploreView({ currentUser, users, onBookSession, onOpenChat, isLoading, allReviews = [] }: ExploreViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedLevel, setSelectedLevel] = useState<string>('All');
@@ -619,9 +621,10 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                     <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">Teaches</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {(user.skillsOffered ?? []).map((sk, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md text-xs font-medium">
-                          <Award className="w-3 h-3 text-indigo-500" />
-                          {sk.name}
+                        <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md text-xs font-medium">
+                          <Award className="w-3 h-3 text-indigo-500 shrink-0" />
+                          <span>{sk.name}</span>
+                          <VerifiedSkillBadge teacherId={user.id} skillName={sk.name} allReviews={allReviews} />
                         </span>
                       ))}
                     </div>
@@ -813,12 +816,15 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                                 : 'bg-white border-slate-200 hover:border-slate-350'
                             }`}
                           >
-                            <div>
-                              <p className="font-semibold text-slate-800 text-sm">{sk.name}</p>
+                            <div className="flex-1 min-w-0 pr-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="font-semibold text-slate-800 text-sm">{sk.name}</p>
+                                <VerifiedSkillBadge teacherId={selectedTeacher.id} skillName={sk.name} allReviews={allReviews} />
+                              </div>
                               <p className="text-[11px] text-slate-500 mt-0.5">{sk.category} • {sk.level} level</p>
                             </div>
                             {selectedSkillToLearn?.name === sk.name && (
-                              <div className="w-5 h-5 bg-indigo-500 text-white rounded-full flex items-center justify-center">
+                              <div className="w-5 h-5 bg-indigo-500 text-white rounded-full flex items-center justify-center shrink-0">
                                 <Check className="w-3.5 h-3.5 stroke-[3]" />
                               </div>
                             )}

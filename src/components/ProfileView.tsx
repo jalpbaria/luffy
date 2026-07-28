@@ -4,7 +4,8 @@ import {
   Trash2, Plus, Save, BookOpen, Link as LinkIcon, AlertCircle, Check, LogOut,
   AlertTriangle, Lock, Eye, EyeOff, X
 } from 'lucide-react';
-import { UserProfile, Skill } from '../types';
+import { UserProfile, Skill, Review } from '../types';
+import { VerifiedSkillBadge } from './VerifiedSkillBadge';
 
 interface ProfileViewProps {
   currentUser: UserProfile;
@@ -12,6 +13,7 @@ interface ProfileViewProps {
   isSaving: boolean;
   onLogout?: () => void;
   onDeleteAccount?: (password: string) => Promise<{ success: boolean; error?: string }>;
+  allReviews?: Review[];
 }
 
 const CATEGORIES = [
@@ -20,7 +22,7 @@ const CATEGORIES = [
   'Public Speaking', 'Business'
 ];
 
-export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLogout, onDeleteAccount }: ProfileViewProps) {
+export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLogout, onDeleteAccount, allReviews = [] }: ProfileViewProps) {
   // Local state for profile form fields
   const [name, setName] = useState(currentUser?.name ?? '');
   const [avatar, setAvatar] = useState(currentUser?.avatar ?? '');
@@ -425,7 +427,10 @@ export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLo
                   skillsOffered.map((sk, index) => (
                     <div key={index} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
                       <div>
-                        <p className="font-semibold text-slate-800">{sk.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-slate-800">{sk.name}</p>
+                          <VerifiedSkillBadge teacherId={currentUser.id} skillName={sk.name} allReviews={allReviews} />
+                        </div>
                         <p className="text-[10px] text-slate-500 mt-0.5">{sk.category} • {sk.level}</p>
                       </div>
                       <button

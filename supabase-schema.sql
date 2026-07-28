@@ -165,3 +165,43 @@ CREATE POLICY "Users can delete their own messages" ON public.messages
   FOR DELETE USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
 
 
+-- Table: public.reviews
+-- Stores individual reviews left by learners for teachers and specific skills taught.
+CREATE TABLE IF NOT EXISTS public.reviews (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id uuid REFERENCES public.bookings(id) ON DELETE SET NULL,
+  teacher_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  learner_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  learner_name text NOT NULL,
+  skill_name text NOT NULL,
+  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  teaching_quality integer DEFAULT 5,
+  communication integer DEFAULT 5,
+  helpfulness integer DEFAULT 5,
+  punctuality integer DEFAULT 5,
+  comment text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable Row Level Security for Reviews
+ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+
+-- Secure RLS Policies for Reviews
+-- 1. Reviews are publicly readable so verified skill counts and ratings can be calculated
+CREATE POLICY "Reviews are publicly readable" ON public.reviews
+  FOR SELECT USING (true);
+
+-- 2. Authenticated learners can insert a review (must be the learner)
+CREATE POLICY "Learners can insert reviews" ON public.reviews
+  FOR INSERT WITH CHECK (auth.uid() = learner_id);
+
+-- 3. Learners can update their own review
+CREATE POLICY "Learners can update their own reviews" ON public.reviews
+  FOR UPDATE USING (auth.uid() = learner_id);
+
+-- 4. Learners can delete their own review
+CREATE POLICY "Learners can delete their own reviews" ON public.reviews
+  FOR DELETE USING (auth.uid() = learner_id);
+
+
+

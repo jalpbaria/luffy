@@ -98,11 +98,12 @@ export interface Review {
   teacherId: string;
   learnerId: string;
   learnerName: string;
+  skillName: string;
   rating: number; // 1-5
-  teachingQuality: number; // 1-5
-  communication: number; // 1-5
-  helpfulness: number; // 1-5
-  punctuality: number; // 1-5
+  teachingQuality?: number; // 1-5
+  communication?: number; // 1-5
+  helpfulness?: number; // 1-5
+  punctuality?: number; // 1-5
   comment: string;
   createdAt: string;
 }

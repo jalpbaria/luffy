@@ -17,11 +17,12 @@ import StudyHubView from './components/StudyHubView';
 import LoginView from './components/LoginView';
 import LiveSessionRoomView from './components/LiveSessionRoomView';
 import OnboardingTour from './components/OnboardingTour';
-import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification } from './lib/supabase';
+import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification, mapSupabaseToReview, mapReviewToSupabase } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
 
 // Fallback mock data when API is unreachable
 import { fallbackUsers, fallbackBookings, fallbackNotifications, fallbackProgress } from './data/fallbackUsers';
+import { fallbackReviews } from './data/fallbackReviews';
 
 
 
@@ -36,6 +37,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [progress, setProgress] = useState<ProgressTrack[]>([]);
   const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
+  const [allReviews, setAllReviews] = useState<Review[]>([]);
 
   // Active live classroom session
   const [activeLiveSessionBooking, setActiveLiveSessionBooking] = useState<Booking | null>(null);
@@ -212,6 +214,30 @@ export default function App() {
           }
         }
         setAllUsers(data);
+
+        // Fetch All Reviews for Verified Skill calculating
+        let loadedReviews: Review[] = [];
+        try {
+          const { data: dbRevRows, error: dbRevErr } = await supabase.from('reviews').select('*');
+          if (!dbRevErr && dbRevRows && Array.isArray(dbRevRows)) {
+            loadedReviews = dbRevRows.map(mapSupabaseToReview);
+          } else {
+            throw new Error('No reviews returned from Supabase');
+          }
+        } catch {
+          const savedReviews = localStorage.getItem('local_all_reviews');
+          if (savedReviews) {
+            try {
+              loadedReviews = JSON.parse(savedReviews);
+            } catch {
+              loadedReviews = fallbackReviews;
+            }
+          } else {
+            loadedReviews = fallbackReviews;
+            localStorage.setItem('local_all_reviews', JSON.stringify(fallbackReviews));
+          }
+        }
+        setAllReviews(loadedReviews);
         
         // Check Supabase Auth Session
         let initialUser = null;
@@ -1097,6 +1123,33 @@ export default function App() {
 
   const handleLeaveReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>) => {
     try {
+      const newReview: Review = {
+        id: `review-${Date.now()}`,
+        ...reviewData,
+        createdAt: new Date().toISOString()
+      };
+
+      // 1. Insert review into Supabase 'reviews' table
+      try {
+        const mappedReview = mapReviewToSupabase(newReview);
+        const { data: insertedRev } = await supabase
+          .from('reviews')
+          .insert([mappedReview])
+          .select();
+        if (insertedRev && insertedRev[0]?.id) {
+          newReview.id = insertedRev[0].id;
+        }
+      } catch (revInsertErr) {
+        console.warn('Could not insert to Supabase reviews table:', revInsertErr);
+      }
+
+      // 2. Update local reviews state and local cache immediately
+      setAllReviews(prev => {
+        const updated = [newReview, ...prev];
+        localStorage.setItem('local_all_reviews', JSON.stringify(updated));
+        return updated;
+      });
+
       // Fetch the teacher profile first to make sure we have up-to-date count and rating
       const { data: teacherProfile, error: fetchErr } = await supabase
         .from('profiles')
@@ -1104,34 +1157,31 @@ export default function App() {
         .eq('id', reviewData.teacherId)
         .single();
       
-      if (fetchErr) throw fetchErr;
+      if (!fetchErr && teacherProfile) {
+        const currentCount = teacherProfile.reviews_count || 0;
+        const currentRating = typeof teacherProfile.rating === 'number' ? teacherProfile.rating : parseFloat(teacherProfile.rating || '5.0');
+        const newCount = currentCount + 1;
+        const newRating = Number(((currentRating * currentCount + reviewData.rating) / newCount).toFixed(1));
 
-      const currentCount = teacherProfile.reviews_count || 0;
-      const currentRating = typeof teacherProfile.rating === 'number' ? teacherProfile.rating : parseFloat(teacherProfile.rating || '5.0');
-      const newCount = currentCount + 1;
-      const newRating = Number(((currentRating * currentCount + reviewData.rating) / newCount).toFixed(1));
-
-      // Update the teacher profile in Supabase
-      const { error: updateErr } = await supabase
-        .from('profiles')
-        .update({
-          reviews_count: newCount,
-          rating: newRating
-        })
-        .eq('id', reviewData.teacherId);
-
-      if (updateErr) throw updateErr;
+        // Update the teacher profile in Supabase
+        await supabase
+          .from('profiles')
+          .update({
+            reviews_count: newCount,
+            rating: newRating
+          })
+          .eq('id', reviewData.teacherId);
+      }
 
       // Also insert review notification to Supabase
-      const { error: notifErr } = await supabase.from('notifications').insert({
+      await supabase.from('notifications').insert({
         user_id: reviewData.teacherId,
         title: 'New Review Received!',
-        message: `${reviewData.learnerName} left you a ${reviewData.rating}-star review: "${reviewData.comment.substring(0, 40)}..."`,
+        message: `${reviewData.learnerName} left you a ${reviewData.rating}-star review for ${reviewData.skillName || 'your session'}: "${reviewData.comment.substring(0, 40)}..."`,
         type: 'match',
         read: false,
         timestamp: new Date().toISOString()
       });
-      if (notifErr) throw notifErr;
 
       await syncAllState();
     } catch (err: any) {
@@ -1504,6 +1554,7 @@ export default function App() {
                 allUsers={allUsers}
                 onStartLiveSession={handleStartLiveSession}
                 onNavigateToExplore={() => setActiveTab('explore')}
+                allReviews={allReviews}
               />
             )}
 
@@ -1545,6 +1596,7 @@ export default function App() {
                   setActiveTab('chat');
                 }}
                 isLoading={isLoading}
+                allReviews={allReviews}
               />
             )}
 
@@ -1564,6 +1616,7 @@ export default function App() {
                 isSaving={isSaving}
                 onLogout={handleLogout}
                 onDeleteAccount={handleDeleteAccount}
+                allReviews={allReviews}
               />
             )}
 
