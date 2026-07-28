@@ -4,7 +4,7 @@ import {
   Search, SlidersHorizontal, Star, Award, GraduationCap, 
   MapPin, Clock, Languages, Globe, Calendar, Check, MessageSquare,
   ArrowRight, ExternalLink, X, Compass, CheckCircle2, ChevronRight,
-  BookOpen, Sparkles, Send, CheckSquare, ArrowLeft, Code, RefreshCw, Layers
+  BookOpen, Sparkles, Send, CheckSquare, ArrowLeft, Code, RefreshCw, Layers, Share2
 } from 'lucide-react';
 import { UserProfile, Skill, LearningOption, Review } from '../types';
 import { getSkillGuide } from '../data/skillGuides';
@@ -19,6 +19,7 @@ interface ExploreViewProps {
   onOpenChat: (userId: string) => void;
   isLoading: boolean;
   allReviews?: Review[];
+  onViewPublicProfile?: (userId: string) => void;
 }
 
 const CATEGORIES = [
@@ -36,7 +37,7 @@ const LEARNING_OPTIONS: { value: LearningOption; icon: string; desc: string }[] 
   { value: 'Project-Based Learning', icon: '🛠', desc: 'Build a practical, real-world project together' }
 ];
 
-export default function ExploreView({ currentUser, users, onBookSession, onOpenChat, isLoading, allReviews = [] }: ExploreViewProps) {
+export default function ExploreView({ currentUser, users, onBookSession, onOpenChat, isLoading, allReviews = [], onViewPublicProfile }: ExploreViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedLevel, setSelectedLevel] = useState<string>('All');
@@ -689,12 +690,25 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                     </p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setSelectedTeacher(null)}
-                  className="p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {onViewPublicProfile && (
+                    <button
+                      type="button"
+                      onClick={() => onViewPublicProfile(selectedTeacher.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-semibold transition border border-indigo-200"
+                      title="View or share public profile page"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Public Profile</span>
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => setSelectedTeacher(null)}
+                    className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Profile Details Body */}
