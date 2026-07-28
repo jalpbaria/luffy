@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   User, Mail, FileText, GraduationCap, Globe, Clock, Award, 
   Trash2, Plus, Save, BookOpen, Link as LinkIcon, AlertCircle, Check, LogOut,
-  AlertTriangle, Lock, Eye, EyeOff, X
+  AlertTriangle, Lock, Eye, EyeOff, X, Star
 } from 'lucide-react';
 import { UserProfile, Skill, Review } from '../types';
 import { VerifiedSkillBadge } from './VerifiedSkillBadge';
@@ -524,6 +524,66 @@ export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLo
             </div>
           </div>
 
+        </div>
+
+        {/* Reviews Received Section */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+              <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+              Student Reviews & Ratings Received ({allReviews.filter(r => r.teacherId === currentUser.id).length})
+            </h3>
+            <span className="text-xs font-bold text-slate-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md flex items-center gap-1">
+              ★ {currentUser.rating?.toFixed(1) || '5.0'} Aggregate Rating
+            </span>
+          </div>
+
+          {(() => {
+            const userReviews = allReviews
+              .filter(r => r.teacherId === currentUser.id)
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            if (userReviews.length === 0) {
+              return (
+                <p className="text-slate-400 italic text-center py-4 text-xs">
+                  No individual reviews received yet. Complete skill-swap sessions with learners to receive verified reviews!
+                </p>
+              );
+            }
+
+            return (
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                {userReviews.map((rev) => (
+                  <div key={rev.id} className="p-3.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">{rev.learnerName}</span>
+                        {rev.skillName && (
+                          <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-md font-semibold text-[10px]">
+                            {rev.skillName}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center text-amber-400">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-3.5 h-3.5 ${i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[10px] text-slate-400 ml-1">
+                          {new Date(rev.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-slate-600 italic leading-relaxed">{rev.comment || 'No written feedback provided.'}</p>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Submit Actions */}
