@@ -36,7 +36,7 @@ function generateRoomId(): string {
   return `room-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-function computeStartTime(dateStr: string, timeSlot: string, scheduledTime?: string): string {
+export function computeStartTime(dateStr: string, timeSlot: string, scheduledTime?: string): string {
   if (scheduledTime) {
     const d = new Date(scheduledTime);
     if (!isNaN(d.getTime())) return d.toISOString();

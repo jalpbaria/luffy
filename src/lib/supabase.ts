@@ -85,7 +85,8 @@ export function mapSupabaseToBooking(row: any): Booking {
     notes: row.notes || undefined,
     createdAt: row.created_at || new Date().toISOString(),
     completedAt: row.completed_at || undefined,
-    cancelledAt: row.cancelled_at || undefined
+    cancelledAt: row.cancelled_at || undefined,
+    reminderSent: row.reminder_sent || false
   };
 }
 
@@ -105,6 +106,7 @@ export function mapBookingToSupabase(booking: Booking): any {
     notes: booking.notes || null,
     completed_at: booking.completedAt || null,
     cancelled_at: booking.cancelledAt || null,
+    reminder_sent: booking.reminderSent || false
   };
   // Only assign ID if it is a valid uuid
   if (booking.id && !booking.id.startsWith('booking-')) {

@@ -6,7 +6,7 @@ import {
   Check, AlertCircle, Mail, X, BookOpen, PhoneCall
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review, Skill, LiveSession } from './types';
-import { getOrCreateLiveSessionForBooking, fetchLiveSessionsForUser, updateLiveSessionStatus, getSessionGateStatus } from './lib/liveSessions';
+import { getOrCreateLiveSessionForBooking, fetchLiveSessionsForUser, updateLiveSessionStatus, getSessionGateStatus, computeStartTime } from './lib/liveSessions';
 
 // Import our modular components
 import DashboardView from './components/DashboardView';
@@ -443,6 +443,106 @@ export default function App() {
 
     fetchMessagePartners();
   }, [currentUser?.id]);
+
+  // Periodic check (every 60 seconds) for 15-minute upcoming session reminders
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const checkUpcomingSessionReminders = async () => {
+      const now = Date.now();
+      const fifteenMinsMs = 15 * 60 * 1000;
+
+      // Find confirmed or rescheduled bookings starting within 15 minutes that haven't had a reminder sent
+      const upcomingToRemind = bookings.filter((b) => {
+        if (b.status !== 'confirmed' && b.status !== 'rescheduled') return false;
+        if (b.reminderSent) return false;
+
+        const startTimeIso = computeStartTime(b.date, b.timeSlot, b.scheduledTime);
+        const startTimeMs = new Date(startTimeIso).getTime();
+        const diffMs = startTimeMs - now;
+
+        // Starting within 15 minutes (diffMs <= 15 minutes) and not ended long ago (diffMs >= -2 minutes)
+        return diffMs <= fifteenMinsMs && diffMs >= -2 * 60 * 1000;
+      });
+
+      if (upcomingToRemind.length === 0) return;
+
+      for (const booking of upcomingToRemind) {
+        // Mark locally first to prevent duplicate execution in current cycle
+        setBookings((prev) =>
+          prev.map((b) => (b.id === booking.id ? { ...b, reminderSent: true } : b))
+        );
+
+        // Update Supabase
+        try {
+          await supabase
+            .from('bookings')
+            .update({ reminder_sent: true })
+            .eq('id', booking.id);
+        } catch (err) {
+          console.warn('Could not update reminder_sent on booking in Supabase:', err);
+        }
+
+        const reminderMessage = `Your session for ${booking.skillName} starts in 15 minutes!`;
+
+        // Create notification objects for teacher and learner
+        const notifTeacher: AppNotification = {
+          id: `notif-rem-t-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          userId: booking.teacherId,
+          title: 'Session Starting Soon!',
+          message: reminderMessage,
+          type: 'match',
+          bookingId: booking.id,
+          read: false,
+          timestamp: new Date().toISOString()
+        };
+
+        const notifLearner: AppNotification = {
+          id: `notif-rem-l-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          userId: booking.learnerId,
+          title: 'Session Starting Soon!',
+          message: reminderMessage,
+          type: 'match',
+          bookingId: booking.id,
+          read: false,
+          timestamp: new Date().toISOString()
+        };
+
+        // Insert into Supabase notifications table
+        try {
+          await supabase.from('notifications').insert([
+            mapNotificationToSupabase(notifTeacher),
+            mapNotificationToSupabase(notifLearner)
+          ]);
+        } catch (err) {
+          console.warn('Could not insert 15-minute session reminder notifications:', err);
+        }
+
+        // Add to local state if applicable for current user
+        setNotifications((prev) => {
+          const newNotifs: AppNotification[] = [];
+          if (booking.teacherId === currentUser.id && !prev.some((n) => n.id === notifTeacher.id)) {
+            newNotifs.push(notifTeacher);
+          }
+          if (booking.learnerId === currentUser.id && !prev.some((n) => n.id === notifLearner.id)) {
+            newNotifs.push(notifLearner);
+          }
+          if (newNotifs.length > 0) {
+            const updated = [...newNotifs, ...prev];
+            localStorage.setItem(`local_notifications_${currentUser.id}`, JSON.stringify(updated));
+            return updated;
+          }
+          return prev;
+        });
+      }
+    };
+
+    // Run immediately and every 60 seconds
+    checkUpcomingSessionReminders();
+    const interval = setInterval(checkUpcomingSessionReminders, 60000);
+
+    return () => clearInterval(interval);
+  }, [currentUser?.id, bookings]);
 
   const handleLogin = async (user: UserProfile) => {
     setIsLoading(true);

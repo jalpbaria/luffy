@@ -80,6 +80,7 @@ export interface Booking {
   createdAt: string;
   completedAt?: string; // ISO datetime string when session was marked completed
   cancelledAt?: string; // ISO datetime string when session was marked cancelled
+  reminderSent?: boolean;
 }
 
 export interface Message {

@@ -72,12 +72,14 @@ CREATE TABLE IF NOT EXISTS public.bookings (
   notes text,
   completed_at timestamp with time zone,
   cancelled_at timestamp with time zone,
+  reminder_sent boolean DEFAULT false,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS scheduled_time timestamp with time zone;
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS completed_at timestamp with time zone;
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS cancelled_at timestamp with time zone;
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS reminder_sent boolean DEFAULT false;
 
 -- Enable Row Level Security
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
