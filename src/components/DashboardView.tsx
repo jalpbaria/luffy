@@ -11,6 +11,21 @@ import { getSessionGateStatus } from '../lib/liveSessions';
 import { computeAllUserMatches } from '../lib/matchUtils';
 import { VerifiedSkillBadge } from './VerifiedSkillBadge';
 import { Button, Card, Badge, Avatar, ProgressBar, StatCard, MotionCard, EmptyState } from './ui';
+import { supabase, mapSupabaseToBooking } from '../lib/supabase';
+
+function formatRelativeTime(dateStr?: string): string {
+  if (!dateStr) return 'recently';
+  const time = new Date(dateStr).getTime();
+  if (isNaN(time)) return 'recently';
+  const diffSecs = Math.max(0, Math.floor((Date.now() - time) / 1000));
+  if (diffSecs < 60) return `${diffSecs}s ago`;
+  const mins = Math.floor(diffSecs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
 
 export function SessionJoinGateButton({
   booking,
@@ -232,12 +247,103 @@ export default function DashboardView({
     { name: 'Figma System Design', learners: '1,150 learners', category: 'UI/UX Design', gradient: 'from-emerald-500 to-teal-600', icon: '🎨' },
   ];
 
-  // Community Feed items
-  const communityActivities = [
-    { id: '1', user: 'Sofia Chen', action: 'completed a 2-hour skill exchange in', topic: 'UI Design Systems', time: '12m ago', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150' },
-    { id: '2', user: 'Marcus Vance', action: 'earned the badge', topic: 'Master Mentor 🏅', time: '45m ago', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150' },
-    { id: '3', user: 'Elena Rostova', action: 'booked a live barter session for', topic: 'Python Data Analytics', time: '1h ago', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150' },
-  ];
+  // Dynamic Community Feed items from real registered database records
+  const [dbBookings, setDbBookings] = useState<Booking[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchGlobalBookings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('bookings')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(25);
+        if (!error && data && Array.isArray(data) && isMounted) {
+          setDbBookings(data.map(mapSupabaseToBooking));
+        }
+      } catch {
+        // network / offline fallback
+      }
+    };
+    fetchGlobalBookings();
+    return () => { isMounted = false; };
+  }, []);
+
+  const communityActivities = useMemo(() => {
+    const items: Array<{ id: string; user: string; action: string; topic: string; time: string; avatar?: string; timestamp: number }> = [];
+
+    // Deduplicate bookings from props and fetched DB
+    const allBookingsMap = new Map<string, Booking>();
+    [...bookings, ...dbBookings].forEach(b => {
+      if (b && b.id) allBookingsMap.set(b.id, b);
+    });
+
+    allBookingsMap.forEach(b => {
+      const learner = allUsers.find(u => u.id === b.learnerId) || allUsers.find(u => u.name === b.learnerName);
+      const userName = learner?.name || b.learnerName || 'A member';
+      const userAvatar = learner?.avatar;
+
+      if (b.status === 'completed') {
+        items.push({
+          id: `act-b-comp-${b.id}`,
+          user: userName,
+          action: 'completed a session in',
+          topic: b.skillName,
+          time: formatRelativeTime(b.completedAt || b.createdAt),
+          avatar: userAvatar,
+          timestamp: new Date(b.completedAt || b.createdAt).getTime() || 0
+        });
+      } else if (b.status === 'confirmed' || b.status === 'pending' || b.status === 'rescheduled') {
+        items.push({
+          id: `act-b-book-${b.id}`,
+          user: userName,
+          action: 'booked a skill exchange for',
+          topic: b.skillName,
+          time: formatRelativeTime(b.createdAt),
+          avatar: userAvatar,
+          timestamp: new Date(b.createdAt).getTime() || 0
+        });
+      }
+    });
+
+    // Add real reviews
+    allReviews.forEach(r => {
+      const learner = allUsers.find(u => u.id === r.learnerId) || allUsers.find(u => u.name === r.learnerName);
+      const userName = learner?.name || r.learnerName || 'A member';
+      const userAvatar = learner?.avatar;
+
+      items.push({
+        id: `act-rev-${r.id}`,
+        user: userName,
+        action: `left a ${r.rating}★ review for`,
+        topic: r.skillName,
+        time: formatRelativeTime(r.createdAt),
+        avatar: userAvatar,
+        timestamp: new Date(r.createdAt).getTime() || 0
+      });
+    });
+
+    // Add real badges earned from real profiles in allUsers
+    allUsers.forEach(u => {
+      if (u.badges && Array.isArray(u.badges)) {
+        u.badges.forEach(badge => {
+          items.push({
+            id: `act-badge-${u.id}-${badge.id}`,
+            user: u.name,
+            action: 'earned the badge',
+            topic: `${badge.name} ${badge.icon || '🏅'}`,
+            time: formatRelativeTime(badge.dateEarned),
+            avatar: u.avatar,
+            timestamp: badge.dateEarned ? new Date(badge.dateEarned).getTime() : 0
+          });
+        });
+      }
+    });
+
+    items.sort((a, b) => b.timestamp - a.timestamp);
+    return items.slice(0, 10);
+  }, [bookings, dbBookings, allReviews, allUsers]);
 
   return (
     <div id="dashboard-view-root" className="space-y-10 pb-12">
@@ -645,19 +751,41 @@ export default function DashboardView({
             <span className="text-xs text-slate-500 font-bold">Global Swapper Highlights</span>
           </div>
 
-          <Card className="space-y-4">
-            {communityActivities.map((act) => (
-              <div key={act.id} className="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-0 last:pb-0">
-                <Avatar src={act.avatar} name={act.user} size="sm" />
-                <div className="flex-1 text-xs">
-                  <p className="text-slate-800 font-medium">
-                    <span className="font-extrabold text-slate-900">{act.user}</span> {act.action} <span className="font-bold text-indigo-600">{act.topic}</span>
-                  </p>
-                  <span className="text-[10px] text-slate-400 font-medium">{act.time}</span>
-                </div>
+          {communityActivities.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-10 text-center flex flex-col items-center justify-center space-y-3.5 shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-xl shadow-inner">
+                📚
               </div>
-            ))}
-          </Card>
+              <div className="space-y-1 max-w-sm mx-auto">
+                <h3 className="font-extrabold text-slate-900 text-base">No community activity yet.</h3>
+                <p className="text-slate-500 text-xs leading-relaxed">
+                  Be the first member to exchange a skill and inspire others.
+                </p>
+              </div>
+              <Button
+                variant="gradient"
+                size="sm"
+                onClick={() => onNavigateToExplore?.()}
+                leftIcon={<Compass className="w-4 h-4" />}
+              >
+                Find Skill Partner
+              </Button>
+            </div>
+          ) : (
+            <Card className="space-y-4">
+              {communityActivities.map((act) => (
+                <div key={act.id} className="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-0 last:pb-0">
+                  <Avatar src={act.avatar} name={act.user} size="sm" />
+                  <div className="flex-1 text-xs">
+                    <p className="text-slate-800 font-medium">
+                      <span className="font-extrabold text-slate-900">{act.user}</span> {act.action} <span className="font-bold text-indigo-600">{act.topic}</span>
+                    </p>
+                    <span className="text-[10px] text-slate-400 font-medium">{act.time}</span>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          )}
         </div>
 
         {/* SECTION 7: TRENDING SKILLS UNIVERSE (5 Cols) */}
