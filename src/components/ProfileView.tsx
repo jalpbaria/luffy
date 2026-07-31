@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, Skill, Review } from '../types';
 import { VerifiedSkillBadge } from './VerifiedSkillBadge';
+import { EmptyState } from './ui';
 
 interface ProfileViewProps {
   currentUser: UserProfile;
@@ -545,9 +546,11 @@ export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLo
 
             if (userReviews.length === 0) {
               return (
-                <p className="text-zinc-500 italic text-center py-4 text-xs">
-                  No individual reviews received yet. Complete skill-swap sessions with learners to receive verified reviews!
-                </p>
+                <EmptyState
+                  preset="certificates"
+                  title="No Student Reviews Yet"
+                  description="Complete skill-swap barter sessions with peers to receive verified feedback, star ratings, and testimonials!"
+                />
               );
             }
 

@@ -11,6 +11,7 @@ import { getSkillGuide } from '../data/skillGuides';
 import { getAISkillTutorReply } from '../lib/gemini';
 import { computeAllUserMatches, calculateMatch, UserMatchResult } from '../lib/matchUtils';
 import { VerifiedSkillBadge } from './VerifiedSkillBadge';
+import { EmptyState, CardSkeletonGrid } from './ui';
 
 interface ExploreViewProps {
   currentUser: UserProfile;
@@ -498,16 +499,23 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
       {/* Grid of Users */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-zinc-500 gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent"></div>
-          <span className="text-sm">Loading matches...</span>
-        </div>
+        <CardSkeletonGrid count={6} />
       ) : filteredUsers.length === 0 ? (
-        <div className="bg-zinc-900/80 rounded-[24px] border border-zinc-800 py-16 px-4 text-center">
-          <Compass className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
-          <h3 className="font-bold text-white text-base">No matches found</h3>
-          <p className="text-zinc-400 text-xs max-w-sm mx-auto mt-1">Try adjusting your filters, expanding your search query, or checking back later.</p>
-        </div>
+        <EmptyState
+          preset="partners"
+          title="No Matching Skill Swappers Found"
+          description="Try broadening your search query, clearing category filters, or exploring popular skills like React, Python, or UI Design."
+          actionText="Reset Search & Filters"
+          onAction={() => {
+            setSearchQuery('');
+            setSelectedCategory('All');
+            setSelectedLevel('All');
+            setSelectedLanguage('All');
+            setSelectedAvailability('All');
+            setSelectedTimeZone('All');
+            setMatchFilter('all');
+          }}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredUsers.map((user) => {

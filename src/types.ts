@@ -130,6 +130,48 @@ export interface ProgressTrack {
   lastActive: string;
 }
 
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  rewardXp: number;
+  currentProgress: number;
+  targetProgress: number;
+  isCompleted: boolean;
+  type: 'daily' | 'weekly';
+  category: string;
+  icon: string;
+}
+
+export interface Certificate {
+  id: string;
+  title: string;
+  recipientName: string;
+  skillName: string;
+  issueDate: string;
+  certificateCode: string;
+  issuer: string;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  user: UserProfile;
+  xp: number;
+  streak: number;
+  swaps: number;
+  badgesCount: number;
+}
+
+export interface GamificationToast {
+  id: string;
+  type: 'xp' | 'badge' | 'level' | 'certificate' | 'challenge';
+  title: string;
+  message: string;
+  xpAmount?: number;
+  badgeName?: string;
+  icon?: string;
+}
+
 export interface DBState {
   users: UserProfile[];
   bookings: Booking[];

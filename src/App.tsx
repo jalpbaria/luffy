@@ -18,6 +18,11 @@ import SkillPathView from './components/SkillPathView';
 import LoginView from './components/LoginView';
 import LiveSessionRoomView from './components/LiveSessionRoomView';
 import OnboardingTour from './components/OnboardingTour';
+import { GamificationHubView } from './components/GamificationHubView';
+import { GamificationOverlay } from './components/GamificationCelebration';
+import { triggerCelebrationConfetti } from './lib/gamification';
+import { GamificationToast, Badge as GamificationBadge } from './types';
+import { Navbar } from './components/Navbar';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification, mapNotificationToSupabase, mapSupabaseToReview, mapReviewToSupabase } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
 
@@ -29,9 +34,32 @@ import { fallbackReviews } from './data/fallbackReviews';
 
 export default function App() {
   const { signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'study-hub' | 'skill-path' | 'profile' | 'live-room'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'study-hub' | 'skill-path' | 'gamification' | 'profile' | 'live-room'>('dashboard');
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  // Gamification overlay state
+  const [gamificationToasts, setGamificationToasts] = useState<GamificationToast[]>([]);
+  const [unlockedBadge, setUnlockedBadge] = useState<GamificationBadge | null>(null);
+
+  const triggerRewardToast = (title: string, message: string, xpAmount: number = 50, icon: string = '⚡') => {
+    triggerCelebrationConfetti();
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    const newToast: GamificationToast = {
+      id,
+      type: 'xp',
+      title,
+      message,
+      xpAmount,
+      icon
+    };
+    setGamificationToasts(prev => [newToast, ...prev]);
+
+    // Auto dismiss toast after 4.5 seconds
+    setTimeout(() => {
+      setGamificationToasts(prev => prev.filter(t => t.id !== id));
+    }, 4500);
+  };
   
   // User specific data
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -1470,132 +1498,19 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-zinc-100 flex flex-col font-sans antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans antialiased selection:bg-indigo-500/20 selection:text-indigo-900">
       
-      {/* Floating Glass Navigation Bar */}
-      <header className="sticky top-0 z-50 px-3 sm:px-6 py-3">
-        <div className="max-w-7xl mx-auto rounded-[20px] bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 px-4 sm:px-6 py-2.5 shadow-2xl flex items-center justify-between gap-4">
-          
-          {/* Logo / Home Button */}
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className="flex items-center gap-3 cursor-pointer hover:opacity-90 transition-opacity bg-transparent border-0 p-0 text-left shrink-0"
-            title="Go to Home Dashboard"
-          >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-500 text-white flex items-center justify-center font-bold text-base shadow-lg shadow-indigo-500/20">
-              ⇆
-            </div>
-            <div>
-              <span className="font-bold text-white tracking-tight text-base leading-none block">
-                SkillSwap <span className="text-[10px] font-semibold text-indigo-400 bg-indigo-500/15 px-1.5 py-0.5 rounded-full border border-indigo-500/20 ml-1">2026</span>
-              </span>
-              <p className="text-[10px] text-zinc-400 font-medium tracking-wide uppercase leading-none mt-1">Barter & Mastery Economy</p>
-            </div>
-          </button>
-
-          {/* Primary Floating Nav Tabs */}
-          <nav className="hidden md:flex items-center gap-1 bg-zinc-950/60 p-1 rounded-xl border border-zinc-800/60 text-xs font-medium">
-            {[
-              { id: 'dashboard', label: 'Dashboard', icon: Home },
-              { id: 'explore', label: 'Explore Swappers', icon: Compass },
-              { id: 'chat', label: 'Chat & Calls', icon: MessageSquare },
-              { id: 'study-hub', label: 'Study Hub', icon: BookOpen },
-              { id: 'skill-path', label: 'AI Skill Path', icon: Sparkles },
-              { id: 'profile', label: 'My Profile', icon: User },
-            ].map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`px-3.5 py-1.5 rounded-lg flex items-center gap-2 transition-all cursor-pointer border-0 ${
-                    isActive
-                      ? 'bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-cyan-500/10 text-white font-semibold border border-indigo-500/30 shadow-xs'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-zinc-400'}`} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* User Status & Controls */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={syncAllState}
-              className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800/80 rounded-xl transition cursor-pointer border border-transparent hover:border-zinc-700/50"
-              title="Sync All States"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="px-3 py-1.5 text-xs font-medium text-zinc-300 hover:text-rose-400 hover:bg-rose-500/10 border border-zinc-800 hover:border-rose-500/30 rounded-xl transition flex items-center gap-1.5 cursor-pointer bg-zinc-900"
-              title="Log Out of your account"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
-
-            <div className="flex items-center gap-2.5 pl-2 border-l border-zinc-800">
-              <div className="relative">
-                <img 
-                  src={currentUser.avatar} 
-                  alt={currentUser.name} 
-                  referrerPolicy="no-referrer"
-                  className="w-8 h-8 rounded-full object-cover ring-2 ring-indigo-500/30"
-                />
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-zinc-900" />
-              </div>
-              <div className="hidden sm:block text-left">
-                <p className="font-semibold text-white text-xs leading-tight truncate max-w-[110px]">{currentUser.name}</p>
-                <span className="text-[10px] text-indigo-300 font-semibold bg-indigo-500/15 px-1.5 py-0.2 rounded-full border border-indigo-500/20 inline-block mt-0.5">
-                  {currentUser.credits} Credits
-                </span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </header>
-
-      {/* Mobile Navigation Bar */}
-      <div className="md:hidden sticky top-[68px] bg-zinc-900/90 backdrop-blur-md border-b border-zinc-800 z-30 flex items-center justify-around py-1.5 text-[10px] font-medium text-zinc-400">
-        {[
-          { id: 'dashboard', label: 'Home', icon: Home },
-          { id: 'explore', label: 'Swappers', icon: Compass },
-          { id: 'chat', label: 'Chat', icon: MessageSquare },
-          { id: 'study-hub', label: 'Study', icon: BookOpen },
-          { id: 'skill-path', label: 'Skill Path', icon: Sparkles },
-          { id: 'profile', label: 'Profile', icon: User },
-        ].map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 transition ${
-                isActive ? 'text-indigo-400 font-semibold' : 'text-zinc-400'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-        <button 
-          onClick={handleLogout}
-          className="flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 text-zinc-500 hover:text-rose-400"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>Logout</span>
-        </button>
-      </div>
+      {/* Redesigned Floating Glass Navigation */}
+      <Navbar
+        activeTab={activeTab === 'live-room' ? 'dashboard' : activeTab}
+        setActiveTab={(tab) => setActiveTab(tab)}
+        currentUser={currentUser}
+        notifications={notifications}
+        onMarkNotificationRead={handleMarkNotificationRead}
+        onDeleteNotification={handleDeleteNotification}
+        onSync={syncAllState}
+        onLogout={handleLogout}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-4 sm:py-8">
@@ -1620,6 +1535,7 @@ export default function App() {
                 allUsers={allUsers}
                 onStartLiveSession={handleStartLiveSession}
                 onNavigateToExplore={() => setActiveTab('explore')}
+                onNavigateToGamification={() => setActiveTab('gamification')}
                 allReviews={allReviews}
               />
             )}
@@ -1695,9 +1611,28 @@ export default function App() {
             {activeTab === 'skill-path' && (
               <SkillPathView currentUser={currentUser} />
             )}
+
+            {activeTab === 'gamification' && (
+              <GamificationHubView 
+                currentUser={currentUser}
+                allUsers={allUsers}
+                onRewardClaimed={(xpAmount, title) => {
+                  triggerRewardToast('Quest Completed!', `You completed "${title}" and earned rewards!`, xpAmount, '🏆');
+                }}
+                onNavigateToExplore={() => setActiveTab('explore')}
+              />
+            )}
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Gamification Overlay for Toasts and Badge Popups */}
+      <GamificationOverlay
+        toasts={gamificationToasts}
+        unlockedBadge={unlockedBadge}
+        onDismissToast={(id) => setGamificationToasts(prev => prev.filter(t => t.id !== id))}
+        onCloseBadgeModal={() => setUnlockedBadge(null)}
+      />
 
       {/* Humble Footer */}
       <footer className="mt-auto bg-zinc-950 border-t border-zinc-900/80 py-6 text-center text-xs text-zinc-500 font-medium">

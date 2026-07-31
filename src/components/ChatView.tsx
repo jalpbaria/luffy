@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, Message, Booking } from '../types';
 import { supabase, mapSupabaseToMessage, mapMessageToSupabase } from '../lib/supabase';
+import { EmptyState } from './ui';
 
 interface ChatViewProps {
   currentUser: UserProfile;
@@ -886,14 +887,16 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 p-8 text-center bg-zinc-950/50">
-            <Smile className="w-12 h-12 text-zinc-600 mb-3 animate-pulse" />
-            <h3 className="font-bold text-white text-sm">Welcome to Skill Chat</h3>
-            <p className="text-zinc-400 text-xs mt-1 max-w-xs">
-              {contacts.length === 0 
-                ? "You don't have any conversations yet — book a swap or start a chat from someone's profile to begin." 
-                : "Select a swapper from the list to discuss, arrange dates, or conduct audio calls."}
-            </p>
+          <div className="flex-1 flex items-center justify-center p-6 bg-zinc-950/50">
+            <EmptyState
+              preset="chats"
+              title="Welcome to Skill Barter Chat"
+              description={
+                contacts.length === 0
+                  ? "You don't have active chat threads yet. Pick a partner from the explore view to start exchanging!"
+                  : "Select a partner from the left sidebar to coordinate barter sessions or launch a voice call."
+              }
+            />
           </div>
         )}
 

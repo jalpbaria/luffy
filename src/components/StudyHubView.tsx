@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { FREE_CATEGORY_RESOURCES, CategoryResource } from '../data/freeResources';
+import { EmptyState } from './ui';
 
 interface StudyHubViewProps {
   currentUser: UserProfile;
@@ -278,16 +279,13 @@ export default function StudyHubView({ currentUser }: StudyHubViewProps) {
 
           {/* Resources Cards Grid */}
           {filteredResources.length === 0 ? (
-            <div className="bg-zinc-900/90 rounded-[24px] border border-zinc-800 p-8 text-center space-y-2">
-              <p className="text-white font-bold text-sm">No free resources found</p>
-              <p className="text-zinc-400 text-xs">Try searching for a different keyword or choosing another category above.</p>
-              <button
-                onClick={() => { setSelectedCategory('All'); setResourceSearch(''); }}
-                className="mt-2 px-3.5 py-1.5 bg-emerald-600 text-white font-bold rounded-xl text-xs hover:bg-emerald-500 transition cursor-pointer border-0"
-              >
-                Reset Filters
-              </button>
-            </div>
+            <EmptyState
+              preset="search"
+              title="No Free Resources Found"
+              description="Try searching for a different keyword or switching categories above to explore tutorials and guides."
+              actionText="Reset All Filters"
+              onAction={() => { setSelectedCategory('All'); setResourceSearch(''); }}
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredResources.map(({ category, item }, idx) => {

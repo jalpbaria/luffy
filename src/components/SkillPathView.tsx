@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { UserProfile } from '../types';
+import { triggerCelebrationConfetti } from '../lib/gamification';
 import { 
   Sparkles, BookOpen, ExternalLink, CheckCircle2, Circle, 
   Clock, ArrowRight, Zap, RotateCcw, Sliders, DollarSign, Gift,
@@ -73,7 +74,13 @@ export default function SkillPathView({ currentUser }: { currentUser: UserProfil
   }
 
   const toggleStepComplete = (index: number) => {
-    setCompletedSteps(prev => ({ ...prev, [index]: !prev[index] }));
+    setCompletedSteps(prev => {
+      const isNowComplete = !prev[index];
+      if (isNowComplete) {
+        triggerCelebrationConfetti();
+      }
+      return { ...prev, [index]: isNowComplete };
+    });
   };
 
   const completedCount = Object.values(completedSteps).filter(Boolean).length;
