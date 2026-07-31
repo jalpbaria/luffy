@@ -4,7 +4,8 @@ import { UserProfile } from '../types';
 import { 
   Sparkles, BookOpen, ExternalLink, CheckCircle2, Circle, 
   Clock, ArrowRight, Zap, RotateCcw, Sliders, DollarSign, Gift,
-  Check, AlertCircle, Compass, Layers, Send
+  Check, AlertCircle, Compass, Layers, Send, LayoutGrid, GraduationCap,
+  Target, Award, Bookmark, ArrowUpRight
 } from 'lucide-react';
 
 type Resource = { name: string; url: string; type: string; price?: string };
@@ -80,279 +81,306 @@ export default function SkillPathView({ currentUser }: { currentUser: UserProfil
   const progressPercent = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 0;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-12">
-      {/* Option 1 Executive Hero Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 shadow-xl border border-indigo-900/40">
-        <div className="absolute -right-12 -top-12 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute right-1/3 -bottom-12 w-48 h-48 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
-        
+    <div className="max-w-5xl mx-auto space-y-8 pb-12">
+      {/* Option 2 Interactive Grid Academy Banner */}
+      <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-zinc-950 via-zinc-900 to-indigo-950/80 border border-zinc-800 text-white p-6 sm:p-8 shadow-2xl">
+        {/* Decorative Grid Mesh */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-semibold tracking-wide uppercase">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-              <span>Option 1 · Executive AI Agent</span>
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold tracking-wide uppercase">
+              <LayoutGrid className="w-3.5 h-3.5 text-emerald-400" />
+              <span>AI Learning Agent • Skill Matrix</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-tight">
-              AI Skill Path Architect
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+              <span>Skill Matrix & Master Roadmap</span>
+              <GraduationCap className="w-7 h-7 text-emerald-400 hidden sm:inline-block" />
             </h2>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              Real-time web grounding via Tavily and Llama-3.3 AI to map out customized, step-by-step masteries with verified free and premium learning resources.
+            <p className="text-sm text-zinc-400 leading-relaxed">
+              An interactive learning matrix powered by Groq LLM and Tavily web research to take you step-by-step from beginner to industry-certified expertise.
             </p>
           </div>
 
           {path && (
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 text-center min-w-[160px]">
-              <span className="text-xs font-medium text-indigo-200 block mb-1">Path Progress</span>
-              <div className="text-2xl font-bold text-white mb-1">{progressPercent}%</div>
-              <div className="w-full bg-slate-700/60 rounded-full h-2 overflow-hidden">
+            <div className="bg-zinc-900/90 backdrop-blur-xl rounded-2xl p-4 border border-zinc-800 text-center min-w-[200px] shadow-xl">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-xs font-semibold text-emerald-400">Mastery Index</span>
+                <span className="text-xs font-bold text-white">{completedCount}/{totalSteps} Completed</span>
+              </div>
+              <div className="text-3xl font-extrabold text-white mb-2 tracking-tight">{progressPercent}%</div>
+              <div className="w-full bg-zinc-950 rounded-full h-2.5 overflow-hidden p-0.5 border border-zinc-800">
                 <div 
-                  className="bg-gradient-to-r from-indigo-400 to-emerald-400 h-2 transition-all duration-500 rounded-full"
+                  className="bg-gradient-to-r from-emerald-400 via-teal-400 to-indigo-400 h-1.5 transition-all duration-500 rounded-full"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <span className="text-[10px] text-slate-300 mt-1.5 block">
-                {completedCount} of {totalSteps} Steps Complete
-              </span>
             </div>
           )}
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-50 text-rose-800 border border-rose-200/80 rounded-2xl text-xs font-medium flex items-center gap-3 shadow-xs">
-          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+        <div className="p-4 bg-rose-500/10 text-rose-300 border border-rose-500/20 rounded-2xl text-xs font-semibold flex items-center gap-3 shadow-md">
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Generator Form */}
       {!path && (
-        <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
-              <span>Skill or Domain to Master</span>
-              <span className="text-[10px] text-indigo-600 font-semibold uppercase">Powered by Real-Time Grounding</span>
-            </label>
-            <div className="relative">
-              <input
-                value={skill}
-                onChange={(e) => setSkill(e.target.value)}
-                placeholder="e.g. React Native, Machine Learning, Corporate Negotiation..."
-                className="w-full border border-slate-200 rounded-xl pl-4 pr-10 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition shadow-xs"
-              />
-              <Compass className="w-5 h-5 text-slate-400 absolute right-3.5 top-3 pointer-events-none" />
-            </div>
-
-            {/* Quick Skill Chips */}
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-medium text-slate-400">Popular:</span>
-              {popularSkills.map((ps) => (
-                <button
-                  key={ps}
-                  onClick={() => {
-                    setSkill(ps);
-                    generatePath(ps);
-                  }}
-                  className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 text-xs font-medium transition border border-slate-200/60"
-                >
-                  + {ps}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-zinc-900/90 border border-zinc-800 rounded-[28px] p-6 sm:p-8 space-y-6 shadow-2xl">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Starting Level
+              <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                <span>Select or Enter Target Skill</span>
+                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">Web Grounded</span>
               </label>
-              <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200/60">
-                {['beginner', 'intermediate', 'advanced'].map((lvl) => (
+              <div className="relative">
+                <input
+                  value={skill}
+                  onChange={(e) => setSkill(e.target.value)}
+                  placeholder="e.g. Next.js App Router, Cloud Architecture, AI Prompting..."
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-4 pr-10 py-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition shadow-inner"
+                />
+                <Target className="w-5 h-5 text-zinc-500 absolute right-3.5 top-3 pointer-events-none" />
+              </div>
+
+              {/* Quick Skill Chips */}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-medium text-zinc-500">Featured:</span>
+                {popularSkills.map((ps) => (
                   <button
-                    key={lvl}
-                    type="button"
-                    onClick={() => setCurrentLevel(lvl)}
-                    className={`py-1.5 text-xs font-medium rounded-lg capitalize transition ${
-                      currentLevel === lvl
-                        ? 'bg-white text-indigo-700 shadow-xs font-semibold'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                    key={ps}
+                    onClick={() => {
+                      setSkill(ps);
+                      generatePath(ps);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-zinc-950 hover:bg-emerald-500/10 hover:text-emerald-400 text-zinc-400 text-xs font-semibold transition border border-zinc-800 hover:border-emerald-500/30 cursor-pointer"
                   >
-                    {lvl}
+                    + {ps}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Target Mastery Level
-              </label>
-              <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200/60">
-                {['intermediate', 'advanced', 'expert'].map((lvl) => (
-                  <button
-                    key={lvl}
-                    type="button"
-                    onClick={() => setTargetLevel(lvl)}
-                    className={`py-1.5 text-xs font-medium rounded-lg capitalize transition ${
-                      targetLevel === lvl
-                        ? 'bg-white text-indigo-700 shadow-xs font-semibold'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {lvl}
-                  </button>
-                ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                  Current Level
+                </label>
+                <div className="space-y-1.5">
+                  {['beginner', 'intermediate', 'advanced'].map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => setCurrentLevel(lvl)}
+                      className={`w-full py-2 px-3 text-xs font-medium rounded-xl capitalize transition flex items-center justify-between border cursor-pointer ${
+                        currentLevel === lvl
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-bold shadow-md'
+                          : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:bg-zinc-800/50'
+                      }`}
+                    >
+                      <span>{lvl}</span>
+                      {currentLevel === lvl && <Check className="w-4 h-4 text-emerald-400" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                  Target Mastery Goal
+                </label>
+                <div className="space-y-1.5">
+                  {['intermediate', 'advanced', 'expert'].map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => setTargetLevel(lvl)}
+                      className={`w-full py-2 px-3 text-xs font-medium rounded-xl capitalize transition flex items-center justify-between border cursor-pointer ${
+                        targetLevel === lvl
+                          ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 font-bold shadow-md'
+                          : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:bg-zinc-800/50'
+                      }`}
+                    >
+                      <span>{lvl}</span>
+                      {targetLevel === lvl && <Check className="w-4 h-4 text-indigo-400" />}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+
+            <button
+              onClick={() => generatePath()}
+              disabled={loading}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 active:from-emerald-600 text-zinc-950 font-extrabold rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer border-0"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" />
+                  <span>Synthesizing Custom Academy Matrix...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4 text-zinc-950" />
+                  <span>Generate Mastery Roadmap</span>
+                </>
+              )}
+            </button>
           </div>
 
-          <button
-            onClick={() => generatePath()}
-            disabled={loading}
-            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Searching & Architecting Roadmap...</span>
-              </>
-            ) : (
-              <>
-                <Zap className="w-4 h-4 text-indigo-200" />
-                <span>Build Verified Learning Path</span>
-              </>
-            )}
-          </button>
+          {/* Option 2 Info Sidebar */}
+          <div className="bg-zinc-900/90 border border-zinc-800 rounded-[28px] p-6 flex flex-col justify-between space-y-6 shadow-2xl">
+            <div className="space-y-4">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <Bookmark className="w-5 h-5" />
+              </div>
+              <h3 className="font-extrabold text-lg text-white">Why Academy Matrix?</h3>
+              <ul className="space-y-2.5 text-xs text-zinc-400 leading-relaxed">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>Verified free documentation & video links via Tavily web search.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>Paid certification options for official credentials.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>Refine any step on demand with natural language prompt feedback.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs text-zinc-400">
+              <span className="font-bold text-white block mb-1">💡 Pro Tip</span>
+              Start with 'beginner' to ensure you don't miss core fundamentals before building advanced projects.
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Path Display */}
+      {/* Path Display Option 2 Grid Layout */}
       {path && (
         <div className="space-y-6">
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
+          <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
-                <Layers className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold">
+                <Award className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-xl text-slate-900">{path.skill}</h3>
+                <h3 className="font-extrabold text-xl text-white">{path.skill} Roadmap</h3>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs text-slate-500 capitalize">{currentLevel} → {targetLevel}</span>
-                  <span className="text-slate-300">•</span>
-                  <span className="text-xs font-medium text-indigo-600">{path.steps?.length || 0} Modules</span>
+                  <span className="text-xs text-zinc-400 capitalize">{currentLevel} → {targetLevel}</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="text-xs font-semibold text-emerald-400">{path.steps?.length || 0} Modules</span>
                 </div>
               </div>
             </div>
 
             <button
               onClick={() => setPath(null)}
-              className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200 transition flex items-center gap-1.5"
+              className="px-3.5 py-1.5 text-xs font-semibold text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl border border-zinc-800 transition flex items-center gap-1.5 cursor-pointer bg-transparent"
             >
-              <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-              <span>Change Skill</span>
+              <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
+              <span>New Search</span>
             </button>
           </div>
 
-          {/* Timeline */}
-          <div className="relative border-l-2 border-indigo-100 pl-6 sm:pl-8 space-y-6 ml-3 sm:ml-4">
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {path.steps?.map((step, i) => {
               const isDone = !!completedSteps[i];
               return (
-                <div key={i} className="relative group">
-                  {/* Step Dot */}
-                  <button
-                    onClick={() => toggleStepComplete(i)}
-                    className={`absolute -left-[37px] sm:-left-[45px] top-1.5 w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all ${
-                      isDone 
-                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm' 
-                        : 'bg-white border-indigo-400 text-indigo-600 hover:border-indigo-600 hover:scale-110'
-                    }`}
-                  >
-                    {isDone ? <Check className="w-4 h-4 stroke-[3]" /> : <span className="text-xs font-bold">{i + 1}</span>}
-                  </button>
-
-                  {/* Step Card */}
-                  <div className={`bg-white border rounded-2xl p-5 shadow-xs transition-all ${
-                    isDone ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-200/80 hover:border-indigo-200 hover:shadow-md'
-                  }`}>
-                    <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                <div 
+                  key={i} 
+                  className={`bg-zinc-900/90 border rounded-[24px] p-6 shadow-xl flex flex-col justify-between transition-all ${
+                    isDone 
+                      ? 'border-emerald-500/50 bg-emerald-500/5 shadow-none' 
+                      : 'border-zinc-800 hover:border-emerald-500/30'
+                  }`}
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                          Step {i + 1}
+                        <span className="w-7 h-7 rounded-xl bg-zinc-950 text-white border border-zinc-800 text-xs font-bold flex items-center justify-center shrink-0">
+                          {i + 1}
                         </span>
-                        <h4 className={`font-semibold text-base ${isDone ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
+                        <h4 className={`font-extrabold text-base ${isDone ? 'text-zinc-500 line-through' : 'text-white'}`}>
                           {step.title}
                         </h4>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200/60">
-                        <Clock className="w-3.5 h-3.5 text-indigo-500" />
-                        <span>{step.estimatedTime}</span>
-                      </div>
+
+                      <button
+                        onClick={() => toggleStepComplete(i)}
+                        className={`p-1.5 rounded-xl border transition cursor-pointer ${
+                          isDone 
+                            ? 'bg-emerald-500 text-zinc-950 border-emerald-500' 
+                            : 'bg-zinc-950 text-zinc-500 border-zinc-800 hover:text-white'
+                        }`}
+                        title={isDone ? "Mark Incomplete" : "Mark Complete"}
+                      >
+                        <Check className="w-4 h-4 stroke-[3]" />
+                      </button>
                     </div>
 
-                    <p className="text-sm text-slate-600 leading-relaxed mb-4">{step.description}</p>
+                    <p className="text-xs text-zinc-400 leading-relaxed">{step.description}</p>
 
-                    {/* Resources Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
-                      {/* Free Resources */}
-                      <div className="bg-emerald-50/40 border border-emerald-100/80 rounded-xl p-3.5 space-y-2">
-                        <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs uppercase tracking-wider">
-                          <Gift className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Free Resources</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          {step.resources?.free?.length > 0 ? (
-                            step.resources.free.map((r, j) => (
-                              <a
-                                key={j}
-                                href={r.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="group/link flex items-center justify-between text-xs font-medium text-slate-800 hover:text-indigo-600 p-2 rounded-lg bg-white border border-emerald-100 shadow-2xs hover:border-indigo-200 transition"
-                              >
-                                <span className="truncate pr-2">{r.name}</span>
-                                <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover/link:text-indigo-600 shrink-0" />
-                              </a>
-                            ))
-                          ) : (
-                            <span className="text-xs text-slate-400 italic">No free links provided</span>
-                          )}
-                        </div>
-                      </div>
+                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-800 w-fit">
+                      <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{step.estimatedTime}</span>
+                    </div>
 
-                      {/* Paid Resources */}
-                      <div className="bg-amber-50/40 border border-amber-100/80 rounded-xl p-3.5 space-y-2">
-                        <div className="flex items-center gap-1.5 text-amber-800 font-bold text-xs uppercase tracking-wider">
-                          <DollarSign className="w-3.5 h-3.5 text-amber-600" />
-                          <span>Paid & Certified</span>
-                        </div>
+                    {/* Resources */}
+                    <div className="space-y-3 pt-3 border-t border-zinc-800">
+                      {/* Free Links */}
+                      {step.resources?.free?.length > 0 && (
                         <div className="space-y-1.5">
-                          {step.resources?.paid?.length > 0 ? (
-                            step.resources.paid.map((r, j) => (
-                              <a
-                                key={j}
-                                href={r.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="group/link flex items-center justify-between text-xs font-medium text-slate-800 hover:text-indigo-600 p-2 rounded-lg bg-white border border-amber-100 shadow-2xs hover:border-indigo-200 transition"
-                              >
-                                <div className="flex items-center gap-1.5 truncate pr-2">
-                                  <span className="truncate">{r.name}</span>
-                                  {r.price && (
-                                    <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
-                                      {r.price}
-                                    </span>
-                                  )}
-                                </div>
-                                <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover/link:text-indigo-600 shrink-0" />
-                              </a>
-                            ))
-                          ) : (
-                            <span className="text-xs text-slate-400 italic">No paid links provided</span>
-                          )}
+                          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">Free Learning</span>
+                          {step.resources.free.map((r, j) => (
+                            <a
+                              key={j}
+                              href={r.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="group/link flex items-center justify-between text-xs font-medium text-zinc-300 hover:text-white p-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 transition no-underline"
+                            >
+                              <span className="truncate pr-2">{r.name}</span>
+                              <ArrowUpRight className="w-3.5 h-3.5 text-zinc-500 group-hover/link:text-emerald-400 shrink-0" />
+                            </a>
+                          ))}
                         </div>
-                      </div>
+                      )}
+
+                      {/* Paid Links */}
+                      {step.resources?.paid?.length > 0 && (
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">Paid / Premium</span>
+                          {step.resources.paid.map((r, j) => (
+                            <a
+                              key={j}
+                              href={r.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="group/link flex items-center justify-between text-xs font-medium text-zinc-300 hover:text-white p-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 transition no-underline"
+                            >
+                              <div className="flex items-center gap-1.5 truncate pr-2">
+                                <span className="truncate">{r.name}</span>
+                                {r.price && (
+                                  <span className="text-[10px] font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30">
+                                    {r.price}
+                                  </span>
+                                )}
+                              </div>
+                              <ArrowUpRight className="w-3.5 h-3.5 text-zinc-500 group-hover/link:text-indigo-400 shrink-0" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -360,27 +388,27 @@ export default function SkillPathView({ currentUser }: { currentUser: UserProfil
             })}
           </div>
 
-          {/* Refine Section */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg text-white space-y-3">
+          {/* Refine Section Option 2 */}
+          <div className="bg-zinc-900/90 border border-zinc-800 rounded-[28px] p-6 shadow-2xl text-white space-y-4">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Sliders className="w-4 h-4 text-indigo-400" />
-                <span>Refine this Path with AI</span>
+              <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-emerald-400" />
+                <span>Refine Matrix with AI Instructions</span>
               </label>
-              <span className="text-[11px] text-slate-400">Instruct AI to adjust steps, links or time</span>
+              <span className="text-[11px] text-zinc-500">Re-architect roadmap dynamically</span>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2">
               <input
                 value={instruction}
                 onChange={(e) => setInstruction(e.target.value)}
-                placeholder="e.g. Add 2 more free YouTube crash courses to Step 1..."
-                className="flex-1 bg-slate-800 border border-slate-700 text-white placeholder:text-slate-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="e.g. Include 3 more free documentation links and focus on project examples..."
+                className="flex-1 bg-zinc-950 border border-zinc-800 text-white placeholder:text-zinc-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 onClick={refinePath}
                 disabled={loading || !instruction.trim()}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2 disabled:opacity-50 shrink-0 shadow-md"
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm transition flex items-center justify-center gap-2 disabled:opacity-50 shrink-0 shadow-lg shadow-emerald-950/40 cursor-pointer border-0"
               >
                 {loading ? (
                   <>
@@ -394,24 +422,6 @@ export default function SkillPathView({ currentUser }: { currentUser: UserProfil
                   </>
                 )}
               </button>
-            </div>
-
-            {/* Quick Refine Suggestions */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-[10px] font-medium text-slate-400">Try:</span>
-              {[
-                'Add more free video tutorials',
-                'Focus on hands-on practical projects',
-                'Include official documentation links'
-              ].map((sug) => (
-                <button
-                  key={sug}
-                  onClick={() => setInstruction(sug)}
-                  className="px-2.5 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700 transition"
-                >
-                  {sug}
-                </button>
-              ))}
             </div>
           </div>
         </div>

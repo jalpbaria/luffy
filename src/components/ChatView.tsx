@@ -667,33 +667,33 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
   };
 
   return (
-    <div id="chat-view-root" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row h-[calc(100vh-140px)] min-h-[500px] max-h-[680px] md:h-[620px] text-xs text-slate-700">
+    <div id="chat-view-root" className="bg-zinc-900/90 rounded-[28px] border border-zinc-800 shadow-2xl overflow-hidden flex flex-col md:flex-row h-[calc(100vh-140px)] min-h-[500px] max-h-[680px] md:h-[620px] text-xs text-zinc-300">
       
       {/* Sidebar Contacts List */}
-      <div className={`w-full md:w-64 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col bg-slate-50 shrink-0 h-full ${activeContactId ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-4 border-b border-slate-200">
-          <h3 className="font-semibold text-slate-800 text-sm">Direct Contacts</h3>
-          <p className="text-slate-400 text-[10px] mt-0.5">Click a contact to exchange messages</p>
+      <div className={`w-full md:w-64 border-b md:border-b-0 md:border-r border-zinc-800 flex flex-col bg-zinc-950/80 shrink-0 h-full ${activeContactId ? 'hidden md:flex' : 'flex'}`}>
+        <div className="p-4 border-b border-zinc-800">
+          <h3 className="font-bold text-white text-sm">Direct Contacts</h3>
+          <p className="text-zinc-400 text-[10px] mt-0.5">Click a contact to exchange messages</p>
           
           {isCreatedAccount ? (
-            <div className="mt-2.5 px-2 py-1 bg-amber-50 text-amber-700 rounded border border-amber-100 font-mono text-[9px] flex items-center gap-1.5 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+            <div className="mt-2.5 px-2.5 py-1 bg-amber-500/10 text-amber-300 rounded-lg border border-amber-500/20 font-mono text-[9px] flex items-center gap-1.5 font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
               Auto-Chat Simulator: Disabled
             </div>
           ) : (
-            <div className="mt-2.5 px-2 py-1 bg-indigo-50 text-indigo-700 rounded border border-indigo-100 font-mono text-[9px] flex items-center gap-1.5 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <div className="mt-2.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-300 rounded-lg border border-indigo-500/20 font-mono text-[9px] flex items-center gap-1.5 font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
               Auto-Chat Simulator: Active
             </div>
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+        <div className="flex-1 overflow-y-auto divide-y divide-zinc-800/60">
           {contacts.length === 0 ? (
-            <div className="p-6 text-center text-slate-400">
-              <p className="text-xs font-medium text-slate-600">No contacts yet</p>
-              <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                Book a skill swap or click <span className="font-semibold text-slate-600">"Chat First"</span> on a profile in Explore to start messaging.
+            <div className="p-6 text-center text-zinc-500">
+              <p className="text-xs font-semibold text-zinc-400">No contacts yet</p>
+              <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">
+                Book a skill swap or click <span className="font-semibold text-zinc-300">"Chat First"</span> on a profile in Explore to start messaging.
               </p>
             </div>
           ) : (
@@ -707,21 +707,21 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                     cleanupCall();
                   }}
                   className={`p-3.5 flex items-center gap-3 cursor-pointer transition ${
-                    activeContactId === contact.id ? 'bg-indigo-50 border-l-4 border-indigo-600' : 'hover:bg-slate-100'
+                    activeContactId === contact.id ? 'bg-indigo-500/10 border-l-4 border-indigo-500' : 'hover:bg-zinc-800/60'
                   }`}
                 >
                   <img 
                     src={contact.avatar} 
                     alt={contact.name} 
                     referrerPolicy="no-referrer"
-                    className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+                    className="w-10 h-10 rounded-full object-cover border border-zinc-700 shrink-0"
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-800 truncate">{contact.name}</span>
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isContactOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} title={isContactOnline ? 'Online' : 'Offline'}></span>
+                      <span className="font-bold text-white truncate">{contact.name}</span>
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isContactOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} title={isContactOnline ? 'Online' : 'Offline'}></span>
                     </div>
-                    <p className="text-[10px] text-slate-500 truncate mt-0.5">{contact.skillsOffered[0]?.name || 'Explorer'}</p>
+                    <p className="text-[10px] text-zinc-400 truncate mt-0.5">{contact.skillsOffered[0]?.name || 'Explorer'}</p>
                   </div>
                 </div>
               );
@@ -731,15 +731,15 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
       </div>
 
       {/* Primary Conversation Screen */}
-      <div className={`flex-1 flex flex-col bg-white relative h-full min-h-0 ${!activeContactId ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`flex-1 flex flex-col bg-zinc-900/90 relative h-full min-h-0 ${!activeContactId ? 'hidden md:flex' : 'flex'}`}>
         {activeContact ? (
           <>
             {/* Conversation Header */}
-            <div className="p-3 sm:p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
+            <div className="p-3 sm:p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950/80 shrink-0">
               <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <button
                   onClick={() => setActiveContactId(null)}
-                  className="md:hidden p-1.5 -ml-1 text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 rounded-lg transition shrink-0 cursor-pointer border-0 bg-transparent flex items-center justify-center min-w-[36px] min-h-[36px]"
+                  className="md:hidden p-1.5 -ml-1 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition shrink-0 cursor-pointer border-0 bg-transparent flex items-center justify-center min-w-[36px] min-h-[36px]"
                   title="Back to swappers list"
                 >
                   <ArrowLeft className="w-5 h-5" />
@@ -749,15 +749,15 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                   src={activeContact.avatar} 
                   alt={activeContact.name} 
                   referrerPolicy="no-referrer"
-                  className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0"
+                  className="w-9 h-9 rounded-full object-cover border border-zinc-700 shrink-0"
                 />
                 <div className="min-w-0">
-                  <h4 className="font-semibold text-slate-800 text-xs sm:text-sm truncate">{activeContact.name}</h4>
+                  <h4 className="font-bold text-white text-xs sm:text-sm truncate">{activeContact.name}</h4>
                   {(() => {
                     const isContactOnline = onlineUsers[activeContact.id] || DEFAULT_USER_IDS.includes(activeContact.id);
                     return (
-                      <p className={`text-[10px] flex items-center gap-1 ${isContactOnline ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
-                        <Circle className={`w-1.5 h-1.5 fill-current ${isContactOnline ? 'text-emerald-500 animate-ping' : 'text-slate-400'}`} /> {isContactOnline ? 'Online' : 'Offline'}
+                      <p className={`text-[10px] flex items-center gap-1 ${isContactOnline ? 'text-emerald-400 font-semibold' : 'text-zinc-500'}`}>
+                        <Circle className={`w-1.5 h-1.5 fill-current ${isContactOnline ? 'text-emerald-400 animate-ping' : 'text-zinc-500'}`} /> {isContactOnline ? 'Online' : 'Offline'}
                       </p>
                     );
                   })()}
@@ -777,10 +777,10 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                         }
                         triggerCall();
                       }}
-                      className={`p-2 rounded-lg transition ${
+                      className={`p-2 rounded-xl transition ${
                         canCall 
-                          ? 'text-slate-600 hover:text-indigo-600 hover:bg-slate-150 cursor-pointer' 
-                          : 'text-slate-300 cursor-not-allowed opacity-50'
+                          ? 'text-zinc-300 hover:text-indigo-400 hover:bg-zinc-800 cursor-pointer' 
+                          : 'text-zinc-600 cursor-not-allowed opacity-50'
                       }`}
                       title={canCall ? "Voice Call" : "Book a confirmed swap with this person to enable calling"}
                     >
@@ -792,9 +792,9 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
             </div>
 
             {/* Messages Feed */}
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3.5 bg-slate-50/40 min-h-0">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3.5 bg-zinc-950/40 min-h-0">
               {isLoadingMessages ? (
-                <div className="flex items-center justify-center h-full text-slate-400">
+                <div className="flex items-center justify-center h-full text-zinc-500">
                   <span>Loading chat history...</span>
                 </div>
               ) : (
@@ -805,18 +805,20 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                       key={m.id}
                       className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} w-full`}
                     >
-                      <div className={`max-w-[85%] sm:max-w-[75%] p-3 rounded-2xl shadow-xs space-y-1 min-w-0 break-words overflow-hidden ${
-                        isCurrentUser ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'
+                      <div className={`max-w-[85%] sm:max-w-[75%] p-3.5 rounded-2xl shadow-lg space-y-1 min-w-0 break-words overflow-hidden ${
+                        isCurrentUser 
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-none' 
+                          : 'bg-zinc-800/90 border border-zinc-700/60 text-zinc-100 rounded-bl-none'
                       }`}>
                         
                         {/* File asset layout */}
                         {m.fileName && (
-                          <div className={`p-2 rounded-lg border flex items-center gap-2 mb-1.5 min-w-0 ${
-                            isCurrentUser ? 'bg-white/10 border-white/15 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          <div className={`p-2 rounded-xl border flex items-center gap-2 mb-1.5 min-w-0 ${
+                            isCurrentUser ? 'bg-white/10 border-white/15 text-white' : 'bg-zinc-900 border-zinc-700 text-zinc-200'
                           }`}>
                             <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
                             <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-[10px] truncate leading-tight">{m.fileName}</p>
+                              <p className="font-bold text-[10px] truncate leading-tight">{m.fileName}</p>
                               <span className="text-[9px] opacity-75 block truncate">Simulated resource attachment</span>
                             </div>
                           </div>
@@ -839,10 +841,10 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
               {/* Typing indicator */}
               {isTyping && (
                 <div className="flex justify-start">
-                  <div className="p-3 bg-white border border-slate-200 rounded-2xl rounded-bl-none flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  <div className="p-3 bg-zinc-800 border border-zinc-700 rounded-2xl rounded-bl-none flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                   </div>
                 </div>
               )}
@@ -851,7 +853,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
             </div>
 
             {/* Text Input Footer */}
-            <div className="p-2.5 sm:p-3 border-t border-slate-200 bg-white flex items-center gap-2 sticky bottom-0 z-10 shrink-0">
+            <div className="p-2.5 sm:p-3 border-t border-zinc-800 bg-zinc-950/80 flex items-center gap-2 sticky bottom-0 z-10 shrink-0">
               <input 
                 type="file" 
                 ref={fileInputRef}
@@ -860,7 +862,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center border-0 bg-transparent"
                 title="Share simulated file"
               >
                 <Paperclip className="w-4 h-4" />
@@ -872,22 +874,22 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputText)}
-                className="flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="flex-1 min-w-0 bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-zinc-600"
               />
 
               <button
                 onClick={() => handleSendMessage(inputText)}
-                className="p-2.5 sm:p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                className="p-2.5 sm:p-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center border-0"
               >
                 <Send className="w-3.5 h-3.5" />
               </button>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center bg-slate-50/50">
-            <Smile className="w-12 h-12 text-slate-300 mb-3 animate-pulse" />
-            <h3 className="font-semibold text-slate-600 text-sm">Welcome to Skill Chat</h3>
-            <p className="text-slate-500 text-xs mt-1 max-w-xs">
+          <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 p-8 text-center bg-zinc-950/50">
+            <Smile className="w-12 h-12 text-zinc-600 mb-3 animate-pulse" />
+            <h3 className="font-bold text-white text-sm">Welcome to Skill Chat</h3>
+            <p className="text-zinc-400 text-xs mt-1 max-w-xs">
               {contacts.length === 0 
                 ? "You don't have any conversations yet — book a swap or start a chat from someone's profile to begin." 
                 : "Select a swapper from the list to discuss, arrange dates, or conduct audio calls."}

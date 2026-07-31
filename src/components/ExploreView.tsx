@@ -310,48 +310,48 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
       {/* Title section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-serif font-semibold tracking-tight text-slate-900">Discover Skill Swappers</h1>
-          <p className="text-slate-500 mt-1 text-sm">Find your perfect skill-sharing partner. Filter by language, level, and availability.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-white">Discover Skill Swappers</h1>
+          <p className="text-zinc-400 mt-1 text-sm">Find your perfect skill-sharing partner. Filter by language, level, and availability.</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-xs font-semibold text-indigo-700 flex items-center gap-1">
+          <div className="px-3.5 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-xs font-semibold text-indigo-300 flex items-center gap-2 backdrop-blur-md">
             <span>✨ Spark Economy</span>
-            <span className="font-bold bg-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded-full text-[10px]">{currentUser.credits} Credits Available</span>
+            <span className="font-bold bg-indigo-500/20 text-indigo-200 px-2 py-0.5 rounded-full text-[10px]">{currentUser.credits} Credits Available</span>
           </div>
         </div>
       </div>
 
       {/* Search and Filters bar */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-4">
+      <div className="bg-zinc-900/90 rounded-[24px] border border-zinc-800 shadow-xl p-5 space-y-4 backdrop-blur-md">
         {/* Match Fit Filter Mode Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-1.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-4">
+          <div className="flex items-center gap-1.5 bg-zinc-950/80 p-1.5 rounded-2xl border border-zinc-800/80">
             <button
               onClick={() => setMatchFilter('all')}
-              className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
                 matchFilter === 'all'
-                  ? 'bg-white text-slate-800 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-zinc-800 text-white shadow-md'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
               <span>All Swappers</span>
-              <span className="px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[10px] font-bold">
+              <span className="px-2 py-0.5 bg-zinc-900 text-zinc-300 rounded-full text-[10px] font-bold">
                 {otherUsers.length}
               </span>
             </button>
 
             <button
               onClick={() => setMatchFilter('perfect')}
-              className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
                 matchFilter === 'perfect'
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs'
-                  : 'text-emerald-800 hover:bg-emerald-100/60'
+                  ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white shadow-md'
+                  : 'text-emerald-400 hover:bg-emerald-500/10'
               }`}
             >
-              <Sparkles className={`w-3.5 h-3.5 ${matchFilter === 'perfect' ? 'text-amber-300 fill-amber-300' : 'text-emerald-600'}`} />
+              <Sparkles className={`w-3.5 h-3.5 ${matchFilter === 'perfect' ? 'text-amber-300 fill-amber-300' : 'text-emerald-400'}`} />
               <span>Perfect Matches</span>
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                matchFilter === 'perfect' ? 'bg-emerald-800 text-emerald-100' : 'bg-emerald-100 text-emerald-800'
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                matchFilter === 'perfect' ? 'bg-black/30 text-emerald-200' : 'bg-emerald-500/20 text-emerald-300'
               }`}>
                 {perfectMatches.length}
               </span>
@@ -359,14 +359,14 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
             <button
               onClick={() => setMatchFilter('partial')}
-              className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
                 matchFilter === 'partial'
-                  ? 'bg-white text-indigo-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-zinc-800 text-indigo-400 shadow-md'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
               <span>Partial Matches</span>
-              <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded-full text-[10px] font-bold">
+              <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-full text-[10px] font-bold">
                 {partialMatches.length}
               </span>
             </button>
@@ -375,29 +375,29 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
           {perfectMatches.length > 0 && matchFilter !== 'perfect' && (
             <button
               onClick={() => setMatchFilter('perfect')}
-              className="text-xs text-emerald-700 font-bold hover:underline flex items-center gap-1 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-lg cursor-pointer"
+              className="text-xs text-emerald-400 font-bold hover:underline flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600 fill-emerald-200" />
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400/30" />
               <span>{perfectMatches.length} Perfect Barter Match{perfectMatches.length > 1 ? 'es' : ''} Found!</span>
             </button>
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
             <input 
               type="text" 
               placeholder="Search skills, names, bios..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 text-xs text-white placeholder:text-zinc-600"
             />
           </div>
           <button 
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-4 py-2 border rounded-lg text-sm flex items-center gap-2 font-medium transition ${
-              showFilters ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            className={`px-4 py-2.5 border rounded-xl text-xs flex items-center gap-2 font-semibold transition cursor-pointer ${
+              showFilters ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
             }`}
           >
             <SlidersHorizontal className="w-4 h-4" />
@@ -415,10 +415,10 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                   isSelected 
-                    ? 'bg-indigo-600 text-white shadow-xs' 
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 text-white shadow-lg shadow-indigo-500/20' 
+                    : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
                 }`}
               >
                 {category}
@@ -434,14 +434,14 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden border-t border-slate-100 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs"
+              className="overflow-hidden border-t border-zinc-800 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs"
             >
               <div>
-                <label className="block text-slate-500 font-medium mb-1.5">Skill level</label>
+                <label className="block text-zinc-400 font-semibold mb-1.5">Skill level</label>
                 <select 
                   value={selectedLevel} 
                   onChange={(e) => setSelectedLevel(e.target.value)}
-                  className="w-full border border-slate-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="All">All Levels</option>
                   <option value="Beginner">Beginner</option>
@@ -451,11 +451,11 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
               </div>
 
               <div>
-                <label className="block text-slate-500 font-medium mb-1.5">Language spoken</label>
+                <label className="block text-zinc-400 font-semibold mb-1.5">Language spoken</label>
                 <select 
                   value={selectedLanguage} 
                   onChange={(e) => setSelectedLanguage(e.target.value)}
-                  className="w-full border border-slate-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="All">All Languages</option>
                   {allLanguages.map(lang => (
@@ -465,11 +465,11 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
               </div>
 
               <div>
-                <label className="block text-slate-500 font-medium mb-1.5">Availability</label>
+                <label className="block text-zinc-400 font-semibold mb-1.5">Availability</label>
                 <select 
                   value={selectedAvailability} 
                   onChange={(e) => setSelectedAvailability(e.target.value)}
-                  className="w-full border border-slate-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="All">Any Time</option>
                   <option value="Morning">Morning</option>
@@ -479,11 +479,11 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
               </div>
 
               <div>
-                <label className="block text-slate-500 font-medium mb-1.5">Time Zone</label>
+                <label className="block text-zinc-400 font-semibold mb-1.5">Time Zone</label>
                 <select 
                   value={selectedTimeZone} 
                   onChange={(e) => setSelectedTimeZone(e.target.value)}
-                  className="w-full border border-slate-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="All">Any Time Zone</option>
                   {allTimeZones.map(tz => (
@@ -498,15 +498,15 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
       {/* Grid of Users */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-2">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent"></div>
+        <div className="flex flex-col items-center justify-center py-20 text-zinc-500 gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent"></div>
           <span className="text-sm">Loading matches...</span>
         </div>
       ) : filteredUsers.length === 0 ? (
-        <div className="bg-slate-50 rounded-xl border border-slate-200 py-16 px-4 text-center">
-          <Compass className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="font-medium text-slate-700 text-base">No matches found</h3>
-          <p className="text-slate-500 text-sm max-w-sm mx-auto mt-1">Try adjusting your filters, expanding your search query, or checking back later.</p>
+        <div className="bg-zinc-900/80 rounded-[24px] border border-zinc-800 py-16 px-4 text-center">
+          <Compass className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
+          <h3 className="font-bold text-white text-base">No matches found</h3>
+          <p className="text-zinc-400 text-xs max-w-sm mx-auto mt-1">Try adjusting your filters, expanding your search query, or checking back later.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -519,23 +519,23 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
               <motion.div 
                 key={user.id}
                 layoutId={`user-card-${user.id}`}
-                className={`bg-white rounded-xl border transition-all duration-200 flex flex-col overflow-hidden cursor-pointer ${
+                className={`bg-zinc-900/90 rounded-[24px] border transition-all duration-200 flex flex-col overflow-hidden cursor-pointer ${
                   isPerfect 
-                    ? 'border-emerald-300 shadow-md hover:shadow-lg ring-1 ring-emerald-400/30' 
+                    ? 'border-emerald-500/40 shadow-xl shadow-emerald-500/5 ring-1 ring-emerald-500/20' 
                     : isPartial
-                    ? 'border-indigo-200 hover:border-indigo-300 shadow-xs hover:shadow-md'
-                    : 'border-slate-200 hover:border-slate-300 shadow-2xs hover:shadow-md'
+                    ? 'border-indigo-500/30 hover:border-indigo-500/50 shadow-xl'
+                    : 'border-zinc-800 hover:border-zinc-700 shadow-lg'
                 }`}
                 onClick={() => handleOpenDetails(user)}
               >
                 {/* Perfect Match Top Banner */}
                 {isPerfect && (
-                  <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white px-4 py-1.5 flex items-center justify-between text-xs font-bold">
+                  <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white px-4 py-2 flex items-center justify-between text-xs font-bold">
                     <span className="flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300 animate-pulse" />
                       Perfect 2-Way Skill Fit
                     </span>
-                    <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide">
+                    <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide">
                       100% Mutual Match
                     </span>
                   </div>
@@ -548,28 +548,28 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                     alt={user.name} 
                     referrerPolicy="no-referrer"
                     className={`w-14 h-14 rounded-full object-cover border-2 flex-shrink-0 ${
-                      isPerfect ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-100'
+                      isPerfect ? 'border-emerald-400 ring-2 ring-emerald-500/30' : 'border-zinc-800'
                     }`}
                   />
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-1.5">
-                      <h3 className="font-semibold text-slate-900 truncate text-base hover:text-indigo-600 transition">{user.name}</h3>
-                      <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium shrink-0">{user.skillLevel}</span>
+                      <h3 className="font-bold text-white truncate text-base hover:text-indigo-400 transition">{user.name}</h3>
+                      <span className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded-md text-[10px] font-medium shrink-0">{user.skillLevel}</span>
                     </div>
                     
                     {/* Rating */}
-                    <div className="flex items-center gap-1 text-xs text-amber-500 font-semibold">
+                    <div className="flex items-center gap-1 text-xs text-amber-400 font-semibold">
                       <Star className="w-3.5 h-3.5 fill-current" />
                       <span>{user.rating.toFixed(1)}</span>
-                      <span className="text-slate-400 font-normal">({user.reviewsCount} reviews)</span>
+                      <span className="text-zinc-500 font-normal">({user.reviewsCount} reviews)</span>
                     </div>
 
                     {/* Timezone / Availability info */}
-                    <div className="flex items-center gap-1 text-xs text-slate-500">
-                      <Globe className="w-3 h-3 text-slate-400" />
+                    <div className="flex items-center gap-1 text-xs text-zinc-400">
+                      <Globe className="w-3 h-3 text-zinc-500" />
                       <span>{user.timeZone}</span>
-                      <span className="text-slate-300">•</span>
-                      <Clock className="w-3 h-3 text-slate-400" />
+                      <span className="text-zinc-600">•</span>
+                      <Clock className="w-3 h-3 text-zinc-500" />
                       <span className="truncate">{(user.availability ?? []).join(', ')}</span>
                     </div>
                   </div>
@@ -577,17 +577,17 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
                 {/* Perfect Mutual Match Highlight Box */}
                 {isPerfect && matchInfo && (
-                  <div className="mx-5 mb-3 p-3 bg-gradient-to-br from-emerald-50/90 to-indigo-50/90 border border-emerald-200 rounded-xl space-y-2 text-xs">
+                  <div className="mx-5 mb-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2 text-xs">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                      <div className="bg-white/90 p-2 rounded-lg border border-emerald-100/80 shadow-2xs">
-                        <span className="text-emerald-700 block text-[10px] font-extrabold uppercase tracking-wider">They Teach ➔ You Want</span>
-                        <span className="font-bold text-slate-900">
+                      <div className="bg-zinc-950/80 p-2 rounded-lg border border-emerald-500/20">
+                        <span className="text-emerald-400 block text-[10px] font-extrabold uppercase tracking-wider">They Teach ➔ You Want</span>
+                        <span className="font-bold text-white">
                           {matchInfo.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}
                         </span>
                       </div>
-                      <div className="bg-white/90 p-2 rounded-lg border border-indigo-100/80 shadow-2xs">
-                        <span className="text-indigo-700 block text-[10px] font-extrabold uppercase tracking-wider">You Teach ➔ They Want</span>
-                        <span className="font-bold text-slate-900">
+                      <div className="bg-zinc-950/80 p-2 rounded-lg border border-indigo-500/20">
+                        <span className="text-indigo-400 block text-[10px] font-extrabold uppercase tracking-wider">You Teach ➔ They Want</span>
+                        <span className="font-bold text-white">
                           {matchInfo.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}
                         </span>
                       </div>
@@ -597,19 +597,19 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
                 {/* Partial Match Box */}
                 {isPartial && matchInfo && !isPerfect && (
-                  <div className="mx-5 mb-3 p-2.5 bg-indigo-50/60 border border-indigo-100 rounded-xl text-[11px] space-y-1">
-                    <span className="font-bold text-indigo-900 flex items-center gap-1">
-                      <RefreshCw className="w-3 h-3 text-indigo-600" />
+                  <div className="mx-5 mb-3 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[11px] space-y-1">
+                    <span className="font-bold text-indigo-300 flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3 text-indigo-400" />
                       Partial Skill Match
                     </span>
                     {matchInfo.theyTeachUserWants.length > 0 && (
-                      <p className="text-slate-600">
-                        They teach <strong className="text-emerald-800">{matchInfo.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}</strong> (you want to learn)
+                      <p className="text-zinc-300">
+                        They teach <strong className="text-emerald-300">{matchInfo.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}</strong> (you want)
                       </p>
                     )}
                     {matchInfo.userTeachesTheyWant.length > 0 && (
-                      <p className="text-slate-600">
-                        They want <strong className="text-indigo-800">{matchInfo.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}</strong> (you teach)
+                      <p className="text-zinc-300">
+                        They want <strong className="text-indigo-300">{matchInfo.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}</strong> (you teach)
                       </p>
                     )}
                   </div>
@@ -618,11 +618,11 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                 {/* Teaching skills */}
                 <div className="px-5 pb-4 flex-1 space-y-3 cursor-pointer">
                   <div>
-                    <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">Teaches</span>
-                    <div className="flex flex-wrap gap-1 mt-1">
+                    <span className="text-[11px] font-bold text-zinc-500 tracking-wider uppercase">Teaches</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {(user.skillsOffered ?? []).map((sk, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md text-xs font-medium">
-                          <Award className="w-3 h-3 text-indigo-500 shrink-0" />
+                        <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 rounded-lg text-xs font-semibold">
+                          <Award className="w-3 h-3 text-indigo-400 shrink-0" />
                           <span>{sk.name}</span>
                           <VerifiedSkillBadge teacherId={user.id} skillName={sk.name} allReviews={allReviews} />
                         </span>
@@ -631,11 +631,11 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                   </div>
 
                   <div>
-                    <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">Wants to Learn</span>
-                    <div className="flex flex-wrap gap-1 mt-1">
+                    <span className="text-[11px] font-bold text-zinc-500 tracking-wider uppercase">Wants to Learn</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {(user.skillsWanted ?? []).map((sk, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-100 text-amber-800 rounded-md text-xs font-medium">
-                          <GraduationCap className="w-3 h-3 text-amber-500" />
+                        <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-lg text-xs font-semibold">
+                          <GraduationCap className="w-3 h-3 text-amber-400" />
                           {sk.name}
                         </span>
                       ))}
@@ -644,11 +644,11 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                 </div>
 
                 {/* Successful Exchanges and CTA */}
-                <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">
-                    <span className="font-semibold text-slate-700">{user.successfulExchanges}</span> successful swaps
+                <div className="px-5 py-3.5 bg-zinc-950/80 border-t border-zinc-800 flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">
+                    <span className="font-bold text-white">{user.successfulExchanges}</span> successful swaps
                   </span>
-                  <span className="text-indigo-600 font-semibold group flex items-center gap-1 cursor-pointer">
+                  <span className="text-indigo-400 font-semibold group flex items-center gap-1 cursor-pointer">
                     View Profile <ChevronRight className="w-4 h-4 transition group-hover:translate-x-0.5" />
                   </span>
                 </div>
@@ -661,37 +661,37 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
       {/* Teacher Profile Detail Overlay */}
       <AnimatePresence>
         {selectedTeacher && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto">
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-2xl border border-slate-100 shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="bg-zinc-900 rounded-[28px] w-full max-w-2xl border border-zinc-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
               {/* Profile Details Header */}
-              <div className="p-6 border-b border-slate-150 flex items-start justify-between bg-slate-50">
+              <div className="p-6 border-b border-zinc-800 flex items-start justify-between bg-zinc-950/80">
                 <div className="flex items-center gap-4">
                   <img 
                     src={selectedTeacher.avatar} 
                     alt={selectedTeacher.name} 
                     referrerPolicy="no-referrer"
-                    className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-zinc-700 shadow-md"
                   />
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-semibold text-slate-900">{selectedTeacher.name}</h2>
-                      <span className="px-2.5 py-0.5 bg-indigo-100 text-indigo-800 rounded text-xs font-medium">{selectedTeacher.skillLevel}</span>
+                      <h2 className="text-xl font-bold text-white">{selectedTeacher.name}</h2>
+                      <span className="px-2.5 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-md text-xs font-semibold border border-indigo-500/30">{selectedTeacher.skillLevel}</span>
                     </div>
-                    <p className="text-slate-500 text-xs flex items-center gap-3 mt-1">
-                      <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-slate-400" />{selectedTeacher.timeZone}</span>
+                    <p className="text-zinc-400 text-xs flex items-center gap-3 mt-1">
+                      <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-zinc-500" />{selectedTeacher.timeZone}</span>
                       <span>•</span>
-                      <span className="flex items-center gap-1"><Languages className="w-3.5 h-3.5 text-slate-400" />{selectedTeacher.languages.join(', ')}</span>
+                      <span className="flex items-center gap-1"><Languages className="w-3.5 h-3.5 text-zinc-500" />{selectedTeacher.languages.join(', ')}</span>
                     </p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setSelectedTeacher(null)}
-                  className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition"
+                  className="p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -706,10 +706,10 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                       const teacherMatch = calculateMatch(currentUser, selectedTeacher);
                       if (teacherMatch.isPerfectMatch) {
                         return (
-                          <div className="p-4 bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-300 rounded-xl space-y-2 shadow-2xs">
+                          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl space-y-2 shadow-lg">
                             <div className="flex items-center justify-between">
-                              <span className="font-extrabold text-emerald-900 text-xs flex items-center gap-1.5">
-                                <Sparkles className="w-4 h-4 text-emerald-600 fill-emerald-200 animate-pulse" />
+                              <span className="font-extrabold text-emerald-300 text-xs flex items-center gap-1.5">
+                                <Sparkles className="w-4 h-4 text-emerald-400 fill-emerald-400/30 animate-pulse" />
                                 Perfect 2-Way Skill Barter Fit!
                               </span>
                               <span className="px-2.5 py-0.5 bg-emerald-600 text-white text-[10px] font-extrabold rounded-full uppercase tracking-wider">
@@ -717,15 +717,15 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                               </span>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
-                              <div className="bg-white/90 p-2.5 rounded-lg border border-emerald-200">
-                                <span className="text-emerald-800 block text-[10px] font-bold uppercase tracking-wider">They Teach (You Want)</span>
-                                <span className="font-bold text-slate-900">
+                              <div className="bg-zinc-950/80 p-2.5 rounded-xl border border-emerald-500/20">
+                                <span className="text-emerald-400 block text-[10px] font-bold uppercase tracking-wider">They Teach (You Want)</span>
+                                <span className="font-bold text-white">
                                   {teacherMatch.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}
                                 </span>
                               </div>
-                              <div className="bg-white/90 p-2.5 rounded-lg border border-indigo-200">
-                                <span className="text-indigo-800 block text-[10px] font-bold uppercase tracking-wider">You Teach (They Want)</span>
-                                <span className="font-bold text-slate-900">
+                              <div className="bg-zinc-950/80 p-2.5 rounded-xl border border-indigo-500/20">
+                                <span className="text-indigo-400 block text-[10px] font-bold uppercase tracking-wider">You Teach (They Want)</span>
+                                <span className="font-bold text-white">
                                   {teacherMatch.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}
                                 </span>
                               </div>
@@ -734,19 +734,19 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                         );
                       } else if (teacherMatch.isPartialMatch) {
                         return (
-                          <div className="p-3 bg-indigo-50/80 border border-indigo-200 rounded-xl text-xs space-y-1">
-                            <span className="font-bold text-indigo-900 flex items-center gap-1">
-                              <RefreshCw className="w-3.5 h-3.5 text-indigo-600" />
+                          <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-xs space-y-1">
+                            <span className="font-bold text-indigo-300 flex items-center gap-1">
+                              <RefreshCw className="w-3.5 h-3.5 text-indigo-400" />
                               Partial Skill Barter Match
                             </span>
                             {teacherMatch.theyTeachUserWants.length > 0 && (
-                              <p className="text-slate-700">
-                                They teach <strong className="text-emerald-900">{teacherMatch.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}</strong> which matches your wishlist.
+                              <p className="text-zinc-300">
+                                They teach <strong className="text-emerald-300">{teacherMatch.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}</strong> which matches your wishlist.
                               </p>
                             )}
                             {teacherMatch.userTeachesTheyWant.length > 0 && (
-                              <p className="text-slate-700">
-                                They want to learn <strong className="text-indigo-900">{teacherMatch.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}</strong> which you teach.
+                              <p className="text-zinc-300">
+                                They want to learn <strong className="text-indigo-300">{teacherMatch.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}</strong> which you teach.
                               </p>
                             )}
                           </div>
@@ -757,45 +757,45 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
                     {/* Bio */}
                     <div>
-                      <h4 className="text-xs font-semibold text-slate-400 tracking-wider uppercase mb-1.5">Introduction</h4>
-                      <p className="text-slate-700 text-sm leading-relaxed">{selectedTeacher.bio}</p>
+                      <h4 className="text-xs font-bold text-zinc-500 tracking-wider uppercase mb-1.5">Introduction</h4>
+                      <p className="text-zinc-300 text-sm leading-relaxed">{selectedTeacher.bio}</p>
                     </div>
 
                     {/* Education & Experience */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl border border-slate-150">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-zinc-950/80 p-4 rounded-2xl border border-zinc-800">
                       <div>
-                        <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">🎓 Education</span>
-                        <p className="text-slate-700 mt-1">{selectedTeacher.education || 'No education specified'}</p>
+                        <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">🎓 Education</span>
+                        <p className="text-zinc-200 mt-1">{selectedTeacher.education || 'No education specified'}</p>
                       </div>
                       <div>
-                        <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">💼 Experience</span>
-                        <p className="text-slate-700 mt-1">{selectedTeacher.experience || 'No experience specified'}</p>
+                        <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">💼 Experience</span>
+                        <p className="text-zinc-200 mt-1">{selectedTeacher.experience || 'No experience specified'}</p>
                       </div>
                     </div>
 
                     {/* Portfolio / Links */}
                     {Object.keys(selectedTeacher.portfolio).length > 0 && (
                       <div>
-                        <h4 className="text-xs font-semibold text-slate-400 tracking-wider uppercase mb-2">Portfolio & Socials</h4>
+                        <h4 className="text-xs font-bold text-zinc-500 tracking-wider uppercase mb-2">Portfolio & Socials</h4>
                         <div className="flex flex-wrap gap-2">
                           {selectedTeacher.portfolio.github && (
-                            <a href={selectedTeacher.portfolio.github} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 transition">
-                              GitHub <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                            <a href={selectedTeacher.portfolio.github} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 rounded-xl text-xs font-semibold text-zinc-300 transition">
+                              GitHub <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
                             </a>
                           )}
                           {selectedTeacher.portfolio.linkedin && (
-                            <a href={selectedTeacher.portfolio.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 transition">
-                              LinkedIn <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                            <a href={selectedTeacher.portfolio.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 rounded-xl text-xs font-semibold text-zinc-300 transition">
+                              LinkedIn <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
                             </a>
                           )}
                           {selectedTeacher.portfolio.behance && (
-                            <a href={selectedTeacher.portfolio.behance} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 transition">
-                              Behance <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                            <a href={selectedTeacher.portfolio.behance} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 rounded-xl text-xs font-semibold text-zinc-300 transition">
+                              Behance <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
                             </a>
                           )}
                           {selectedTeacher.portfolio.portfolioUrl && (
-                            <a href={selectedTeacher.portfolio.portfolioUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 transition">
-                              Website <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                            <a href={selectedTeacher.portfolio.portfolioUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 rounded-xl text-xs font-semibold text-zinc-300 transition">
+                              Website <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
                             </a>
                           )}
                         </div>
@@ -804,24 +804,24 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
                     {/* Skills Selection */}
                     <div>
-                      <h4 className="text-xs font-semibold text-slate-400 tracking-wider uppercase mb-2">Select a skill to learn from {selectedTeacher.name}</h4>
+                      <h4 className="text-xs font-bold text-zinc-500 tracking-wider uppercase mb-2">Select a skill to learn from {selectedTeacher.name}</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {(selectedTeacher?.skillsOffered ?? []).map((sk, idx) => (
                           <div 
                             key={idx}
                             onClick={() => setSelectedSkillToLearn(sk)}
-                            className={`p-3 border rounded-xl cursor-pointer transition flex items-center justify-between ${
+                            className={`p-3 border rounded-2xl cursor-pointer transition flex items-center justify-between ${
                               selectedSkillToLearn?.name === sk.name 
-                                ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-500/10' 
-                                : 'bg-white border-slate-200 hover:border-slate-350'
+                                ? 'bg-indigo-500/10 border-indigo-500 ring-1 ring-indigo-500/30' 
+                                : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
                             }`}
                           >
                             <div className="flex-1 min-w-0 pr-2">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <p className="font-semibold text-slate-800 text-sm">{sk.name}</p>
+                                <p className="font-bold text-white text-sm">{sk.name}</p>
                                 <VerifiedSkillBadge teacherId={selectedTeacher.id} skillName={sk.name} allReviews={allReviews} />
                               </div>
-                              <p className="text-[11px] text-slate-500 mt-0.5">{sk.category} • {sk.level} level</p>
+                              <p className="text-[11px] text-zinc-400 mt-0.5">{sk.category} • {sk.level} level</p>
                             </div>
                             {selectedSkillToLearn?.name === sk.name && (
                               <div className="w-5 h-5 bg-indigo-500 text-white rounded-full flex items-center justify-center shrink-0">
@@ -839,13 +839,13 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                         <motion.div 
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="p-4 bg-indigo-50/40 border border-indigo-100 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs animate-fade-in"
+                          className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs animate-fade-in"
                         >
                           <div className="flex items-start gap-2.5">
-                            <span className="text-xl bg-indigo-100 text-indigo-700 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">📚</span>
+                            <span className="text-xl bg-indigo-500/20 text-indigo-300 w-8 h-8 rounded-xl flex items-center justify-center shrink-0">📚</span>
                             <div>
-                              <p className="font-semibold text-slate-800">Learn & Study on Your Own</p>
-                              <p className="text-slate-500 mt-0.5">Explore structured syllabi, direct **W3Schools** tutorials, and ask our **AI Skill Coach** any questions!</p>
+                              <p className="font-bold text-white">Learn & Study on Your Own</p>
+                              <p className="text-zinc-400 mt-0.5">Explore structured syllabi, direct W3Schools tutorials, and ask our AI Skill Coach any questions!</p>
                             </div>
                           </div>
                           <div className="flex flex-col sm:flex-row gap-2 shrink-0 w-full md:w-auto">
@@ -854,7 +854,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                                 href={guide.w3schoolsLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-3.5 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-2xs transition flex items-center justify-center gap-1.5 whitespace-nowrap text-center text-xs decoration-transparent no-underline"
+                                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 whitespace-nowrap text-center text-xs decoration-transparent no-underline cursor-pointer"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
                                 Learn on W3Schools 🟢
@@ -863,7 +863,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                             <button
                               type="button"
                               onClick={() => handleOpenStudyHub(selectedSkillToLearn)}
-                              className="px-3.5 py-2 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 hover:border-indigo-300 font-semibold rounded-lg shadow-2xs transition flex items-center justify-center gap-1.5 whitespace-nowrap"
+                              className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 font-semibold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
                             >
                               <BookOpen className="w-3.5 h-3.5" />
                               Open Study Hub
@@ -876,11 +876,11 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                     {/* Teacher Reviews Section */}
                     <div className="space-y-3 pt-2">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-semibold text-slate-400 tracking-wider uppercase flex items-center gap-1.5">
-                          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+                        <h4 className="text-xs font-bold text-zinc-500 tracking-wider uppercase flex items-center gap-1.5">
+                          <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                           Student Reviews ({allReviews.filter(r => r.teacherId === selectedTeacher.id).length})
                         </h4>
-                        <span className="text-xs font-bold text-slate-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <span className="text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
                           ★ {selectedTeacher.rating?.toFixed(1) || '5.0'} Rating
                         </span>
                       </div>
@@ -892,8 +892,8 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
                         if (tReviews.length === 0) {
                           return (
-                            <div className="p-4 bg-slate-50 border border-slate-150 rounded-xl text-center">
-                              <p className="text-xs text-slate-500 italic">No individual student reviews yet. Be the first to swap skills and leave a review!</p>
+                            <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-2xl text-center">
+                              <p className="text-xs text-zinc-500 italic">No individual student reviews yet. Be the first to swap skills and leave a review!</p>
                             </div>
                           );
                         }
@@ -901,12 +901,12 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                         return (
                           <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                             {tReviews.map((rev) => (
-                              <div key={rev.id} className="p-3 bg-slate-50/80 border border-slate-200 rounded-xl text-xs space-y-1.5">
+                              <div key={rev.id} className="p-3 bg-zinc-950/80 border border-zinc-800 rounded-2xl text-xs space-y-1.5">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-bold text-slate-800">{rev.learnerName}</span>
+                                    <span className="font-bold text-white">{rev.learnerName}</span>
                                     {rev.skillName && (
-                                      <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-md font-semibold text-[10px]">
+                                      <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-md font-semibold text-[10px]">
                                         {rev.skillName}
                                       </span>
                                     )}
@@ -916,16 +916,16 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                                       {Array.from({ length: 5 }).map((_, i) => (
                                         <Star
                                           key={i}
-                                          className={`w-3 h-3 ${i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
+                                          className={`w-3 h-3 ${i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-zinc-700'}`}
                                         />
                                       ))}
                                     </div>
-                                    <span className="text-[10px] text-slate-400 ml-1">
+                                    <span className="text-[10px] text-zinc-500 ml-1">
                                       {new Date(rev.createdAt).toLocaleDateString()}
                                     </span>
                                   </div>
                                 </div>
-                                <p className="text-slate-600 italic leading-relaxed">{rev.comment || 'No written comment provided.'}</p>
+                                <p className="text-zinc-300 italic leading-relaxed">{rev.comment || 'No written comment provided.'}</p>
                               </div>
                             ))}
                           </div>
@@ -934,22 +934,22 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                     </div>
 
                     {/* Booking Prompt */}
-                    <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
-                        <h5 className="font-semibold text-indigo-950 text-sm">Ready to make the exchange?</h5>
-                        <p className="text-indigo-700/80 text-xs mt-0.5">Booking costs 1 Spark credit. No money required.</p>
+                        <h5 className="font-bold text-white text-sm">Ready to make the exchange?</h5>
+                        <p className="text-zinc-400 text-xs mt-0.5">Booking costs 1 Spark credit. No money required.</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button 
                           onClick={() => onOpenChat(selectedTeacher.id)}
-                          className="px-4 py-2 bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-200 rounded-lg font-medium text-xs transition flex items-center gap-1.5"
+                          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 rounded-xl font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer"
                         >
                           <MessageSquare className="w-4 h-4" />
                           Chat First
                         </button>
                         <button 
                           onClick={handleStartBooking}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-xs shadow-sm transition flex items-center gap-1"
+                          className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl font-semibold text-xs shadow-lg shadow-indigo-500/20 transition flex items-center gap-1 cursor-pointer"
                         >
                           Book Swap <ArrowRight className="w-4 h-4" />
                         </button>
@@ -961,43 +961,43 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                     {/* Progress Success State */}
                     {bookingSuccess ? (
                       <div className="text-center py-10 space-y-3">
-                        <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto animate-bounce">
+                        <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/30 animate-bounce">
                           <CheckCircle2 className="w-10 h-10" />
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-900">Exchange Requested!</h3>
-                        <p className="text-slate-500 text-sm">We reserved 1 credit. Sofia will review your request.</p>
+                        <h3 className="text-lg font-bold text-white">Exchange Requested!</h3>
+                        <p className="text-zinc-400 text-sm">We reserved 1 credit. {selectedTeacher.name} will review your request.</p>
                       </div>
                     ) : (
                       <>
-                        <div className="p-3 bg-slate-50 border border-slate-150 rounded-lg flex items-center justify-between text-xs">
+                        <div className="p-3 bg-zinc-950/80 border border-zinc-800 rounded-xl flex items-center justify-between text-xs">
                           <div>
-                            <span className="text-slate-400">Selected Teacher: </span>
-                            <span className="font-semibold text-slate-700">{selectedTeacher.name}</span>
+                            <span className="text-zinc-500">Selected Teacher: </span>
+                            <span className="font-semibold text-white">{selectedTeacher.name}</span>
                           </div>
                           <div>
-                            <span className="text-slate-400">Skill: </span>
-                            <span className="font-semibold text-slate-700">{selectedSkillToLearn?.name}</span>
+                            <span className="text-zinc-500">Skill: </span>
+                            <span className="font-semibold text-indigo-400">{selectedSkillToLearn?.name}</span>
                           </div>
                         </div>
 
                         {/* Learning Options Segment */}
                         <div className="space-y-2">
-                          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">How do you want to learn?</label>
+                          <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider">How do you want to learn?</label>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             {LEARNING_OPTIONS.map((opt) => (
                               <div
                                 key={opt.value}
                                 onClick={() => setChosenOption(opt.value)}
-                                className={`p-3 border rounded-xl cursor-pointer transition flex items-start gap-3 ${
+                                className={`p-3 border rounded-2xl cursor-pointer transition flex items-start gap-3 ${
                                   chosenOption === opt.value
-                                    ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-500/10'
-                                    : 'bg-white border-slate-200 hover:border-slate-300'
+                                    ? 'bg-indigo-500/10 border-indigo-500 ring-1 ring-indigo-500/30'
+                                    : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
                                 }`}
                               >
                                 <span className="text-2xl mt-0.5">{opt.icon}</span>
                                 <div className="space-y-0.5">
-                                  <p className="font-semibold text-slate-800 text-xs">{opt.value}</p>
-                                  <p className="text-[10px] text-slate-500 leading-normal">{opt.desc}</p>
+                                  <p className="font-bold text-white text-xs">{opt.value}</p>
+                                  <p className="text-[10px] text-zinc-400 leading-normal">{opt.desc}</p>
                                 </div>
                               </div>
                             ))}
@@ -1007,38 +1007,38 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                         {/* Calendar / Date / Time */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                           <div>
-                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Select Date & Time</label>
+                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Select Date & Time</label>
                             <div className="grid grid-cols-2 gap-2">
                               <input 
                                 type="date" 
                                 required
                                 value={bookingDate}
                                 onChange={(e) => setBookingDate(e.target.value)}
-                                className="w-full border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               />
                               <input 
                                 type="time" 
                                 required
                                 value={bookingTime}
                                 onChange={(e) => setBookingTime(e.target.value)}
-                                className="w-full border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               />
                             </div>
                           </div>
                           <div>
-                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Time Slot Availability</label>
+                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Time Slot Availability</label>
                             <div className="grid grid-cols-3 gap-1.5">
                               {(['Morning', 'Afternoon', 'Evening'] as const).map(slot => (
                                 <button
                                   key={slot}
                                   type="button"
                                   onClick={() => setBookingSlot(slot)}
-                                  className={`py-2.5 border rounded-lg text-xs font-semibold transition ${
+                                  className={`py-2.5 border rounded-xl text-xs font-semibold transition cursor-pointer ${
                                     bookingSlot === slot
-                                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-md'
                                       : selectedTeacher.availability.includes(slot)
-                                        ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                                        : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed line-through'
+                                        ? 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-800'
+                                        : 'bg-zinc-950/40 border-zinc-900 text-zinc-600 cursor-not-allowed line-through'
                                   }`}
                                   disabled={!selectedTeacher.availability.includes(slot)}
                                 >
@@ -1046,19 +1046,19 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                                 </button>
                               ))}
                             </div>
-                            <span className="text-[10px] text-slate-400 mt-1 block">Crossed slots are not available for {selectedTeacher.name}.</span>
+                            <span className="text-[10px] text-zinc-500 mt-1 block">Crossed slots are not available for {selectedTeacher.name}.</span>
                           </div>
                         </div>
 
                         {/* Booking notes */}
                         <div>
-                          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">What do you want to focus on? (Optional)</label>
+                          <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">What do you want to focus on? (Optional)</label>
                           <textarea 
                             rows={3}
                             placeholder="Introduce your level and what goals you hope to focus on during this swap..."
                             value={bookingNotes}
                             onChange={(e) => setBookingNotes(e.target.value)}
-                            className="w-full border border-slate-200 rounded-lg p-3 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-zinc-600"
                           />
                         </div>
 
@@ -1067,17 +1067,17 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                           <button 
                             type="button"
                             onClick={() => setIsBookingMode(false)}
-                            className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-lg font-medium text-xs text-slate-600 transition"
+                            className="px-4 py-2 border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 rounded-xl font-semibold text-xs text-zinc-300 transition cursor-pointer"
                           >
                             Back to Profile
                           </button>
                           <button 
                             type="submit"
                             disabled={currentUser.credits < 1}
-                            className={`px-5 py-2 rounded-lg font-semibold text-xs shadow-sm transition flex items-center gap-1.5 ${
+                            className={`px-5 py-2 rounded-xl font-semibold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer ${
                               currentUser.credits >= 1 
-                                ? 'bg-indigo-600 hover:bg-indigo-700 text-white' 
-                                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-indigo-500/20' 
+                                : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
                             }`}
                           >
                             <Calendar className="w-4 h-4" />
@@ -1099,44 +1099,44 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
         {activeStudySkill && (() => {
           const guide = getSkillGuide(activeStudySkill.name, activeStudySkill.category);
           return (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-55 overflow-y-auto">
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-55 overflow-y-auto">
               <motion.div 
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white rounded-2xl w-full max-w-3xl border border-slate-100 shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
+                className="bg-zinc-900 rounded-[28px] w-full max-w-3xl border border-zinc-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
               >
                 {/* Header */}
-                <div className="p-6 border-b border-slate-150 bg-slate-50 flex items-start justify-between shrink-0">
+                <div className="p-6 border-b border-zinc-800 bg-zinc-950/80 flex items-start justify-between shrink-0">
                   <div className="space-y-1">
                     <button 
                       onClick={() => setActiveStudySkill(null)}
-                      className="text-indigo-600 hover:text-indigo-800 text-xs font-semibold flex items-center gap-1 mb-2 group transition bg-transparent border-0 cursor-pointer"
+                      className="text-indigo-400 hover:text-indigo-300 text-xs font-semibold flex items-center gap-1 mb-2 group transition bg-transparent border-0 cursor-pointer"
                     >
                       <ArrowLeft className="w-3.5 h-3.5 transition group-hover:-translate-x-0.5" /> Back to Profile
                     </button>
                     <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-serif font-semibold text-slate-900">Study Hub: {activeStudySkill.name}</h2>
-                      <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded text-[10px] font-semibold">{activeStudySkill.level}</span>
+                      <h2 className="text-xl font-bold text-white">Study Hub: {activeStudySkill.name}</h2>
+                      <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded text-[10px] font-semibold">{activeStudySkill.level}</span>
                     </div>
-                    <p className="text-slate-500 text-xs mt-0.5">Category: <span className="font-semibold text-slate-700">{activeStudySkill.category}</span> • Self-Paced Interactive Syllabus</p>
+                    <p className="text-zinc-400 text-xs mt-0.5">Category: <span className="font-semibold text-zinc-200">{activeStudySkill.category}</span> • Self-Paced Interactive Syllabus</p>
                   </div>
                   <button 
                     onClick={() => setActiveStudySkill(null)}
-                    className="p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition mt-6"
+                    className="p-1 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition mt-6 cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Tabs selection */}
-                <div className="flex border-b border-slate-200 px-6 bg-white shrink-0 overflow-x-auto">
+                <div className="flex border-b border-zinc-800 px-6 bg-zinc-950 shrink-0 overflow-x-auto">
                   <button
                     onClick={() => setStudyActiveTab('roadmap')}
-                    className={`py-3.5 px-4 text-xs font-semibold border-b-2 transition whitespace-nowrap flex items-center gap-1.5 ${
+                    className={`py-3.5 px-4 text-xs font-semibold border-b-2 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                       studyActiveTab === 'roadmap' 
-                        ? 'border-indigo-600 text-indigo-600' 
-                        : 'border-transparent text-slate-500 hover:text-slate-800'
+                        ? 'border-indigo-500 text-indigo-400' 
+                        : 'border-transparent text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
                     <CheckSquare className="w-4 h-4" />
@@ -1144,10 +1144,10 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                   </button>
                   <button
                     onClick={() => setStudyActiveTab('resources')}
-                    className={`py-3.5 px-4 text-xs font-semibold border-b-2 transition whitespace-nowrap flex items-center gap-1.5 ${
+                    className={`py-3.5 px-4 text-xs font-semibold border-b-2 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                       studyActiveTab === 'resources' 
-                        ? 'border-indigo-600 text-indigo-600' 
-                        : 'border-transparent text-slate-500 hover:text-slate-800'
+                        ? 'border-indigo-500 text-indigo-400' 
+                        : 'border-transparent text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
                     <BookOpen className="w-4 h-4" />
@@ -1155,13 +1155,13 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                   </button>
                   <button
                     onClick={() => setStudyActiveTab('coach')}
-                    className={`py-3.5 px-4 text-xs font-semibold border-b-2 transition whitespace-nowrap flex items-center gap-1.5 ${
+                    className={`py-3.5 px-4 text-xs font-semibold border-b-2 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                       studyActiveTab === 'coach' 
-                        ? 'border-indigo-600 text-indigo-600' 
-                        : 'border-transparent text-slate-500 hover:text-slate-800'
+                        ? 'border-indigo-500 text-indigo-400' 
+                        : 'border-transparent text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
-                    <Sparkles className="w-4 h-4 text-indigo-500" />
+                    <Sparkles className="w-4 h-4 text-indigo-400" />
                     3. AI Virtual Skill Coach
                   </button>
                 </div>
@@ -1171,21 +1171,21 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                   {studyActiveTab === 'roadmap' && (
                     <div className="space-y-6">
                       {/* Overview */}
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-150">
-                        <h3 className="font-semibold text-slate-800 text-sm flex items-center gap-1.5">
+                      <div className="bg-zinc-950/80 p-4 rounded-2xl border border-zinc-800">
+                        <h3 className="font-bold text-white text-sm flex items-center gap-1.5">
                           <span>💡</span> Skill Overview
                         </h3>
-                        <p className="text-slate-600 text-xs mt-1.5 leading-relaxed">{guide.description}</p>
+                        <p className="text-zinc-300 text-xs mt-1.5 leading-relaxed">{guide.description}</p>
                       </div>
 
                       {/* Staggered Roadmap Phases */}
                       <div className="space-y-4">
-                        <h4 className="text-xs font-bold text-slate-400 tracking-wider uppercase">Syllabus Roadmaps & Practice Tasks</h4>
+                        <h4 className="text-xs font-bold text-zinc-500 tracking-wider uppercase">Syllabus Roadmaps & Practice Tasks</h4>
                         {guide.syllabus.map((phase, pIdx) => (
-                          <div key={pIdx} className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-3xs">
-                            <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center text-xs">
-                              <span className="font-bold text-indigo-600 uppercase tracking-wide">{phase.phase}</span>
-                              <span className="font-semibold text-slate-800">{phase.title}</span>
+                          <div key={pIdx} className="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950/90 shadow-lg">
+                            <div className="bg-zinc-900 px-4 py-2.5 border-b border-zinc-800 flex justify-between items-center text-xs">
+                              <span className="font-bold text-indigo-400 uppercase tracking-wide">{phase.phase}</span>
+                              <span className="font-semibold text-white">{phase.title}</span>
                             </div>
                             <div className="p-4 space-y-3">
                               {phase.tasks.map((task, tIdx) => {
@@ -1194,19 +1194,19 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                                 return (
                                   <label 
                                     key={tIdx} 
-                                    className={`flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition text-xs border ${
+                                    className={`flex items-start gap-3 p-2.5 rounded-xl cursor-pointer transition text-xs border ${
                                       isDone 
-                                        ? 'bg-indigo-50/20 border-indigo-100 text-slate-500' 
-                                        : 'bg-white border-slate-150 hover:bg-slate-50 text-slate-700'
+                                        ? 'bg-indigo-500/10 border-indigo-500/20 text-zinc-400' 
+                                        : 'bg-zinc-900/60 border-zinc-800 hover:bg-zinc-900 text-zinc-200'
                                     }`}
                                   >
                                     <input 
                                       type="checkbox" 
                                       checked={isDone}
                                       onChange={() => toggleTask(taskKey)}
-                                      className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                                      className="mt-0.5 rounded border-zinc-700 bg-zinc-950 text-indigo-500 focus:ring-indigo-500 w-4 h-4"
                                     />
-                                    <span className={isDone ? 'line-through text-slate-400' : ''}>{task}</span>
+                                    <span className={isDone ? 'line-through text-zinc-500' : ''}>{task}</span>
                                   </label>
                                 );
                               })}
@@ -1216,15 +1216,15 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                       </div>
 
                       {/* Practice Project Card */}
-                      <div className="bg-gradient-to-br from-indigo-50 to-amber-50 p-5 rounded-xl border border-indigo-100">
+                      <div className="bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-amber-500/10 p-5 rounded-2xl border border-indigo-500/20">
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🛠️</span>
-                          <h4 className="font-semibold text-indigo-950 text-sm">Suggested Hands-on Project: {guide.practiceProject.title}</h4>
+                          <h4 className="font-bold text-white text-sm">Suggested Hands-on Project: {guide.practiceProject.title}</h4>
                         </div>
-                        <p className="text-indigo-900/80 text-xs mt-1 leading-normal">{guide.practiceProject.description}</p>
+                        <p className="text-zinc-300 text-xs mt-1 leading-normal">{guide.practiceProject.description}</p>
                         <div className="mt-4 space-y-2">
-                          <p className="text-[10px] font-bold text-indigo-950/70 uppercase tracking-wider">Suggested Build Steps:</p>
-                          <ol className="list-decimal pl-4 text-xs text-indigo-900/90 space-y-1">
+                          <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">Suggested Build Steps:</p>
+                          <ol className="list-decimal pl-4 text-xs text-zinc-300 space-y-1">
                             {guide.practiceProject.steps.map((step, idx) => (
                               <li key={idx}>{step}</li>
                             ))}
@@ -1238,13 +1238,13 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                     <div className="space-y-6">
                       {/* Direct W3Schools banner */}
                       {guide.w3schoolsLink && (
-                        <div className="p-5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-150 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="p-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="space-y-1">
-                            <span className="px-2.5 py-0.5 bg-green-100 text-green-800 rounded-full text-[10px] font-bold uppercase tracking-wider">Recommended Practice Playground</span>
-                            <h3 className="font-bold text-slate-900 text-base mt-1.5 flex items-center gap-1">
+                            <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-[10px] font-bold uppercase tracking-wider">Recommended Practice Playground</span>
+                            <h3 className="font-bold text-white text-base mt-1.5 flex items-center gap-1">
                               Learn {activeStudySkill.name} on W3Schools 🟢
                             </h3>
-                            <p className="text-slate-600 text-xs leading-relaxed">
+                            <p className="text-zinc-300 text-xs leading-relaxed">
                               Learn and execute code snippets or practice exercises in their interactive sandbox, with comprehensive testing, examples, and certifications.
                             </p>
                           </div>
@@ -1252,7 +1252,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                             href={guide.w3schoolsLink} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1 shrink-0"
+                            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1 shrink-0 cursor-pointer decoration-transparent no-underline"
                           >
                             Launch W3Schools <ExternalLink className="w-3.5 h-3.5" />
                           </a>
@@ -1261,23 +1261,23 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
                       {/* Other Curated Resources */}
                       <div className="space-y-3">
-                        <h4 className="text-xs font-bold text-slate-400 tracking-wider uppercase">More Highly Persuasive Study Materials</h4>
+                        <h4 className="text-xs font-bold text-zinc-500 tracking-wider uppercase">More Curated Study Materials</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {guide.otherLinks.map((link, idx) => (
-                            <div key={idx} className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between hover:border-slate-350 transition shadow-3xs">
+                            <div key={idx} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-between hover:border-zinc-700 transition shadow-md">
                               <div>
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">{link.siteName}</span>
+                                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">{link.siteName}</span>
                                 </div>
-                                <h5 className="font-semibold text-slate-800 text-xs mt-1">{link.name}</h5>
-                                <p className="text-slate-500 text-[11px] mt-1.5 leading-normal">{link.description}</p>
+                                <h5 className="font-bold text-white text-xs mt-1">{link.name}</h5>
+                                <p className="text-zinc-400 text-[11px] mt-1.5 leading-normal">{link.description}</p>
                               </div>
-                              <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end">
+                              <div className="mt-4 pt-3 border-t border-zinc-800 flex justify-end">
                                 <a 
                                   href={link.url} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition group"
+                                  className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition group cursor-pointer"
                                 >
                                   Go to Tutorial <ExternalLink className="w-3.5 h-3.5 transition group-hover:translate-x-0.5" />
                                 </a>
@@ -1290,7 +1290,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                   )}
 
                   {studyActiveTab === 'coach' && (
-                    <div className="flex flex-col h-[45vh] border border-slate-200 rounded-xl overflow-hidden bg-slate-50 shadow-inner">
+                    <div className="flex flex-col h-[45vh] border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950 shadow-inner">
                       {/* Message History list */}
                       <div className="flex-1 overflow-y-auto p-4 space-y-4">
                         {tutorMessages.map((msg, idx) => (
@@ -1299,14 +1299,14 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                           >
                             <div 
-                              className={`max-w-[85%] p-3.5 rounded-2xl text-xs space-y-2 leading-relaxed shadow-3xs ${
+                              className={`max-w-[85%] p-3.5 rounded-2xl text-xs space-y-2 leading-relaxed shadow-md ${
                                 msg.role === 'user'
-                                  ? 'bg-indigo-600 text-white rounded-br-none'
-                                  : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
+                                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-none'
+                                  : 'bg-zinc-900 text-zinc-200 border border-zinc-800 rounded-bl-none'
                               }`}
                             >
                               {msg.role === 'model' && (
-                                <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 tracking-wider uppercase mb-1">
+                                <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-400 tracking-wider uppercase mb-1">
                                   <Sparkles className="w-3 h-3" />
                                   AI Tutor Coach
                                 </div>
@@ -1321,29 +1321,29 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                         {/* Typing Animation Loader */}
                         {isTutorLoading && (
                           <div className="flex justify-start">
-                            <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-bl-none shadow-3xs flex items-center gap-1 text-slate-400">
-                              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
-                              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                            <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl rounded-bl-none shadow-md flex items-center gap-1.5 text-zinc-400">
+                              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
+                              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
                             </div>
                           </div>
                         )}
                       </div>
 
                       {/* Chat Input form */}
-                      <form onSubmit={handleSendTutorMessage} className="p-3 bg-white border-t border-slate-200 flex gap-2 shrink-0">
+                      <form onSubmit={handleSendTutorMessage} className="p-3 bg-zinc-900 border-t border-zinc-800 flex gap-2 shrink-0">
                         <input 
                           type="text"
                           value={tutorInput}
                           onChange={(e) => setTutorInput(e.target.value)}
                           placeholder={`Ask anything about ${activeStudySkill.name}...`}
                           disabled={isTutorLoading}
-                          className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-50 disabled:text-slate-400"
+                          className="flex-1 bg-zinc-950 border border-zinc-800 text-white rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-zinc-600 disabled:opacity-50"
                         />
                         <button 
                           type="submit"
                           disabled={!tutorInput.trim() || isTutorLoading}
-                          className="p-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 text-white disabled:text-slate-400 rounded-lg shadow-sm transition shrink-0 flex items-center justify-center w-9 h-9 border-0 cursor-pointer"
+                          className="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-40 text-white rounded-xl shadow-md transition shrink-0 flex items-center justify-center w-9 h-9 border-0 cursor-pointer"
                         >
                           <Send className="w-4 h-4" />
                         </button>

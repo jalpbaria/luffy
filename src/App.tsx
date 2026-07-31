@@ -1470,102 +1470,63 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-700 select-none antialiased">
+    <div className="min-h-screen bg-[#09090B] text-zinc-100 flex flex-col font-sans antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
       
-      {/* Top Header Navigation */}
-      <header className="sticky top-0 bg-white border-b border-slate-200 z-40 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+      {/* Floating Glass Navigation Bar */}
+      <header className="sticky top-0 z-50 px-3 sm:px-6 py-3">
+        <div className="max-w-7xl mx-auto rounded-[20px] bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 px-4 sm:px-6 py-2.5 shadow-2xl flex items-center justify-between gap-4">
           
           {/* Logo / Home Button */}
           <button
             onClick={() => setActiveTab('dashboard')}
-            className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity bg-transparent border-0 p-0 text-left"
+            className="flex items-center gap-3 cursor-pointer hover:opacity-90 transition-opacity bg-transparent border-0 p-0 text-left shrink-0"
             title="Go to Home Dashboard"
           >
-            <div className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-600/10">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-500 text-white flex items-center justify-center font-bold text-base shadow-lg shadow-indigo-500/20">
               ⇆
             </div>
             <div>
-              <span className="font-serif font-bold text-slate-900 tracking-tight text-base leading-none block">Skill Swap Platform</span>
-              <p className="text-[9px] text-slate-400 font-medium tracking-wide uppercase leading-none mt-0.5">Collaborative barter platform</p>
+              <span className="font-bold text-white tracking-tight text-base leading-none block">
+                SkillSwap <span className="text-[10px] font-semibold text-indigo-400 bg-indigo-500/15 px-1.5 py-0.5 rounded-full border border-indigo-500/20 ml-1">2026</span>
+              </span>
+              <p className="text-[10px] text-zinc-400 font-medium tracking-wide uppercase leading-none mt-1">Barter & Mastery Economy</p>
             </div>
           </button>
 
-          {/* Primary Tabs */}
-          <nav className="hidden md:flex items-center gap-1 text-xs font-semibold">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer border-0 ${
-                activeTab === 'dashboard' 
-                  ? 'bg-indigo-50 text-indigo-700' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 bg-transparent'
-              }`}
-            >
-              <Home className="w-3.5 h-3.5" />
-              Home
-            </button>
-            <button
-              onClick={() => setActiveTab('explore')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
-                activeTab === 'explore' 
-                  ? 'bg-indigo-50 text-indigo-700' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5" />
-              Browse Swappers
-            </button>
-            <button
-              onClick={() => setActiveTab('chat')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
-                activeTab === 'chat' 
-                  ? 'bg-indigo-50 text-indigo-700' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              Chat & Live Call
-            </button>
-            <button
-              onClick={() => setActiveTab('study-hub')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
-                activeTab === 'study-hub' 
-                  ? 'bg-emerald-50 text-emerald-800 font-semibold' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Study Hub</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('skill-path')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
-                activeTab === 'skill-path' 
-                  ? 'bg-indigo-50 text-indigo-700 font-semibold' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Skill Path AI</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
-                activeTab === 'profile' 
-                  ? 'bg-indigo-50 text-indigo-700' 
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <User className="w-3.5 h-3.5" />
-              My Profile
-            </button>
+          {/* Primary Floating Nav Tabs */}
+          <nav className="hidden md:flex items-center gap-1 bg-zinc-950/60 p-1 rounded-xl border border-zinc-800/60 text-xs font-medium">
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: Home },
+              { id: 'explore', label: 'Explore Swappers', icon: Compass },
+              { id: 'chat', label: 'Chat & Calls', icon: MessageSquare },
+              { id: 'study-hub', label: 'Study Hub', icon: BookOpen },
+              { id: 'skill-path', label: 'AI Skill Path', icon: Sparkles },
+              { id: 'profile', label: 'My Profile', icon: User },
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`px-3.5 py-1.5 rounded-lg flex items-center gap-2 transition-all cursor-pointer border-0 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-cyan-500/10 text-white font-semibold border border-indigo-500/30 shadow-xs'
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-zinc-400'}`} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
           </nav>
 
-          {/* User Quick Switcher perspective */}
+          {/* User Status & Controls */}
           <div className="flex items-center gap-3">
             <button
               onClick={syncAllState}
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition"
+              className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800/80 rounded-xl transition cursor-pointer border border-transparent hover:border-zinc-700/50"
               title="Sync All States"
             >
               <RefreshCw className="w-4 h-4" />
@@ -1573,23 +1534,28 @@ export default function App() {
 
             <button
               onClick={handleLogout}
-              className="px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-red-600 hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded-lg transition flex items-center gap-1.5 cursor-pointer bg-white"
+              className="px-3 py-1.5 text-xs font-medium text-zinc-300 hover:text-rose-400 hover:bg-rose-500/10 border border-zinc-800 hover:border-rose-500/30 rounded-xl transition flex items-center gap-1.5 cursor-pointer bg-zinc-900"
               title="Log Out of your account"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Logout</span>
             </button>
 
-            <div className="flex items-center gap-2">
-              <img 
-                src={currentUser.avatar} 
-                alt={currentUser.name} 
-                referrerPolicy="no-referrer"
-                className="w-7 h-7 rounded-full object-cover border border-slate-200"
-              />
-              <div className="hidden sm:block text-right">
-                <p className="font-semibold text-slate-800 text-[10px] leading-tight truncate max-w-[100px]">{currentUser.name}</p>
-                <span className="text-[9px] text-indigo-600 font-semibold bg-indigo-50 px-1 py-0.2 rounded leading-none">{currentUser.credits} Credits</span>
+            <div className="flex items-center gap-2.5 pl-2 border-l border-zinc-800">
+              <div className="relative">
+                <img 
+                  src={currentUser.avatar} 
+                  alt={currentUser.name} 
+                  referrerPolicy="no-referrer"
+                  className="w-8 h-8 rounded-full object-cover ring-2 ring-indigo-500/30"
+                />
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-zinc-900" />
+              </div>
+              <div className="hidden sm:block text-left">
+                <p className="font-semibold text-white text-xs leading-tight truncate max-w-[110px]">{currentUser.name}</p>
+                <span className="text-[10px] text-indigo-300 font-semibold bg-indigo-500/15 px-1.5 py-0.2 rounded-full border border-indigo-500/20 inline-block mt-0.5">
+                  {currentUser.credits} Credits
+                </span>
               </div>
             </div>
           </div>
@@ -1597,56 +1563,37 @@ export default function App() {
         </div>
       </header>
 
-      {/* Mobile Navigation Header */}
-      <div className="md:hidden sticky top-14 bg-white border-b border-slate-150 z-30 flex items-center justify-around py-1 text-[10px] font-bold text-slate-500 shadow-xs">
-        <button 
-          onClick={() => setActiveTab('dashboard')}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'dashboard' ? 'text-indigo-600' : ''}`}
-        >
-          <Home className="w-4 h-4" />
-          Home
-        </button>
-        <button 
-          onClick={() => setActiveTab('explore')}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'explore' ? 'text-indigo-600' : ''}`}
-        >
-          <Compass className="w-4 h-4" />
-          Swappers
-        </button>
-        <button 
-          onClick={() => setActiveTab('chat')}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'chat' ? 'text-indigo-600' : ''}`}
-        >
-          <MessageSquare className="w-4 h-4" />
-          Chat
-        </button>
-        <button 
-          onClick={() => setActiveTab('study-hub')}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'study-hub' ? 'text-emerald-700 font-bold' : ''}`}
-        >
-          <BookOpen className="w-4 h-4 text-emerald-600" />
-          Study
-        </button>
-        <button 
-          onClick={() => setActiveTab('skill-path')}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'skill-path' ? 'text-indigo-600 font-bold' : ''}`}
-        >
-          <Sparkles className="w-4 h-4 text-indigo-600" />
-          Skill Path
-        </button>
-        <button 
-          onClick={() => setActiveTab('profile')}
-          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'profile' ? 'text-indigo-600' : ''}`}
-        >
-          <User className="w-4 h-4" />
-          Profile
-        </button>
+      {/* Mobile Navigation Bar */}
+      <div className="md:hidden sticky top-[68px] bg-zinc-900/90 backdrop-blur-md border-b border-zinc-800 z-30 flex items-center justify-around py-1.5 text-[10px] font-medium text-zinc-400">
+        {[
+          { id: 'dashboard', label: 'Home', icon: Home },
+          { id: 'explore', label: 'Swappers', icon: Compass },
+          { id: 'chat', label: 'Chat', icon: MessageSquare },
+          { id: 'study-hub', label: 'Study', icon: BookOpen },
+          { id: 'skill-path', label: 'Skill Path', icon: Sparkles },
+          { id: 'profile', label: 'Profile', icon: User },
+        ].map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 transition ${
+                isActive ? 'text-indigo-400 font-semibold' : 'text-zinc-400'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
         <button 
           onClick={handleLogout}
-          className="flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 text-slate-500 hover:text-red-600"
+          className="flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 text-zinc-500 hover:text-rose-400"
         >
           <LogOut className="w-4 h-4" />
-          Logout
+          <span>Logout</span>
         </button>
       </div>
 
@@ -1753,22 +1700,26 @@ export default function App() {
       </main>
 
       {/* Humble Footer */}
-      <footer className="bg-white border-t border-slate-200 py-4 text-center text-[10px] text-slate-400 font-medium">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <footer className="mt-auto bg-zinc-950 border-t border-zinc-900/80 py-6 text-center text-xs text-zinc-500 font-medium">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-md bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">⇆</div>
+            <span className="font-semibold text-zinc-300">SkillSwap SaaS 2026</span>
+          </div>
           <p>© 2026 ExchangeYourSkill. Built for mutual skill barters. No money required. Powered by Spark Economy.</p>
         </div>
       </footer>
 
       {/* Incoming Call Banner / Modal */}
       {incomingCall && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[120] w-[92%] max-w-md bg-indigo-950 text-white rounded-2xl p-4 shadow-2xl border border-indigo-700/50 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-4 duration-200">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[120] w-[92%] max-w-md bg-zinc-900 text-white rounded-2xl p-4 shadow-2xl border border-indigo-500/40 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-4 duration-200">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 animate-pulse">
               <PhoneCall className="w-5 h-5 text-white" />
             </div>
             <div className="min-w-0">
               <h4 className="font-bold text-sm truncate text-white">Incoming Live Call</h4>
-              <p className="text-xs text-indigo-200 truncate">
+              <p className="text-xs text-zinc-300 truncate">
                 <span className="font-semibold text-white">{incomingCall.callerName}</span> is calling you
               </p>
             </div>
@@ -1791,7 +1742,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setIncomingCall(null)}
-              className="px-2.5 py-1.5 bg-indigo-900 hover:bg-indigo-800 text-indigo-200 font-medium text-xs rounded-xl transition cursor-pointer"
+              className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium text-xs rounded-xl transition cursor-pointer"
             >
               Dismiss
             </button>
@@ -1801,29 +1752,29 @@ export default function App() {
 
       {/* Password Reset Recovery Modal */}
       {showPasswordResetModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150 text-left">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
+          <div className="bg-zinc-900 rounded-[24px] max-w-sm w-full p-6 shadow-2xl border border-zinc-800 flex flex-col gap-4 text-left">
             <div className="space-y-1">
-              <h3 className="text-base font-semibold text-slate-800">Set New Password</h3>
-              <p className="text-xs text-slate-500">Please choose a secure new password for your account.</p>
+              <h3 className="text-base font-bold text-white">Set New Password</h3>
+              <p className="text-xs text-zinc-400">Please choose a secure new password for your account.</p>
             </div>
 
             {resetError && (
-              <div className="p-3 bg-red-50 text-red-950 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs">
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
+              <div className="p-3 bg-rose-500/10 text-rose-300 border border-rose-500/20 rounded-xl flex items-start gap-2.5 text-xs">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
                 <p>{resetError}</p>
               </div>
             )}
 
             {resetSuccess ? (
               <div className="space-y-4">
-                <div className="p-3 bg-green-50 text-green-900 border border-green-200 rounded-xl flex items-start gap-2.5 text-xs">
-                  <Check className="w-4 h-4 shrink-0 text-green-600 mt-0.5" />
+                <div className="p-3 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 rounded-xl flex items-start gap-2.5 text-xs">
+                  <Check className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
                   <p>{resetSuccess}</p>
                 </div>
                 <button
                   onClick={() => setShowPasswordResetModal(false)}
-                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs cursor-pointer border-0"
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs cursor-pointer border-0 shadow-lg shadow-indigo-600/20"
                 >
                   Close & Sign In
                 </button>
@@ -1831,16 +1782,16 @@ export default function App() {
             ) : (
               <form onSubmit={handlePasswordUpdateSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">New Password</label>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">New Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                    <Lock className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
                     <input
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="••••••••"
                       required
-                      className="w-full bg-slate-50/50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
                     />
                   </div>
                 </div>
@@ -1849,14 +1800,14 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setShowPasswordResetModal(false)}
-                    className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs cursor-pointer border-0"
+                    className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold rounded-xl text-xs cursor-pointer border-0"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isResetting}
-                    className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs cursor-pointer border-0 disabled:opacity-50"
+                    className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs cursor-pointer border-0 disabled:opacity-50 shadow-lg shadow-indigo-600/20"
                   >
                     {isResetting ? 'Saving...' : 'Update Password'}
                   </button>
