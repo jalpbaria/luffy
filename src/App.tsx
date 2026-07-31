@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Compass, LayoutDashboard, MessageSquare, Brain, User, 
   Sparkles, Globe, LogOut, ArrowLeftRight, Award, Flame, RefreshCw, Home,
-  Check, AlertCircle, Mail, X, BookOpen, PhoneCall
+  Check, AlertCircle, Mail, X, BookOpen, PhoneCall, Lock
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review, Skill, LiveSession } from './types';
 import { getOrCreateLiveSessionForBooking, fetchLiveSessionsForUser, updateLiveSessionStatus, getSessionGateStatus, computeStartTime } from './lib/liveSessions';
@@ -14,6 +14,7 @@ import ExploreView from './components/ExploreView';
 import ChatView from './components/ChatView';
 import ProfileView from './components/ProfileView';
 import StudyHubView from './components/StudyHubView';
+import SkillPathView from './components/SkillPathView';
 import LoginView from './components/LoginView';
 import LiveSessionRoomView from './components/LiveSessionRoomView';
 import OnboardingTour from './components/OnboardingTour';
@@ -28,7 +29,7 @@ import { fallbackReviews } from './data/fallbackReviews';
 
 export default function App() {
   const { signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'study-hub' | 'profile' | 'live-room'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'study-hub' | 'skill-path' | 'profile' | 'live-room'>('dashboard');
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   
@@ -1537,6 +1538,17 @@ export default function App() {
               <span>Study Hub</span>
             </button>
             <button
+              onClick={() => setActiveTab('skill-path')}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+                activeTab === 'skill-path' 
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Skill Path AI</span>
+            </button>
+            <button
               onClick={() => setActiveTab('profile')}
               className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
                 activeTab === 'profile' 
@@ -1614,6 +1626,13 @@ export default function App() {
         >
           <BookOpen className="w-4 h-4 text-emerald-600" />
           Study
+        </button>
+        <button 
+          onClick={() => setActiveTab('skill-path')}
+          className={`flex flex-col items-center justify-center gap-1 min-h-[44px] min-w-[44px] p-1 ${activeTab === 'skill-path' ? 'text-indigo-600 font-bold' : ''}`}
+        >
+          <Sparkles className="w-4 h-4 text-indigo-600" />
+          Skill Path
         </button>
         <button 
           onClick={() => setActiveTab('profile')}
@@ -1724,6 +1743,10 @@ export default function App() {
               <StudyHubView 
                 currentUser={currentUser}
               />
+            )}
+
+            {activeTab === 'skill-path' && (
+              <SkillPathView currentUser={currentUser} />
             )}
           </motion.div>
         </AnimatePresence>
