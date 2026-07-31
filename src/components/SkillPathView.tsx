@@ -141,7 +141,7 @@ export default function SkillPathView({ currentUser }: { currentUser: UserProfil
           </div>
 
           <div className="relative border-l-2 border-indigo-200 pl-6 space-y-6">
-            {path.steps.map((step, i) => (
+            {path.steps?.map((step, i) => (
               <div key={i} className="relative">
                 <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-indigo-600 border-2 border-white shadow" />
                 <h4 className="font-semibold text-slate-900">{step.title}</h4>
@@ -152,7 +152,7 @@ export default function SkillPathView({ currentUser }: { currentUser: UserProfil
                   <div>
                     <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1.5">Free</p>
                     <div className="space-y-1">
-                      {step.resources.free.map((r, j) => (
+                      {step.resources?.free?.map((r, j) => (
                         <a
                           key={j}
                           href={r.url}
@@ -168,7 +168,7 @@ export default function SkillPathView({ currentUser }: { currentUser: UserProfil
                   <div>
                     <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1.5">Paid</p>
                     <div className="space-y-1">
-                      {step.resources.paid.map((r, j) => (
+                      {step.resources?.paid?.map((r, j) => (
                         <a
                           key={j}
                           href={r.url}
