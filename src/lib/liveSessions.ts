@@ -190,11 +190,25 @@ export async function fetchLiveSessionsForUser(userId: string): Promise<LiveSess
 export async function updateLiveSessionStatus(
   sessionId: string,
   status: LiveSessionStatus,
-  extra?: { endTime?: string }
+  extra?: { 
+    endTime?: string;
+    teacherJoined?: boolean;
+    learnerJoined?: boolean;
+    hasBothJoined?: boolean;
+  }
 ): Promise<void> {
   const updatePayload: any = { status };
   if (extra?.endTime) {
     updatePayload.end_time = extra.endTime;
+  }
+  if (extra?.teacherJoined !== undefined) {
+    updatePayload.teacher_joined = extra.teacherJoined;
+  }
+  if (extra?.learnerJoined !== undefined) {
+    updatePayload.learner_joined = extra.learnerJoined;
+  }
+  if (extra?.hasBothJoined !== undefined) {
+    updatePayload.has_both_joined = extra.hasBothJoined;
   }
 
   const { error } = await supabase

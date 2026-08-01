@@ -20,8 +20,9 @@ import {
   Command,
   CheckCheck,
   Trophy,
+  Video,
 } from 'lucide-react';
-import { UserProfile, AppNotification } from '../types';
+import { UserProfile, AppNotification, Booking } from '../types';
 import { Avatar } from './ui/Avatar';
 import { Badge } from './ui/Badge';
 
@@ -37,6 +38,9 @@ export interface NavbarProps {
   onSync: () => void;
   onLogout: () => void;
   onSearchSubmit?: (query: string) => void;
+  onUpdateBookingStatus?: (bookingId: string, status: Booking['status'], actionUserId: string, extra?: Partial<Booking>) => void;
+  onStartLiveSession?: (booking: Booking) => void;
+  bookings?: Booking[];
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -49,12 +53,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSync,
   onLogout,
   onSearchSubmit,
+  onUpdateBookingStatus,
+  onStartLiveSession,
+  bookings = [],
 }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [actionedNotifIds, setActionedNotifIds] = useState<Set<string>>(new Set());
 
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -262,41 +270,123 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <p className="text-xs font-semibold">No notifications yet</p>
                         </div>
                       ) : (
-                        notifications.map((notif) => (
-                          <div
-                            key={notif.id}
-                            className={`p-3 rounded-xl transition flex items-start gap-3 group ${
-                              notif.read ? 'bg-white opacity-80' : 'bg-indigo-50/40'
-                            }`}
-                          >
-                            <div className="w-2 h-2 rounded-full bg-indigo-600 mt-2 shrink-0" style={{ opacity: notif.read ? 0 : 1 }} />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-slate-900 text-xs leading-snug">{notif.title}</p>
-                              <p className="text-slate-600 text-[11px] mt-0.5 leading-relaxed line-clamp-2">{notif.message}</p>
-                              <span className="text-[10px] text-slate-400 mt-1 block">
-                                {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              {!notif.read && (
+                        notifications.map((notif) => {
+                          const isRequest = notif.type === 'request' && !!notif.bookingId;
+                          const relatedBooking = bookings.find((b) => b.id === notif.bookingId);
+                          const isActedOnLocally = actionedNotifIds.has(notif.id);
+                          const bookingResolvedStatus = relatedBooking && relatedBooking.status !== 'pending' ? relatedBooking.status : null;
+                          const isResolved = isActedOnLocally || !!bookingResolvedStatus;
+
+                          return (
+                            <div
+                              key={notif.id}
+                              className={`p-3 rounded-xl transition flex items-start gap-3 group ${
+                                notif.read ? 'bg-white opacity-80' : 'bg-indigo-50/40'
+                              }`}
+                            >
+                              <div className="w-2 h-2 rounded-full bg-indigo-600 mt-2 shrink-0" style={{ opacity: notif.read ? 0 : 1 }} />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-slate-900 text-xs leading-snug">{notif.title}</p>
+                                <p className="text-slate-600 text-[11px] mt-0.5 leading-relaxed">{notif.message}</p>
+
+                                {/* Action buttons for pending booking request notifications */}
+                                {isRequest && !isResolved && (
+                                  <div className="mt-2.5 flex items-center gap-2">
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (!notif.bookingId) return;
+                                        setActionedNotifIds((prev) => new Set(prev).add(notif.id));
+                                        onMarkNotificationRead(notif.id);
+                                        if (onUpdateBookingStatus) {
+                                          await onUpdateBookingStatus(notif.bookingId, 'confirmed', currentUser.id);
+                                        }
+                                      }}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg flex items-center gap-1 shadow-xs transition cursor-pointer border-0"
+                                    >
+                                      <Check className="w-3.5 h-3.5" />
+                                      Accept
+                                    </button>
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (!notif.bookingId) return;
+                                        setActionedNotifIds((prev) => new Set(prev).add(notif.id));
+                                        onMarkNotificationRead(notif.id);
+                                        if (onUpdateBookingStatus) {
+                                          await onUpdateBookingStatus(notif.bookingId, 'cancelled', currentUser.id);
+                                        }
+                                      }}
+                                      className="px-2.5 py-1 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 font-bold text-[11px] rounded-lg flex items-center gap-1 transition cursor-pointer"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                      Decline
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Resolved status indicator if already acted on */}
+                                {isRequest && isResolved && (
+                                  <div className="mt-2">
+                                    {bookingResolvedStatus === 'confirmed' || isActedOnLocally ? (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                        <Check className="w-3 h-3" /> Confirmed
+                                      </span>
+                                    ) : bookingResolvedStatus === 'cancelled' ? (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                                        Declined
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
+                                        Resolved
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+
+                                <span className="text-[10px] text-slate-400 mt-1 block">
+                                  {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+
+                                {relatedBooking && (relatedBooking.status === 'confirmed' || relatedBooking.status === 'rescheduled') && onStartLiveSession && (
+                                  <div className="mt-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onMarkNotificationRead(notif.id);
+                                        setIsNotifOpen(false);
+                                        onStartLiveSession(relatedBooking);
+                                      }}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg flex items-center gap-1 shadow-xs transition cursor-pointer border-0"
+                                    >
+                                      <Video className="w-3.5 h-3.5" />
+                                      Join Live Room
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {!notif.read && (
+                                  <button
+                                    onClick={() => onMarkNotificationRead(notif.id)}
+                                    className="p-1 text-indigo-600 hover:bg-indigo-100 rounded-lg cursor-pointer border-0 bg-transparent"
+                                    title="Mark as read"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => onMarkNotificationRead(notif.id)}
-                                  className="p-1 text-indigo-600 hover:bg-indigo-100 rounded-lg cursor-pointer border-0 bg-transparent"
-                                  title="Mark as read"
+                                  onClick={() => onDeleteNotification(notif.id)}
+                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer border-0 bg-transparent"
+                                  title="Delete"
                                 >
-                                  <Check className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
-                              )}
-                              <button
-                                onClick={() => onDeleteNotification(notif.id)}
-                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer border-0 bg-transparent"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   </motion.div>

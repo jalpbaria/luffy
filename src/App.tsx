@@ -26,10 +26,6 @@ import { Navbar } from './components/Navbar';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification, mapNotificationToSupabase, mapSupabaseToReview, mapReviewToSupabase } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
 
-// Fallback mock data when API is unreachable
-import { fallbackUsers, fallbackBookings, fallbackNotifications, fallbackProgress } from './data/fallbackUsers';
-import { fallbackReviews } from './data/fallbackReviews';
-
 
 
 export default function App() {
@@ -199,6 +195,9 @@ export default function App() {
   const [resetSuccess, setResetSuccess] = useState('');
   const [isResetting, setIsResetting] = useState(false);
 
+  const [userLoadError, setUserLoadError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
   // Initial Load: Fetch all user profiles from DB and check active session
   useEffect(() => {
     const initApp = async () => {
@@ -207,40 +206,16 @@ export default function App() {
         try {
           const { data: dbRows, error: dbError } = await supabase.from('profiles').select('*');
           if (dbError) throw dbError;
-          if (dbRows && Array.isArray(dbRows) && dbRows.length > 0) {
+          if (dbRows && Array.isArray(dbRows)) {
             data = dbRows.map(mapSupabaseToProfile);
+            setUserLoadError(null);
           } else {
-            throw new Error('No users returned from Supabase profiles table');
+            data = [];
           }
-          // Merge any locally created users that aren't in the server list yet
-          const savedLocalUsers = localStorage.getItem('local_users');
-          if (savedLocalUsers) {
-            try {
-              const localUsers = JSON.parse(savedLocalUsers);
-              if (Array.isArray(localUsers)) {
-                localUsers.forEach((lu: any) => {
-                  if (lu && lu.id && !data.some((su: any) => su.id === lu.id)) {
-                    data.push(lu);
-                  }
-                });
-              }
-            } catch {}
-          }
-          // Also update local storage cache with the merged list
-          localStorage.setItem('local_users', JSON.stringify(data));
         } catch (err) {
-          console.warn('Supabase profiles fetch failed, loading from local fallback:', err);
-          const savedLocalUsers = localStorage.getItem('local_users');
-          if (savedLocalUsers) {
-            try {
-              data = JSON.parse(savedLocalUsers);
-            } catch {
-              data = fallbackUsers;
-            }
-          } else {
-            data = fallbackUsers;
-            localStorage.setItem('local_users', JSON.stringify(fallbackUsers));
-          }
+          console.error('Supabase profiles fetch failed:', err);
+          data = [];
+          setUserLoadError('Unable to load users, please refresh');
         }
         setAllUsers(data);
 
@@ -250,21 +225,10 @@ export default function App() {
           const { data: dbRevRows, error: dbRevErr } = await supabase.from('reviews').select('*');
           if (!dbRevErr && dbRevRows && Array.isArray(dbRevRows)) {
             loadedReviews = dbRevRows.map(mapSupabaseToReview);
-          } else {
-            throw new Error('No reviews returned from Supabase');
           }
-        } catch {
-          const savedReviews = localStorage.getItem('local_all_reviews');
-          if (savedReviews) {
-            try {
-              loadedReviews = JSON.parse(savedReviews);
-            } catch {
-              loadedReviews = fallbackReviews;
-            }
-          } else {
-            loadedReviews = fallbackReviews;
-            localStorage.setItem('local_all_reviews', JSON.stringify(fallbackReviews));
-          }
+        } catch (err) {
+          console.warn('Supabase reviews fetch failed:', err);
+          loadedReviews = [];
         }
         setAllReviews(loadedReviews);
         
@@ -285,8 +249,6 @@ export default function App() {
           console.warn('Could not retrieve Supabase session:', sessionErr);
         }
 
-        // No local fallback. Access requires an active Supabase Auth session.
-        
         if (initialUser) {
           setCurrentUser(initialUser);
           await loadUserSpecificData(initialUser.id);
@@ -336,9 +298,7 @@ export default function App() {
             const newNotif = mapSupabaseToNotification(payload.new);
             setNotifications((prev) => {
               if (prev.some((n) => n.id === newNotif.id)) return prev;
-              const updated = [newNotif, ...prev];
-              localStorage.setItem(`local_notifications_${currentUser.id}`, JSON.stringify(updated));
-              return updated;
+              return [newNotif, ...prev];
             });
 
             if (newNotif.type === 'call' && newNotif.bookingId) {
@@ -352,18 +312,10 @@ export default function App() {
             }
           } else if (payload.eventType === 'UPDATE') {
             const updatedNotif = mapSupabaseToNotification(payload.new);
-            setNotifications((prev) => {
-              const updated = prev.map((n) => (n.id === updatedNotif.id ? updatedNotif : n));
-              localStorage.setItem(`local_notifications_${currentUser.id}`, JSON.stringify(updated));
-              return updated;
-            });
+            setNotifications((prev) => prev.map((n) => (n.id === updatedNotif.id ? updatedNotif : n)));
           } else if (payload.eventType === 'DELETE') {
             const deletedId = payload.old.id;
-            setNotifications((prev) => {
-              const updated = prev.filter((n) => n.id !== deletedId);
-              localStorage.setItem(`local_notifications_${currentUser.id}`, JSON.stringify(updated));
-              return updated;
-            });
+            setNotifications((prev) => prev.filter((n) => n.id !== deletedId));
           }
         }
       )
@@ -384,25 +336,15 @@ export default function App() {
         const newBooking = mapSupabaseToBooking(payload.new);
         setBookings((prev) => {
           if (prev.some((b) => b.id === newBooking.id)) return prev;
-          const updated = [newBooking, ...prev];
-          localStorage.setItem(`local_bookings_${currentUser.id}`, JSON.stringify(updated));
-          return updated;
+          return [newBooking, ...prev];
         });
       } else if (payload.eventType === 'UPDATE') {
         const updatedBooking = mapSupabaseToBooking(payload.new);
-        setBookings((prev) => {
-          const updated = prev.map((b) => (b.id === updatedBooking.id ? updatedBooking : b));
-          localStorage.setItem(`local_bookings_${currentUser.id}`, JSON.stringify(updated));
-          return updated;
-        });
+        setBookings((prev) => prev.map((b) => (b.id === updatedBooking.id ? updatedBooking : b)));
       } else if (payload.eventType === 'DELETE') {
         const deletedId = payload.old?.id;
         if (!deletedId) return;
-        setBookings((prev) => {
-          const updated = prev.filter((b) => b.id !== deletedId);
-          localStorage.setItem(`local_bookings_${currentUser.id}`, JSON.stringify(updated));
-          return updated;
-        });
+        setBookings((prev) => prev.filter((b) => b.id !== deletedId));
       }
     };
 
@@ -481,7 +423,7 @@ export default function App() {
       const now = Date.now();
       const fifteenMinsMs = 15 * 60 * 1000;
 
-      // Find confirmed or rescheduled bookings starting within 15 minutes that haven't had a reminder sent
+      // 1. 15-minute before starting reminder
       const upcomingToRemind = bookings.filter((b) => {
         if (b.status !== 'confirmed' && b.status !== 'rescheduled') return false;
         if (b.reminderSent) return false;
@@ -493,8 +435,6 @@ export default function App() {
         // Starting within 15 minutes (diffMs <= 15 minutes) and not ended long ago (diffMs >= -2 minutes)
         return diffMs <= fifteenMinsMs && diffMs >= -2 * 60 * 1000;
       });
-
-      if (upcomingToRemind.length === 0) return;
 
       for (const booking of upcomingToRemind) {
         // Mark locally first to prevent duplicate execution in current cycle
@@ -556,13 +496,106 @@ export default function App() {
           if (booking.learnerId === currentUser.id && !prev.some((n) => n.id === notifLearner.id)) {
             newNotifs.push(notifLearner);
           }
-          if (newNotifs.length > 0) {
-            const updated = [...newNotifs, ...prev];
-            localStorage.setItem(`local_notifications_${currentUser.id}`, JSON.stringify(updated));
-            return updated;
-          }
-          return prev;
+          return newNotifs.length > 0 ? [...newNotifs, ...prev] : prev;
         });
+      }
+
+      // 2. Second reminder: "You can join now" notification when join window opens
+      const joinableToRemind = bookings.filter((b) => {
+        if (b.status !== 'confirmed' && b.status !== 'rescheduled') return false;
+        if (b.joinReminderSent) return false;
+
+        const gate = getSessionGateStatus(b);
+        return gate.status === 'joinable';
+      });
+
+      for (const booking of joinableToRemind) {
+        setBookings((prev) =>
+          prev.map((b) => (b.id === booking.id ? { ...b, joinReminderSent: true } : b))
+        );
+
+        try {
+          await supabase
+            .from('bookings')
+            .update({ join_reminder_sent: true })
+            .eq('id', booking.id);
+        } catch (err) {
+          console.warn('Could not update join_reminder_sent on booking in Supabase:', err);
+        }
+
+        const joinMessage = `The live 1-on-1 session room for ${booking.skillName} is now open! You can join now and enter the green room.`;
+
+        const notifTeacher: AppNotification = {
+          id: `notif-join-t-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          userId: booking.teacherId,
+          title: 'You Can Join Now! 🔴',
+          message: joinMessage,
+          type: 'upcoming',
+          bookingId: booking.id,
+          read: false,
+          timestamp: new Date().toISOString()
+        };
+
+        const notifLearner: AppNotification = {
+          id: `notif-join-l-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          userId: booking.learnerId,
+          title: 'You Can Join Now! 🔴',
+          message: joinMessage,
+          type: 'upcoming',
+          bookingId: booking.id,
+          read: false,
+          timestamp: new Date().toISOString()
+        };
+
+        try {
+          await supabase.from('notifications').insert([
+            mapNotificationToSupabase(notifTeacher),
+            mapNotificationToSupabase(notifLearner)
+          ]);
+        } catch (err) {
+          console.warn('Could not insert join-now session reminder notifications:', err);
+        }
+
+        setNotifications((prev) => {
+          const newNotifs: AppNotification[] = [];
+          if (booking.teacherId === currentUser.id && !prev.some((n) => n.id === notifTeacher.id)) {
+            newNotifs.push(notifTeacher);
+          }
+          if (booking.learnerId === currentUser.id && !prev.some((n) => n.id === notifLearner.id)) {
+            newNotifs.push(notifLearner);
+          }
+          return newNotifs.length > 0 ? [...newNotifs, ...prev] : prev;
+        });
+      }
+
+      // 3. Third check: Join window passed (status === 'passed')
+      const passedToEvaluate = bookings.filter((b) => {
+        if (b.status !== 'confirmed' && b.status !== 'rescheduled') return false;
+        const gate = getSessionGateStatus(b);
+        return gate.status === 'passed';
+      });
+
+      for (const booking of passedToEvaluate) {
+        try {
+          // Fetch live_sessions record for this booking
+          const { data: lsData } = await supabase
+            .from('live_sessions')
+            .select('has_both_joined')
+            .eq('booking_id', booking.id)
+            .maybeSingle();
+
+          const hasBothJoined = lsData?.has_both_joined ?? false;
+
+          if (hasBothJoined) {
+            // Conclude as completed normally
+            await handleUpdateBookingStatus(booking.id, 'completed', currentUser.id);
+          } else {
+            // Set is_no_show to true on booking
+            await handleMarkNoShow(booking.id);
+          }
+        } catch (err) {
+          console.warn('Error evaluating passed session status:', err);
+        }
       }
     };
 
@@ -573,10 +606,56 @@ export default function App() {
     return () => clearInterval(interval);
   }, [currentUser?.id, bookings]);
 
+  const handleMarkNoShow = async (bookingId: string) => {
+    try {
+      const booking = bookings.find((b) => b.id === bookingId);
+      if (!booking) return;
+
+      const { error } = await supabase
+        .from('bookings')
+        .update({ is_no_show: true, status: 'completed', completed_at: new Date().toISOString() })
+        .eq('id', bookingId);
+
+      if (error) {
+        console.warn('Error setting is_no_show in Supabase:', error);
+      }
+
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === bookingId ? { ...b, isNoShow: true, status: 'completed', completedAt: new Date().toISOString() } : b
+        )
+      );
+
+      // Create notifications for both parties
+      const notifMsg = `The join window for ${booking.skillName} has closed. A no-show was logged because both participants did not join.`;
+      await supabase.from('notifications').insert([
+        {
+          user_id: booking.teacherId,
+          title: 'Session Window Closed - No-Show Flagged ⚠️',
+          message: notifMsg,
+          type: 'request',
+          booking_id: booking.id,
+          read: false,
+          timestamp: new Date().toISOString()
+        },
+        {
+          user_id: booking.learnerId,
+          title: 'Session Window Closed - No-Show Flagged ⚠️',
+          message: notifMsg,
+          type: 'request',
+          booking_id: booking.id,
+          read: false,
+          timestamp: new Date().toISOString()
+        }
+      ]);
+    } catch (err) {
+      console.error('Failed to mark booking as no-show:', err);
+    }
+  };
+
   const handleLogin = async (user: UserProfile) => {
     setIsLoading(true);
     try {
-      localStorage.setItem('logged_in_user_id', user.id);
       setCurrentUser(user);
       await loadUserSpecificData(user.id);
     } catch (err) {
@@ -624,9 +703,6 @@ export default function App() {
       }
 
       setAllUsers(updatedUsers);
-      localStorage.setItem('local_users', JSON.stringify(updatedUsers));
-
-      localStorage.setItem('logged_in_user_id', registeredUser.id);
       setCurrentUser(registeredUser);
       setShowOnboardingTour(true);
       await loadUserSpecificData(registeredUser.id);
@@ -644,7 +720,6 @@ export default function App() {
     } catch (err) {
       console.warn('Error signing out of Supabase:', err);
     }
-    localStorage.removeItem('logged_in_user_id');
     setCurrentUser(null);
   };
 
@@ -730,9 +805,6 @@ export default function App() {
 
       const updatedUsers = allUsers.filter(u => u.id !== userId);
       setAllUsers(updatedUsers);
-      localStorage.setItem('local_users', JSON.stringify(updatedUsers));
-      localStorage.removeItem('logged_in_user_id');
-      localStorage.removeItem('saved_user');
 
       setCurrentUser(null);
       setBookings([]);
@@ -791,19 +863,10 @@ export default function App() {
 
         if (dbRows && Array.isArray(dbRows)) {
           bookData = dbRows.map(mapSupabaseToBooking);
-        } else {
-          throw new Error('No bookings returned');
         }
-        localStorage.setItem(`local_bookings_${userId}`, JSON.stringify(bookData));
       } catch (err) {
-        console.warn('Supabase bookings fetch failed, loading from cache/fallback:', err);
-        const savedBookings = localStorage.getItem(`local_bookings_${userId}`);
-        if (savedBookings) {
-          bookData = JSON.parse(savedBookings);
-        } else {
-          bookData = fallbackBookings.filter(b => b.teacherId === userId || b.learnerId === userId);
-          localStorage.setItem(`local_bookings_${userId}`, JSON.stringify(bookData));
-        }
+        console.warn('Supabase bookings fetch failed:', err);
+        bookData = [];
       }
       setBookings(bookData);
 
@@ -828,31 +891,32 @@ export default function App() {
 
         if (dbRows && Array.isArray(dbRows)) {
           notifData = dbRows.map(mapSupabaseToNotification);
-        } else {
-          throw new Error('No notifications returned');
         }
-        localStorage.setItem(`local_notifications_${userId}`, JSON.stringify(notifData));
       } catch (err) {
-        console.warn('Supabase notifications fetch failed, loading from cache/fallback:', err);
-        const savedNotifs = localStorage.getItem(`local_notifications_${userId}`);
-        if (savedNotifs) {
-          notifData = JSON.parse(savedNotifs);
-        } else {
-          notifData = fallbackNotifications.filter(n => n.userId === userId);
-          localStorage.setItem(`local_notifications_${userId}`, JSON.stringify(notifData));
-        }
+        console.warn('Supabase notifications fetch failed:', err);
+        notifData = [];
       }
       setNotifications(notifData);
 
-      // 3. Fetch Learning Progress
-      let progData;
-      const savedProg = localStorage.getItem(`local_progress_${userId}`);
-      if (savedProg) {
-        progData = JSON.parse(savedProg);
-      } else {
-        progData = fallbackProgress.filter(p => p.userId === userId);
-        localStorage.setItem(`local_progress_${userId}`, JSON.stringify(progData));
-      }
+      // 3. Compute Learning Progress from completed bookings
+      const completedForLearner = bookData.filter(b => b.learnerId === userId && b.status === 'completed');
+      const countsMap = new Map<string, number>();
+      completedForLearner.forEach(b => {
+        countsMap.set(b.skillName, (countsMap.get(b.skillName) || 0) + 1);
+      });
+      const progData: ProgressTrack[] = [];
+      countsMap.forEach((count, skillName) => {
+        const lessonsCompleted = Math.min(4, count);
+        progData.push({
+          userId,
+          skillName,
+          lessonsTotal: 4,
+          lessonsCompleted,
+          completionPercentage: Math.round((lessonsCompleted / 4) * 100),
+          badgesEarned: lessonsCompleted >= 4 ? ['grad'] : [],
+          lastActive: new Date().toISOString()
+        });
+      });
       setProgress(progData);
 
       // 4. Fetch Live Sessions
@@ -921,9 +985,11 @@ export default function App() {
 
       // 2. Insert booking row into Supabase bookings table
       const mappedBooking = mapBookingToSupabase(bookingPayload);
-      const { error: insertError } = await supabase
+      const { data: insertedBooking, error: insertError } = await supabase
         .from('bookings')
-        .insert(mappedBooking);
+        .insert(mappedBooking)
+        .select()
+        .single();
 
       if (insertError) {
         // Rollback credit deduction if possible
@@ -935,6 +1001,8 @@ export default function App() {
         return;
       }
 
+      const createdBookingId = insertedBooking?.id || bookingPayload.id;
+
       // 3. Create notifications using Supabase
       // Notification to Teacher
       const { error: notif1Err } = await supabase.from('notifications').insert({
@@ -942,6 +1010,7 @@ export default function App() {
         title: 'New Session Request',
         message: `${currentUser.name} wants to book a session with you for ${skill.name}.`,
         type: 'request',
+        booking_id: createdBookingId,
         read: false,
         timestamp: new Date().toISOString()
       });
@@ -953,6 +1022,7 @@ export default function App() {
         title: 'Session Requested',
         message: `You requested a session with ${teacher.name} for ${skill.name}. 1 credit reserved.`,
         type: 'credit',
+        booking_id: createdBookingId,
         read: false,
         timestamp: new Date().toISOString()
       });
@@ -983,6 +1053,12 @@ export default function App() {
         updatePayload.completed_at = nowIso;
       } else if (status === 'cancelled') {
         updatePayload.cancelled_at = nowIso;
+        if (extraFields?.cancellationReason !== undefined) {
+          updatePayload.cancellation_reason = extraFields.cancellationReason;
+        }
+        if (extraFields?.isLateCancellation !== undefined) {
+          updatePayload.is_late_cancellation = extraFields.isLateCancellation;
+        }
       }
       if (extraFields?.notes !== undefined) updatePayload.notes = extraFields.notes;
       if (extraFields?.date !== undefined) updatePayload.date = extraFields.date;
@@ -1033,73 +1109,28 @@ export default function App() {
 
         // Update learning progress tracker
         try {
-          const savedProg = localStorage.getItem(`local_progress_${booking.learnerId}`);
-          let progressList = savedProg ? JSON.parse(savedProg) : [];
-          if (!Array.isArray(progressList)) progressList = [];
+          const completedForLearner = bookings
+            .map(b => b.id === bookingId ? { ...b, status } : b)
+            .filter(b => b.learnerId === booking.learnerId && b.status === 'completed');
           
-          const existingProgIndex = progressList.findIndex((p: any) => p.skillName === booking.skillName);
-
-          if (existingProgIndex === -1) {
-            // Create a brand new progress tracker in local storage
-            const newProg = {
-              id: `progress-${Date.now()}`,
+          const countsMap = new Map<string, number>();
+          completedForLearner.forEach(b => {
+            countsMap.set(b.skillName, (countsMap.get(b.skillName) || 0) + 1);
+          });
+          const progressList: ProgressTrack[] = [];
+          countsMap.forEach((count, skillName) => {
+            const lessonsCompleted = Math.min(4, count);
+            progressList.push({
               userId: booking.learnerId,
-              skillName: booking.skillName,
+              skillName,
               lessonsTotal: 4,
-              lessonsCompleted: 1,
-              completionPercentage: 25,
-              badgesEarned: [],
-              lastActive: new Date().toISOString()
-            };
-            progressList.push(newProg);
-          } else {
-            // Update existing progress tracker
-            const existingProg = progressList[existingProgIndex];
-            const lessonsCompleted = Math.min(existingProg.lessonsTotal, existingProg.lessonsCompleted + 1);
-            const completionPercentage = Math.round((lessonsCompleted / existingProg.lessonsTotal) * 100);
-            const badgesEarned = [...existingProg.badgesEarned];
-
-            // Earn graduation badge if completed
-            if (completionPercentage === 100 && !badgesEarned.includes('grad')) {
-              badgesEarned.push('grad');
-
-              // Add graduate badge to learner's profile
-              const learner = allUsers.find(u => u.id === booking.learnerId);
-              if (learner && !learner.badges.some(b => b.id === 'grad-badge')) {
-                const updatedLearner = {
-                  ...learner,
-                  badges: [
-                    ...learner.badges,
-                    {
-                      id: 'grad-badge',
-                      name: `${booking.skillName} Grad`,
-                      icon: 'GraduationCap',
-                      description: `Successfully completed all sessions of ${booking.skillName}`,
-                      dateEarned: new Date().toISOString().split('T')[0]
-                    }
-                  ]
-                };
-
-                const { error: learnerError } = await supabase
-                  .from('profiles')
-                  .update(mapProfileToSupabase(updatedLearner))
-                  .eq('id', learner.id);
-
-                if (learnerError) console.warn('Failed to add graduation badge to learner profile:', learnerError);
-              }
-            }
-
-            progressList[existingProgIndex] = {
-              ...existingProg,
               lessonsCompleted,
-              completionPercentage,
-              badgesEarned,
+              completionPercentage: Math.round((lessonsCompleted / 4) * 100),
+              badgesEarned: lessonsCompleted >= 4 ? ['grad'] : [],
               lastActive: new Date().toISOString()
-            };
-          }
+            });
+          });
 
-          localStorage.setItem(`local_progress_${booking.learnerId}`, JSON.stringify(progressList));
-          
           if (currentUser && currentUser.id === booking.learnerId) {
             setProgress(progressList);
           }
@@ -1122,6 +1153,7 @@ export default function App() {
             title: 'Credits Earned!',
             message: `You earned 1 credit for completing the exchange with ${booking.learnerName}.`,
             type: 'credit',
+            booking_id: booking.id,
             read: false,
             timestamp: new Date().toISOString()
           },
@@ -1130,55 +1162,78 @@ export default function App() {
             title: 'Session Completed!',
             message: `Your session for ${booking.skillName} is complete. Please leave a review!`,
             type: 'match',
+            booking_id: booking.id,
             read: false,
             timestamp: new Date().toISOString()
           }
         ]);
 
       } else if (status === 'cancelled' && oldStatus !== 'cancelled') {
-        // Mark connected live session as cancelled
+        const cancellationReason = extraFields?.cancellationReason;
+        const isLateCancellation = extraFields?.isLateCancellation ?? false;
+
+        // 1. Immediately invalidate any connected live session record so no stray join succeeds
         try {
-          const liveSession = await getOrCreateLiveSessionForBooking(booking);
-          await updateLiveSessionStatus(liveSession.id, 'cancelled');
+          await supabase
+            .from('live_sessions')
+            .update({ status: 'cancelled' })
+            .eq('booking_id', booking.id);
         } catch (lsErr) {
-          console.warn('[App] Error cancelling connected live session:', lsErr);
+          console.warn('[App] Error invalidating connected live session on cancel:', lsErr);
         }
 
-        // Refund 1 credit to learner profile
-        const learner = allUsers.find(u => u.id === booking.learnerId);
-        if (learner) {
-          const updatedLearner = {
-            ...learner,
-            credits: learner.credits + 1
-          };
+        // 2. Refund logic: Only refund learner credit if NOT a late cancellation (cancelled > 30 mins before scheduled start)
+        if (!isLateCancellation) {
+          const learner = allUsers.find(u => u.id === booking.learnerId);
+          if (learner) {
+            const updatedLearner = {
+              ...learner,
+              credits: learner.credits + 1
+            };
 
-          const { error: learnerError } = await supabase
-            .from('profiles')
-            .update(mapProfileToSupabase(updatedLearner))
-            .eq('id', learner.id);
+            const { error: learnerError } = await supabase
+              .from('profiles')
+              .update(mapProfileToSupabase(updatedLearner))
+              .eq('id', learner.id);
 
-          if (learnerError) console.warn('Failed to refund learner credit:', learnerError);
+            if (learnerError) console.warn('Failed to refund learner credit:', learnerError);
+          }
+
+          // Refund notification to learner
+          await supabase.from('notifications').insert({
+            user_id: booking.learnerId,
+            title: 'Session Cancelled (1 Credit Refunded)',
+            message: `Your booking for ${booking.skillName} was cancelled. 1 credit has been returned to your balance.`,
+            type: 'credit',
+            booking_id: booking.id,
+            read: false,
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          // Late cancellation notification to learner
+          await supabase.from('notifications').insert({
+            user_id: booking.learnerId,
+            title: 'Session Cancelled (Late Cancellation)',
+            message: `Your booking for ${booking.skillName} was cancelled within 30 minutes of the start time. As per the late cancellation policy, spent credit is non-refundable.`,
+            type: 'request',
+            booking_id: booking.id,
+            read: false,
+            timestamp: new Date().toISOString()
+          });
         }
 
-        // Refund notification to learner
-        await supabase.from('notifications').insert({
-          user_id: booking.learnerId,
-          title: 'Session Cancelled (Refunded)',
-          message: `Your booking for ${booking.skillName} was cancelled. 1 credit has been returned.`,
-          type: 'credit',
-          read: false,
-          timestamp: new Date().toISOString()
-        });
-
-        // Notify other party
+        // 3. Notify the other participant immediately in real-time
         const notifierId = booking.learnerId === actionUserId ? booking.teacherId : booking.learnerId;
         const actionUserName = booking.learnerId === actionUserId ? booking.learnerName : booking.teacherName;
+        const reasonPart = cancellationReason ? ` Reason: "${cancellationReason}"` : '';
+        const latePart = isLateCancellation ? ' (Late cancellation - within 30 mins)' : '';
 
         await supabase.from('notifications').insert({
           user_id: notifierId,
           title: 'Session Cancelled',
-          message: `${actionUserName} cancelled the session for ${booking.skillName}.`,
+          message: `${actionUserName} cancelled the session for ${booking.skillName}.${latePart}${reasonPart}`,
           type: 'request',
+          booking_id: booking.id,
           read: false,
           timestamp: new Date().toISOString()
         });
@@ -1203,6 +1258,7 @@ export default function App() {
           title: 'Session Rescheduled',
           message: `${actionUserName} rescheduled the session for ${booking.skillName} to ${extraFields?.date || booking.date} (${extraFields?.timeSlot || booking.timeSlot}).`,
           type: 'upcoming',
+          booking_id: booking.id,
           read: false,
           timestamp: new Date().toISOString()
         });
@@ -1224,6 +1280,7 @@ export default function App() {
             title: 'Booking Confirmed!',
             message: `${booking.teacherName} accepted your session for ${booking.skillName} on ${extraFields?.date || booking.date}. Private live session room is ready.`,
             type: 'upcoming',
+            booking_id: booking.id,
             read: false,
             timestamp: new Date().toISOString()
           });
@@ -1272,12 +1329,8 @@ export default function App() {
         console.warn('Could not insert to Supabase reviews table:', revInsertErr);
       }
 
-      // 2. Update local reviews state and local cache immediately
-      setAllReviews(prev => {
-        const updated = [newReview, ...prev];
-        localStorage.setItem('local_all_reviews', JSON.stringify(updated));
-        return updated;
-      });
+      // 2. Update local reviews state immediately
+      setAllReviews(prev => [newReview, ...prev]);
 
       // Fetch the teacher profile first to make sure we have up-to-date count and rating
       const { data: teacherProfile, error: fetchErr } = await supabase
@@ -1332,13 +1385,7 @@ export default function App() {
         }
       }
 
-      setNotifications(prev => {
-        const next = prev.map(n => n.id === notifId ? { ...n, read: true } : n);
-        if (currentUser) {
-          localStorage.setItem(`local_notifications_${currentUser.id}`, JSON.stringify(next));
-        }
-        return next;
-      });
+      setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n));
     } catch (err) {
       console.error('Error marking notification as read:', err);
     }
@@ -1357,13 +1404,7 @@ export default function App() {
         }
       }
 
-      setNotifications(prev => {
-        const next = prev.filter(n => n.id !== notifId);
-        if (currentUser) {
-          localStorage.setItem(`local_notifications_${currentUser.id}`, JSON.stringify(next));
-        }
-        return next;
-      });
+      setNotifications(prev => prev.filter(n => n.id !== notifId));
     } catch (err) {
       console.error('Error deleting notification:', err);
     }
@@ -1394,7 +1435,6 @@ export default function App() {
       if (!fetchUsersErr && dbRows) {
         const mappedUsers = dbRows.map(mapSupabaseToProfile);
         setAllUsers(mappedUsers);
-        localStorage.setItem('local_users', JSON.stringify(mappedUsers));
       }
     } catch (err: any) {
       console.error('Failed to save profile to database:', err);
@@ -1408,6 +1448,7 @@ export default function App() {
     if (!currentUser) return;
     
     try {
+      setSyncError(null);
       // Refresh list of users
       const { data: dbRows, error: dbError } = await supabase.from('profiles').select('*');
       if (dbError) throw dbError;
@@ -1422,21 +1463,9 @@ export default function App() {
 
       // Refresh active bookings, notifications, and progress
       await loadUserSpecificData(currentUser.id);
-    } catch (err) {
-      console.warn('Supabase sync failed, continuing offline:', err);
-      // Retrieve locally saved values
-      const savedLocalUsers = localStorage.getItem('local_users');
-      if (savedLocalUsers) {
-        try {
-          const uData = JSON.parse(savedLocalUsers);
-          setAllUsers(uData);
-          const freshCurrentUser = uData.find((u: any) => u.id === currentUser.id);
-          if (freshCurrentUser) {
-            setCurrentUser(freshCurrentUser);
-          }
-        } catch {}
-      }
-      await loadUserSpecificData(currentUser.id);
+    } catch (err: any) {
+      console.error('Supabase sync failed:', err);
+      setSyncError('Sync failed. Please check your network connection.');
     }
   };
 
@@ -1510,10 +1539,27 @@ export default function App() {
         onDeleteNotification={handleDeleteNotification}
         onSync={syncAllState}
         onLogout={handleLogout}
+        onUpdateBookingStatus={handleUpdateBookingStatus}
+        onStartLiveSession={handleStartLiveSession}
+        bookings={bookings}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-4 sm:py-8">
+        {userLoadError && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-700 rounded-lg text-sm flex items-center justify-between">
+            <span>{userLoadError}</span>
+            <button onClick={() => window.location.reload()} className="px-3 py-1 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700">Refresh Page</button>
+          </div>
+        )}
+
+        {syncError && (
+          <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 text-amber-700 rounded-lg text-sm flex items-center justify-between">
+            <span>{syncError}</span>
+            <button onClick={() => setSyncError(null)} className="text-xs text-amber-700 underline font-semibold">Dismiss</button>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -1559,6 +1605,16 @@ export default function App() {
                     badges: []
                   }
                 }
+                allUsers={allUsers}
+                allReviews={allReviews}
+                onLeaveReview={handleLeaveReview}
+                onBookAnotherSession={(teacher, skill, option, date, slot, notes) => handleBookSession(teacher, skill, option, date, slot, notes)}
+                onMarkSessionCompleted={async (bookingId) => {
+                  await handleUpdateBookingStatus(bookingId, 'completed', currentUser.id);
+                }}
+                onMarkSessionNoShow={async (bookingId) => {
+                  await handleMarkNoShow(bookingId);
+                }}
                 onLeave={() => {
                   setActiveLiveSessionBooking(null);
                   setActiveLiveSessionData(null);

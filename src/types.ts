@@ -61,6 +61,9 @@ export interface LiveSession {
   startTime: string; // ISO timestamp
   endTime?: string;  // ISO timestamp
   createdAt: string;
+  teacherJoined?: boolean;
+  learnerJoined?: boolean;
+  hasBothJoined?: boolean;
 }
 
 export interface Booking {
@@ -81,6 +84,11 @@ export interface Booking {
   completedAt?: string; // ISO datetime string when session was marked completed
   cancelledAt?: string; // ISO datetime string when session was marked cancelled
   reminderSent?: boolean;
+  joinReminderSent?: boolean;
+  cancellationReason?: string;
+  isLateCancellation?: boolean;
+  isNoShow?: boolean;
+  noShowParticipantId?: string;
 }
 
 export interface Message {

@@ -2,19 +2,26 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Video, VideoOff, Mic, MicOff, Monitor, MonitorOff, PhoneOff, 
   MessageSquare, Send, User, Shield, Clock, WifiOff, RefreshCw, 
-  Play, ArrowLeft, Sparkles, AlertTriangle, X
+  Play, ArrowLeft, Sparkles, AlertTriangle, X, CheckCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
-import { Booking, UserProfile, LiveSession } from '../types';
+import { Booking, UserProfile, LiveSession, Review, Skill, LearningOption } from '../types';
 import { updateLiveSessionStatus } from '../lib/liveSessions';
+import { SessionCompleteSummary } from './SessionCompleteSummary';
 
 interface LiveSessionRoomViewProps {
   booking: Booking;
   liveSession: LiveSession;
   currentUser: UserProfile;
   otherUser: UserProfile;
+  allUsers?: UserProfile[];
+  allReviews?: Review[];
   onLeave: () => void;
+  onLeaveReview?: (reviewData: Omit<Review, 'id' | 'createdAt'>) => Promise<void>;
+  onBookAnotherSession?: (teacher: UserProfile, skill: Skill, option: LearningOption, date: string, slot: 'Morning' | 'Afternoon' | 'Evening', notes: string) => void;
+  onMarkSessionCompleted?: (bookingId: string) => Promise<void>;
+  onMarkSessionNoShow?: (bookingId: string) => Promise<void>;
 }
 
 interface ChatMessage {
@@ -69,13 +76,35 @@ export default function LiveSessionRoomView({
   liveSession,
   currentUser,
   otherUser,
-  onLeave
+  allUsers = [],
+  allReviews = [],
+  onLeave,
+  onLeaveReview = async () => {},
+  onBookAnotherSession,
+  onMarkSessionCompleted,
+  onMarkSessionNoShow
 }: LiveSessionRoomViewProps) {
   // Room state
   const [inLobby, setInLobby] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<
-    'idle' | 'connecting' | 'waiting' | 'connected' | 'disconnected' | 'failed'
+    'idle' | 'connecting' | 'waiting' | 'connected' | 'reconnecting' | 'disconnected' | 'failed'
   >('idle');
+
+  // Summary & Join Tracking
+  const [showCompleteSummary, setShowCompleteSummary] = useState(false);
+  const [hasBothJoinedState, setHasBothJoinedState] = useState(liveSession?.hasBothJoined || false);
+  const [finalDurationSeconds, setFinalDurationSeconds] = useState(0);
+
+  // Participant status tracking
+  const [remoteUserLeft, setRemoteUserLeft] = useState(false);
+  const [sessionEndedByPeer, setSessionEndedByPeer] = useState(false);
+  const [peerWhoEnded, setPeerWhoEnded] = useState<string | null>(null);
+
+  // Leave Modal State
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+
+  // Both Muted Prompt State
+  const [showBothMutedPrompt, setShowBothMutedPrompt] = useState(false);
 
   // Media Controls State (Local)
   const [isCameraOn, setIsCameraOn] = useState(true);
@@ -100,7 +129,10 @@ export default function LiveSessionRoomView({
   const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
+  
+  // Timer tracking
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [hasEverConnected, setHasEverConnected] = useState(false);
 
   // WebRTC & Media Stream Refs
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -123,7 +155,7 @@ export default function LiveSessionRoomView({
     }
   }, [chatMessages, showChat]);
 
-  // 1. Initialize & Verify Local Devices (Camera & Microphone)
+  // Local Chat Persistence
   const getLocalLiveChat = (sessionId: string): ChatMessage[] => {
     try {
       const raw = localStorage.getItem(`live_chat_${sessionId}`);
@@ -150,7 +182,6 @@ export default function LiveSessionRoomView({
     const initialMsgs = getLocalLiveChat(liveSession.id);
     setChatMessages(initialMsgs);
 
-    // Fetch existing live session chat history from Supabase if stored
     supabase
       .from('messages')
       .select('*')
@@ -170,6 +201,7 @@ export default function LiveSessionRoomView({
       });
   }, [liveSession.id]);
 
+  // 1. Initialize & Verify Local Devices (Camera & Microphone)
   const initLobbyMedia = async () => {
     setCameraStatus('checking');
     setMicStatus('checking');
@@ -194,7 +226,7 @@ export default function LiveSessionRoomView({
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack && videoTrack.readyState === 'live') {
         setCameraStatus('ready');
-        setCameraName(videoTrack.label || 'Default Camera');
+        setCameraName(videoTrack.label || 'Standard Camera');
         setIsCameraOn(true);
       } else {
         setCameraStatus('not_found');
@@ -204,10 +236,9 @@ export default function LiveSessionRoomView({
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack && audioTrack.readyState === 'live') {
         setMicStatus('ready');
-        setMicName(audioTrack.label || 'Default Microphone');
+        setMicName(audioTrack.label || 'Standard Microphone');
         setIsMicOn(true);
 
-        // Real Audio Meter measuring
         try {
           const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
           if (AudioContextClass) {
@@ -260,36 +291,59 @@ export default function LiveSessionRoomView({
   useEffect(() => {
     initLobbyMedia();
 
-    // Component Unmount Cleanup: Stop camera/mic/screen streams, close WebRTC, remove channel
     return () => {
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(t => t.stop());
-        localStreamRef.current = null;
-      }
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach(t => t.stop());
-        screenStreamRef.current = null;
-      }
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.close();
-        peerConnectionRef.current = null;
-      }
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      cleanupMediaAndConnections();
     };
   }, []);
 
-  // 2. Timer Effect
+  const cleanupMediaAndConnections = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(t => t.stop());
+      localStreamRef.current = null;
+    }
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(t => t.stop());
+      screenStreamRef.current = null;
+    }
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+  };
+
+  // 2. Timer Effect - Starts once connected
   useEffect(() => {
     if (inLobby) return;
+    if (connectionStatus === 'connected' && !hasEverConnected) {
+      setHasEverConnected(true);
+    }
+  }, [inLobby, connectionStatus, hasEverConnected]);
+
+  useEffect(() => {
+    if (inLobby || !hasEverConnected) return;
     const interval = setInterval(() => {
       setElapsedSeconds(prev => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [inLobby]);
+  }, [inLobby, hasEverConnected]);
+
+  // 3. Both Muted Simultaneous Detection (5-10 second prompt)
+  useEffect(() => {
+    let timer: any;
+    if (!inLobby && connectionStatus === 'connected' && !isMicOn && !remoteMediaState.isMicOn) {
+      timer = setTimeout(() => {
+        setShowBothMutedPrompt(true);
+      }, 6000); // 6 seconds threshold
+    } else {
+      setShowBothMutedPrompt(false);
+    }
+    return () => clearTimeout(timer);
+  }, [inLobby, connectionStatus, isMicOn, remoteMediaState.isMicOn]);
 
   // Helper to broadcast media status to peer
   const sendMediaStateSignal = (cam: boolean, mic: boolean) => {
@@ -307,7 +361,7 @@ export default function LiveSessionRoomView({
     }
   };
 
-  // 3. Audio / Video Track Toggles
+  // Audio / Video Track Toggles
   const toggleCamera = () => {
     if (localStreamRef.current) {
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
@@ -332,7 +386,7 @@ export default function LiveSessionRoomView({
     }
   };
 
-  // 4. Screen Sharing Toggle & Reversion Logic
+  // Screen Sharing Toggle
   const stopScreenSharing = async () => {
     if (screenStreamRef.current) {
       screenStreamRef.current.getTracks().forEach(t => t.stop());
@@ -362,7 +416,6 @@ export default function LiveSessionRoomView({
     if (isScreenSharing) {
       await stopScreenSharing();
     } else {
-      // Start Screen Sharing with native getDisplayMedia
       try {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
@@ -372,7 +425,6 @@ export default function LiveSessionRoomView({
         screenStreamRef.current = screenStream;
         const screenTrack = screenStream.getVideoTracks()[0];
 
-        // Replace outgoing video track in WebRTC connection
         const senders = peerConnectionRef.current.getSenders();
         const videoSender = senders.find(s => s.track?.kind === 'video');
 
@@ -382,12 +434,10 @@ export default function LiveSessionRoomView({
           peerConnectionRef.current.addTrack(screenTrack, screenStream);
         }
 
-        // Show screen share preview in local video element
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = screenStream;
         }
 
-        // Handle native browser "Stop sharing" floating UI button
         screenTrack.onended = () => {
           stopScreenSharing();
         };
@@ -400,31 +450,26 @@ export default function LiveSessionRoomView({
     }
   };
 
-  // 5. Enter Classroom & Setup WebRTC
+  // Enter Classroom & Setup WebRTC
   const enterClassroom = async () => {
     setInLobby(false);
     setConnectionStatus('connecting');
 
-    // Attach stream to in-classroom video element
     if (localVideoRef.current && localStreamRef.current) {
       localVideoRef.current.srcObject = localStreamRef.current;
     }
 
     try {
-      // Update status in database
       await updateLiveSessionStatus(liveSession.id, 'live');
-
-      // Setup WebRTC and signaling only if database status update succeeded
       setupWebRTCAndSignaling();
     } catch (err) {
-      console.error('[LiveSessionRoomView] Failed to update session status to live in database:', err);
+      console.error('[LiveSessionRoomView] Failed to update session status to live:', err);
       setConnectionStatus('failed');
     }
   };
 
-  // 6. WebRTC Core Setup with Supabase Realtime Channel
+  // WebRTC Core Setup with Supabase Realtime Channel
   const setupWebRTCAndSignaling = async () => {
-    // Safely cleanup existing peer connection and channel to prevent duplicate listeners
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
@@ -437,35 +482,52 @@ export default function LiveSessionRoomView({
     const pc = new RTCPeerConnection(ICE_SERVERS);
     peerConnectionRef.current = pc;
 
-    // Add local tracks to peer connection
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => {
         pc.addTrack(track, localStreamRef.current!);
       });
     }
 
-    // Handle incoming remote stream
     pc.ontrack = (event) => {
       console.log('[WebRTC] Received remote track:', event.track.kind);
       if (remoteVideoRef.current && event.streams[0]) {
         remoteVideoRef.current.srcObject = event.streams[0];
         setConnectionStatus('connected');
+        setRemoteUserLeft(false);
+        setHasBothJoinedState(true);
       }
     };
 
-    // Connection state changes
     pc.oniceconnectionstatechange = () => {
       console.log('[WebRTC] ICE Connection State:', pc.iceConnectionState);
       if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
         setConnectionStatus('connected');
+        setRemoteUserLeft(false);
+        setHasBothJoinedState(true);
+      } else if (pc.iceConnectionState === 'checking') {
+        setConnectionStatus(prev => (prev === 'connected' ? 'reconnecting' : 'connecting'));
       } else if (pc.iceConnectionState === 'disconnected') {
-        setConnectionStatus('disconnected');
+        setConnectionStatus('reconnecting');
       } else if (pc.iceConnectionState === 'failed') {
         setConnectionStatus('failed');
       }
     };
 
-    // Broadcast ICE Candidates
+    pc.onconnectionstatechange = () => {
+      console.log('[WebRTC] Connection State:', pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        setConnectionStatus('connected');
+        setRemoteUserLeft(false);
+        setHasBothJoinedState(true);
+      } else if (pc.connectionState === 'connecting') {
+        setConnectionStatus(prev => (prev === 'connected' ? 'reconnecting' : 'connecting'));
+      } else if (pc.connectionState === 'disconnected') {
+        setConnectionStatus('reconnecting');
+      } else if (pc.connectionState === 'failed') {
+        setConnectionStatus('failed');
+      }
+    };
+
     pc.onicecandidate = (event) => {
       if (event.candidate && channelRef.current) {
         channelRef.current.send({
@@ -480,7 +542,6 @@ export default function LiveSessionRoomView({
       }
     };
 
-    // Initialize Private Supabase Realtime Signaling Channel for this room
     const channelName = `session_signaling_${liveSession.id}`;
     const channel = supabase.channel(channelName, {
       config: {
@@ -490,14 +551,21 @@ export default function LiveSessionRoomView({
 
     channelRef.current = channel;
 
-    // Listen to WebRTC signals
     channel.on('broadcast', { event: 'signal' }, async ({ payload }) => {
-      if (payload.senderId === currentUser.id) return; // ignore self
+      if (payload.senderId === currentUser.id) return;
 
-      const { signalType, offer, answer, candidate, isCameraOn: remoteCam, isMicOn: remoteMic } = payload;
+      const { signalType, offer, answer, candidate, isCameraOn: remoteCam, isMicOn: remoteMic, userName } = payload;
 
       try {
-        if (signalType === 'media-state') {
+        if (signalType === 'user-left') {
+          console.log('[WebRTC] Remote user explicitly left call:', userName);
+          setRemoteUserLeft(true);
+          setConnectionStatus('disconnected');
+        } else if (signalType === 'session-ended-for-all') {
+          console.log('[WebRTC] Remote user ended session for everyone:', userName);
+          setSessionEndedByPeer(true);
+          setPeerWhoEnded(userName || otherUser.name);
+        } else if (signalType === 'media-state') {
           setRemoteMediaState({
             isCameraOn: remoteCam ?? true,
             isMicOn: remoteMic ?? true
@@ -506,7 +574,6 @@ export default function LiveSessionRoomView({
           console.log('[WebRTC] Received offer from peer');
           await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
-          // Process any buffered ICE candidates
           while (pendingCandidatesRef.current.length > 0) {
             const cand = pendingCandidatesRef.current.shift();
             if (cand) await pc.addIceCandidate(new RTCIceCandidate(cand));
@@ -525,7 +592,6 @@ export default function LiveSessionRoomView({
             }
           });
 
-          // Also share current media state
           sendMediaStateSignal(isCameraOn, isMicOn);
 
         } else if (signalType === 'answer') {
@@ -537,7 +603,6 @@ export default function LiveSessionRoomView({
             if (cand) await pc.addIceCandidate(new RTCIceCandidate(cand));
           }
 
-          // Also share current media state
           sendMediaStateSignal(isCameraOn, isMicOn);
 
         } else if (signalType === 'ice-candidate') {
@@ -554,7 +619,6 @@ export default function LiveSessionRoomView({
       }
     });
 
-    // Listen for In-Call Text Chat (scoped to this live session)
     channel.on('broadcast', { event: 'chat' }, ({ payload }) => {
       setChatMessages(prev => {
         if (prev.some(m => m.id === payload.id)) return prev;
@@ -564,16 +628,28 @@ export default function LiveSessionRoomView({
       });
     });
 
-    // Presence tracking & Handshake Initiation
     channel.on('presence', { event: 'sync' }, async () => {
       const presenceState = channel.presenceState();
       const userIds = Object.keys(presenceState);
       console.log('[Realtime] Presence Sync, online users in room:', userIds);
 
-      // If both users are present
       if (userIds.length >= 2) {
-        setConnectionStatus('connecting');
-        // Initiate offer if teacher or deterministic tie-breaker
+        if (connectionStatus !== 'connected') {
+          setConnectionStatus('connecting');
+        }
+        setRemoteUserLeft(false);
+        setHasBothJoinedState(true);
+
+        try {
+          await updateLiveSessionStatus(liveSession.id, 'live', {
+            hasBothJoined: true,
+            teacherJoined: true,
+            learnerJoined: true
+          });
+        } catch (e) {
+          console.warn('[LiveSessions] Failed to update hasBothJoined:', e);
+        }
+
         if (isTeacher || currentUser.id < otherUser.id) {
           try {
             console.log('[WebRTC] Creating offer...');
@@ -594,16 +670,21 @@ export default function LiveSessionRoomView({
           }
         }
       } else {
-        setConnectionStatus('waiting');
+        if (connectionStatus === 'connected') {
+          setRemoteUserLeft(true);
+          setConnectionStatus('disconnected');
+        } else {
+          setConnectionStatus('waiting');
+        }
       }
     });
 
     channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
-      console.log('[Realtime] Remote user left room:', leftPresences);
+      console.log('[Realtime] Remote user left room presence:', leftPresences);
+      setRemoteUserLeft(true);
       setConnectionStatus('disconnected');
     });
 
-    // Subscribe to channel
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         console.log('[Realtime] Subscribed to room channel:', channelName);
@@ -613,11 +694,21 @@ export default function LiveSessionRoomView({
           role: isTeacher ? 'teacher' : 'learner',
           joinedAt: new Date().toISOString()
         });
+
+        // Track single user join status in live_sessions
+        try {
+          await updateLiveSessionStatus(liveSession.id, 'live', {
+            teacherJoined: isTeacher ? true : undefined,
+            learnerJoined: !isTeacher ? true : undefined
+          });
+        } catch (e) {
+          console.warn('[LiveSessions] Failed to track single join:', e);
+        }
       }
     });
   };
 
-  // 7. Send In-Call Chat Message
+  // Send In-Call Chat Message
   const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || !channelRef.current) return;
@@ -630,7 +721,6 @@ export default function LiveSessionRoomView({
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    // Broadcast in real-time to current channel
     channelRef.current.send({
       type: 'broadcast',
       event: 'chat',
@@ -641,7 +731,6 @@ export default function LiveSessionRoomView({
     saveLocalLiveChat(liveSession.id, newMsg);
     setChatInput('');
 
-    // Persist to Supabase if backend available
     try {
       await supabase.from('messages').insert([{
         sender_id: currentUser.id,
@@ -654,38 +743,72 @@ export default function LiveSessionRoomView({
     }
   };
 
-  // 8. Clean Up & Leave Session
-  const handleEndSession = async () => {
-    // Stop local camera/mic
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(t => t.stop());
-      localStreamRef.current = null;
-    }
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach(t => t.stop());
-      screenStreamRef.current = null;
+  // Centralized Session Completion and Cleanup
+  const handleSessionFinish = async () => {
+    cleanupMediaAndConnections();
+    const secs = elapsedSeconds;
+    setFinalDurationSeconds(secs);
+
+    if (hasBothJoinedState) {
+      if (onMarkSessionCompleted) {
+        await onMarkSessionCompleted(booking.id);
+      }
+    } else {
+      if (onMarkSessionNoShow) {
+        await onMarkSessionNoShow(booking.id);
+      }
     }
 
-    // Close WebRTC connection
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-
-    // Unsubscribe Supabase channel
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-
-    // Update status in database
     try {
       await updateLiveSessionStatus(liveSession.id, 'ended', { endTime: new Date().toISOString() });
     } catch (err) {
-      console.warn('[LiveSessionRoomView] Failed to update session status to ended in database:', err);
-    } finally {
-      onLeave();
+      console.warn('[LiveSessionRoomView] Failed to update session status to ended:', err);
     }
+
+    setShowCompleteSummary(true);
+  };
+
+  // Leave Actions:
+  // Action A: Just leave room (other participant can stay or wait)
+  const handleLeaveOnly = async () => {
+    if (channelRef.current) {
+      try {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'signal',
+          payload: {
+            senderId: currentUser.id,
+            signalType: 'user-left',
+            userName: currentUser.name
+          }
+        });
+      } catch (e) {
+        console.warn('Error broadcasting user-left:', e);
+      }
+    }
+
+    await handleSessionFinish();
+  };
+
+  // Action B: End Session for Everyone (Closes session for both)
+  const handleEndForEveryone = async () => {
+    if (channelRef.current) {
+      try {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'signal',
+          payload: {
+            senderId: currentUser.id,
+            signalType: 'session-ended-for-all',
+            userName: currentUser.name
+          }
+        });
+      } catch (e) {
+        console.warn('Error broadcasting session-ended-for-all:', e);
+      }
+    }
+
+    await handleSessionFinish();
   };
 
   const formatTimer = (totalSeconds: number) => {
@@ -698,6 +821,24 @@ export default function LiveSessionRoomView({
     }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Show Session Complete Summary screen when session concludes
+  if (showCompleteSummary) {
+    return (
+      <SessionCompleteSummary
+        booking={booking}
+        liveSession={liveSession}
+        currentUser={currentUser}
+        otherUser={otherUser}
+        allUsers={allUsers}
+        allReviews={allReviews}
+        durationSeconds={finalDurationSeconds}
+        onLeaveReview={onLeaveReview}
+        onBookAnotherSession={onBookAnotherSession}
+        onClose={onLeave}
+      />
+    );
+  }
 
   // LOBBY VIEW (Device Preparation Screen)
   if (inLobby) {
@@ -763,6 +904,7 @@ export default function LiveSessionRoomView({
             {/* Preview Control Toggle Bar */}
             <div className="flex items-center gap-3 z-10 pt-2">
               <button
+                type="button"
                 onClick={toggleMic}
                 className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md text-xs ${
                   isMicOn 
@@ -776,6 +918,7 @@ export default function LiveSessionRoomView({
               </button>
 
               <button
+                type="button"
                 onClick={toggleCamera}
                 className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md text-xs ${
                   isCameraOn 
@@ -794,14 +937,15 @@ export default function LiveSessionRoomView({
           <div className="md:col-span-5 p-6 flex flex-col justify-between space-y-6 bg-slate-50/50">
             <div className="space-y-4">
               <div>
-                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
-                  Step 1 of 2 • Readiness Check
+                <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 inline-flex items-center gap-1.5 shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Green Room • Pre-Join Preview
                 </span>
-                <h2 className="text-lg font-bold text-slate-900 mt-2">
-                  Device Preparation
+                <h2 className="text-lg font-extrabold text-slate-900 mt-2.5">
+                  Pre-Call Device Check
                 </h2>
                 <p className="text-slate-500 text-xs mt-1">
-                  Test your video & audio before entering <strong>{booking.skillName}</strong>.
+                  Adjust camera & microphone settings before connecting to <strong>{booking.skillName}</strong>.
                 </p>
               </div>
 
@@ -865,7 +1009,6 @@ export default function LiveSessionRoomView({
                     </span>
                   </div>
 
-                  {/* Audio Level Visualizer Bar */}
                   {micStatus === 'ready' && isMicOn && (
                     <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
                       <span className="text-[10px] text-slate-400 font-medium">Mic Input Test:</span>
@@ -899,6 +1042,7 @@ export default function LiveSessionRoomView({
                     <p>3. Click the button below to retry.</p>
                   </div>
                   <button
+                    type="button"
                     onClick={initLobbyMedia}
                     className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
@@ -928,14 +1072,16 @@ export default function LiveSessionRoomView({
             {/* Action Buttons */}
             <div className="space-y-2.5 pt-4 border-t border-slate-200">
               <button
+                type="button"
                 onClick={enterClassroom}
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer text-sm"
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer text-sm transform active:scale-95"
               >
                 <Play className="w-4 h-4 fill-current" />
-                <span>Join Session</span>
+                <span>Confirm & Enter Call</span>
               </button>
 
               <button
+                type="button"
                 onClick={onLeave}
                 className="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-700 font-semibold border border-slate-200 rounded-xl transition cursor-pointer text-xs"
               >
@@ -953,7 +1099,7 @@ export default function LiveSessionRoomView({
   return (
     <div className="max-w-6xl mx-auto space-y-4 text-xs text-slate-700">
       
-      {/* Top Session Bar */}
+      {/* Top Session Bar (Google Meet Style Header) */}
       <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-md flex flex-wrap items-center justify-between gap-3 border border-slate-800">
         
         {/* Left: Skill & Participants */}
@@ -976,52 +1122,59 @@ export default function LiveSessionRoomView({
           </div>
         </div>
 
-        {/* Center: Status & Session Timer */}
+        {/* Center: Persistent Connection Status & Session Timer (Requirements 1 & 2) */}
         <div className="flex items-center gap-3">
           {/* Connection Status Badge */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-950/80 rounded-xl border border-slate-800">
+          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-950/90 rounded-full border border-slate-800 shadow-xs">
             {connectionStatus === 'connected' && (
               <>
-                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="font-bold text-emerald-400">Connected</span>
+                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shrink-0" />
+                <span className="font-bold text-emerald-400 text-xs">Connected</span>
               </>
             )}
             {connectionStatus === 'connecting' && (
               <>
-                <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin" />
-                <span className="font-medium text-amber-400">Connecting...</span>
+                <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
+                <span className="font-medium text-amber-400 text-xs">Connecting…</span>
+              </>
+            )}
+            {connectionStatus === 'reconnecting' && (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
+                <span className="font-bold text-amber-300 text-xs">Reconnecting…</span>
               </>
             )}
             {connectionStatus === 'waiting' && (
               <>
-                <span className="w-2.5 h-2.5 bg-amber-400 rounded-full animate-ping" />
-                <span className="font-medium text-amber-300">Waiting for participant...</span>
+                <span className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-ping shrink-0" />
+                <span className="font-medium text-blue-300 text-xs">Waiting for peer…</span>
               </>
             )}
             {connectionStatus === 'disconnected' && (
               <>
-                <WifiOff className="w-3.5 h-3.5 text-rose-400" />
-                <span className="font-medium text-rose-400">Participant disconnected</span>
+                <WifiOff className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span className="font-medium text-rose-300 text-xs">{otherUser.name} disconnected</span>
               </>
             )}
             {connectionStatus === 'failed' && (
               <>
-                <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-                <span className="font-medium text-rose-400">Connection failed</span>
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span className="font-medium text-rose-400 text-xs">Connection failed</span>
               </>
             )}
           </div>
 
-          {/* Session Timer */}
-          <div className="flex items-center gap-1.5 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-slate-200 font-mono text-xs">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
-            <span>{formatTimer(elapsedSeconds)}</span>
+          {/* Session Timer (Requirement 2) */}
+          <div className="flex items-center gap-1.5 bg-slate-950/90 px-3.5 py-1.5 rounded-full border border-slate-800 text-slate-200 font-mono text-xs shadow-xs">
+            <Clock className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="font-bold">Session: {formatTimer(elapsedSeconds)}</span>
           </div>
         </div>
 
-        {/* Right: Chat Toggle & Leave Button */}
+        {/* Right: Chat Toggle & Red Leave Button */}
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setShowChat(!showChat)}
             className={`p-2.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 font-bold ${
               showChat 
@@ -1038,13 +1191,14 @@ export default function LiveSessionRoomView({
             )}
           </button>
 
+          {/* Red Leave Button with Options (Requirement 4) */}
           <button
-            onClick={handleEndSession}
-            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+            type="button"
+            onClick={() => setShowLeaveModal(true)}
+            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transform"
           >
             <PhoneOff className="w-4 h-4" />
-            <span className="hidden sm:inline">Leave Session</span>
-            <span className="sm:hidden">Leave</span>
+            <span>Leave</span>
           </button>
         </div>
       </div>
@@ -1062,12 +1216,12 @@ export default function LiveSessionRoomView({
               autoPlay
               playsInline
               className={`w-full h-full object-cover ${
-                connectionStatus !== 'connected' || !remoteMediaState.isCameraOn ? 'hidden' : ''
+                connectionStatus !== 'connected' || remoteUserLeft || !remoteMediaState.isCameraOn ? 'hidden' : ''
               }`}
             />
 
             {/* Remote Participant Camera Off Placeholder */}
-            {connectionStatus === 'connected' && !remoteMediaState.isCameraOn && (
+            {connectionStatus === 'connected' && !remoteUserLeft && !remoteMediaState.isCameraOn && (
               <div className="flex flex-col items-center justify-center text-slate-400 space-y-2">
                 <div className="w-20 h-20 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center text-slate-300 text-3xl font-bold shadow-inner">
                   {otherUser.name.charAt(0)}
@@ -1080,14 +1234,54 @@ export default function LiveSessionRoomView({
               </div>
             )}
 
-            {/* Placeholder overlay when not fully connected */}
-            {connectionStatus !== 'connected' && (
+            {/* Requirement 5: Participant Left State Card */}
+            {(remoteUserLeft || connectionStatus === 'disconnected') && (
+              <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 max-w-md mx-auto z-20">
+                <div className="w-20 h-20 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center text-slate-400 text-3xl font-bold shadow-2xl relative">
+                  {otherUser.name.charAt(0)}
+                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-rose-600 rounded-full border-2 border-slate-950 flex items-center justify-center text-xs text-white">
+                    ×
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-extrabold text-white text-lg">
+                    {otherUser.name} has left the session
+                  </h3>
+                  <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
+                    They disconnected or exited the classroom. You can wait briefly for them to rejoin, or end the session on your side.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleEndForEveryone}
+                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-md flex items-center gap-2 transform active:scale-95"
+                  >
+                    <PhoneOff className="w-4 h-4" />
+                    <span>End Session for Everyone</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleLeaveOnly}
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700 rounded-xl text-xs transition cursor-pointer"
+                  >
+                    <span>Leave Call</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Connecting / Waiting Placeholder overlay when not connected and remote user hasn't explicitly left */}
+            {connectionStatus !== 'connected' && !remoteUserLeft && connectionStatus !== 'disconnected' && (
               <div className="flex flex-col items-center justify-center space-y-3 text-slate-400 p-6 text-center max-w-md z-10">
                 <div className="w-16 h-16 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-300 text-2xl shadow-inner">
                   {connectionStatus === 'failed' ? (
                     <AlertTriangle className="w-8 h-8 text-rose-500" />
-                  ) : connectionStatus === 'disconnected' ? (
-                    <WifiOff className="w-8 h-8 text-amber-500" />
+                  ) : connectionStatus === 'reconnecting' ? (
+                    <RefreshCw className="w-8 h-8 text-amber-400 animate-spin" />
                   ) : (
                     <User className="w-8 h-8 text-slate-500" />
                   )}
@@ -1096,8 +1290,8 @@ export default function LiveSessionRoomView({
                   <h3 className="font-bold text-white text-base">
                     {connectionStatus === 'waiting'
                       ? `Waiting for ${otherUser.name}...`
-                      : connectionStatus === 'disconnected'
-                      ? `${otherUser.name} disconnected or left`
+                      : connectionStatus === 'reconnecting'
+                      ? 'Reconnecting WebRTC Stream…'
                       : connectionStatus === 'failed'
                       ? 'Connection Could Not Be Established'
                       : 'Connecting WebRTC Stream...'}
@@ -1105,10 +1299,10 @@ export default function LiveSessionRoomView({
                   <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
                     {connectionStatus === 'waiting'
                       ? 'Both participants must join this room to begin the live two-way video call.'
-                      : connectionStatus === 'disconnected'
-                      ? 'The other user left or experienced a temporary network drop. Waiting to reconnect...'
+                      : connectionStatus === 'reconnecting'
+                      ? 'Network connection temporarily interrupted. Attempting to restore video feed...'
                       : connectionStatus === 'failed'
-                      ? 'The direct peer-to-peer connection could not be established. Check your network or firewall settings and click Retry.'
+                      ? 'The direct peer-to-peer connection could not be established. Click Retry.'
                       : 'Negotiating STUN/TURN ICE candidates and media streams...'}
                   </p>
                 </div>
@@ -1120,8 +1314,9 @@ export default function LiveSessionRoomView({
                   </div>
                 )}
 
-                {(connectionStatus === 'failed' || connectionStatus === 'disconnected') && (
+                {connectionStatus === 'failed' && (
                   <button
+                    type="button"
                     onClick={() => {
                       enterClassroom();
                     }}
@@ -1135,12 +1330,12 @@ export default function LiveSessionRoomView({
             )}
 
             {/* Remote User Label & Media Status Overlay */}
-            <div className="absolute top-4 left-4 bg-slate-900/85 backdrop-blur-xs px-3 py-1.5 rounded-xl text-white font-semibold text-xs flex items-center gap-2 border border-slate-800 shadow-md">
+            <div className="absolute top-4 left-4 bg-slate-900/85 backdrop-blur-xs px-3 py-1.5 rounded-xl text-white font-semibold text-xs flex items-center gap-2 border border-slate-800 shadow-md z-20">
               <div className={`w-2.5 h-2.5 rounded-full ${connectionStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
               <span>{otherUser.name} ({isTeacher ? 'Learner' : 'Instructor'})</span>
               
               {/* Remote Mic Indicator */}
-              {connectionStatus === 'connected' && (
+              {connectionStatus === 'connected' && !remoteUserLeft && (
                 <span className={`p-1 rounded ${remoteMediaState.isMicOn ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                   {remoteMediaState.isMicOn ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
                 </span>
@@ -1171,13 +1366,45 @@ export default function LiveSessionRoomView({
                 </span>
               </div>
             </div>
+
+            {/* Requirement 3: Both Participants Muted Prompt */}
+            <AnimatePresence>
+              {showBothMutedPrompt && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 border border-amber-500/40 backdrop-blur-md px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-3 text-white text-xs z-30"
+                >
+                  <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                  <span className="font-medium text-amber-200">Looks like you're both muted!</span>
+                  <button
+                    type="button"
+                    onClick={toggleMic}
+                    className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-full text-[11px] transition cursor-pointer flex items-center gap-1 shadow-xs"
+                  >
+                    <Mic className="w-3 h-3" />
+                    <span>Unmute Mic</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowBothMutedPrompt(false)}
+                    className="text-slate-400 hover:text-white p-1 rounded-full cursor-pointer ml-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
           </div>
 
-          {/* Bottom Classroom Controls Toolbar */}
+          {/* Bottom Classroom Controls Toolbar (Requirement 4) */}
           <div className="bg-slate-900 rounded-2xl p-3 border border-slate-800 flex flex-wrap items-center justify-center gap-3 shadow-lg">
             
             {/* Microphone Toggle */}
             <button
+              type="button"
               onClick={toggleMic}
               className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md ${
                 isMicOn 
@@ -1195,6 +1422,7 @@ export default function LiveSessionRoomView({
 
             {/* Camera Toggle */}
             <button
+              type="button"
               onClick={toggleCamera}
               className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md ${
                 isCameraOn 
@@ -1212,6 +1440,7 @@ export default function LiveSessionRoomView({
 
             {/* Screen Share Toggle */}
             <button
+              type="button"
               onClick={toggleScreenShare}
               className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md ${
                 isScreenSharing 
@@ -1229,6 +1458,7 @@ export default function LiveSessionRoomView({
 
             {/* Chat Toggle */}
             <button
+              type="button"
               onClick={() => setShowChat(!showChat)}
               className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md ${
                 showChat 
@@ -1244,23 +1474,24 @@ export default function LiveSessionRoomView({
               </div>
             </button>
 
-            {/* Leave Session */}
+            {/* Distinct Red Leave Button (Requirement 4) */}
             <button
-              onClick={handleEndSession}
-              className="p-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl transition flex items-center gap-2 cursor-pointer shadow-md"
+              type="button"
+              onClick={() => setShowLeaveModal(true)}
+              className="p-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl transition flex items-center gap-2 cursor-pointer shadow-md transform active:scale-95"
               title="Leave Classroom Session"
             >
               <PhoneOff className="w-5 h-5" />
               <div className="hidden sm:flex flex-col items-start text-left">
                 <span className="text-xs font-bold leading-none">Leave Classroom</span>
-                <span className="text-[9px] font-normal text-rose-200 mt-0.5">End connection</span>
+                <span className="text-[9px] font-normal text-rose-200 mt-0.5">Leave or End Session</span>
               </div>
             </button>
 
           </div>
         </div>
 
-        {/* Right Desktop Chat Side Panel (Hidden on mobile, shown as sidebar on lg+) */}
+        {/* Right Desktop Chat Side Panel */}
         {showChat && (
           <div className="hidden lg:flex lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-lg flex-col h-[520px] overflow-hidden">
             <div className="p-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
@@ -1269,6 +1500,7 @@ export default function LiveSessionRoomView({
                 <h3 className="font-bold text-slate-900 text-xs">Classroom Notes & Chat</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setShowChat(false)}
                 className="text-slate-400 hover:text-slate-700 font-bold text-xs p-1 cursor-pointer"
               >
@@ -1336,7 +1568,7 @@ export default function LiveSessionRoomView({
 
       </div>
 
-      {/* Mobile Chat Slide-over Drawer (Shows when showChat is true on mobile) */}
+      {/* Mobile Chat Slide-over Drawer */}
       <AnimatePresence>
         {showChat && (
           <motion.div
@@ -1360,6 +1592,7 @@ export default function LiveSessionRoomView({
                   <h3 className="font-bold text-slate-900 text-sm">Classroom Notes & Chat</h3>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowChat(false)}
                   className="p-1.5 rounded-full bg-slate-200/60 hover:bg-slate-200 text-slate-600 font-bold text-xs"
                 >
@@ -1424,7 +1657,129 @@ export default function LiveSessionRoomView({
         )}
       </AnimatePresence>
 
+      {/* Requirement 4: Leave Action Options Modal */}
+      <AnimatePresence>
+        {showLeaveModal && (
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900 rounded-2xl max-w-md w-full border border-slate-800 shadow-2xl p-6 text-white space-y-5"
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center">
+                    <PhoneOff className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base">Leave Classroom</h3>
+                    <p className="text-slate-400 text-xs">Choose how you want to exit</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveModal(false)}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                {/* Option 1: Just Leave Call */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLeaveModal(false);
+                    handleLeaveOnly();
+                  }}
+                  className="w-full text-left p-4 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 transition cursor-pointer group flex items-start gap-3"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-white text-xs group-hover:text-indigo-300 transition">
+                      Just Leave Call
+                    </div>
+                    <p className="text-slate-400 text-[11px] mt-0.5 leading-snug">
+                      Leave the room for yourself. {otherUser.name} can stay or wait briefly for you to rejoin.
+                    </p>
+                  </div>
+                </button>
+
+                {/* Option 2: End Session for Everyone */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLeaveModal(false);
+                    handleEndForEveryone();
+                  }}
+                  className="w-full text-left p-4 rounded-xl bg-rose-950/40 hover:bg-rose-900/50 border border-rose-800/60 transition cursor-pointer group flex items-start gap-3"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition">
+                    <PhoneOff className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-rose-300 text-xs group-hover:text-rose-200 transition">
+                      End Session for Everyone
+                    </div>
+                    <p className="text-rose-200/70 text-[11px] mt-0.5 leading-snug">
+                      Conclude and close the classroom for both you and {otherUser.name} immediately.
+                    </p>
+                  </div>
+                </button>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveModal(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Peer Ended Session Modal */}
+      <AnimatePresence>
+        {sessionEndedByPeer && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-slate-900 rounded-2xl max-w-sm w-full border border-slate-800 shadow-2xl p-6 text-white text-center space-y-4"
+            >
+              <div className="w-14 h-14 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-2xl flex items-center justify-center mx-auto">
+                <Sparkles className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-white">
+                  Session Ended by {peerWhoEnded || otherUser.name}
+                </h3>
+                <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
+                  {peerWhoEnded || otherUser.name} concluded the classroom session for both participants.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleSessionFinish();
+                }}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-md"
+              >
+                View Session Summary
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
-

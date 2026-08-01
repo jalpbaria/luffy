@@ -86,7 +86,12 @@ export function mapSupabaseToBooking(row: any): Booking {
     createdAt: row.created_at || new Date().toISOString(),
     completedAt: row.completed_at || undefined,
     cancelledAt: row.cancelled_at || undefined,
-    reminderSent: row.reminder_sent || false
+    reminderSent: row.reminder_sent || false,
+    joinReminderSent: row.join_reminder_sent || false,
+    cancellationReason: row.cancellation_reason || undefined,
+    isLateCancellation: row.is_late_cancellation || false,
+    isNoShow: row.is_no_show || false,
+    noShowParticipantId: row.no_show_participant_id || undefined
   };
 }
 
@@ -106,7 +111,12 @@ export function mapBookingToSupabase(booking: Booking): any {
     notes: booking.notes || null,
     completed_at: booking.completedAt || null,
     cancelled_at: booking.cancelledAt || null,
-    reminder_sent: booking.reminderSent || false
+    reminder_sent: booking.reminderSent || false,
+    join_reminder_sent: booking.joinReminderSent || false,
+    cancellation_reason: booking.cancellationReason || null,
+    is_late_cancellation: booking.isLateCancellation || false,
+    is_no_show: booking.isNoShow || false,
+    no_show_participant_id: booking.noShowParticipantId || null
   };
   // Only assign ID if it is a valid uuid
   if (booking.id && !booking.id.startsWith('booking-')) {
@@ -181,7 +191,10 @@ export function mapSupabaseToLiveSession(row: any): LiveSession {
     status: row.status || 'scheduled',
     startTime: row.start_time || new Date().toISOString(),
     endTime: row.end_time || undefined,
-    createdAt: row.created_at || new Date().toISOString()
+    createdAt: row.created_at || new Date().toISOString(),
+    teacherJoined: row.teacher_joined || false,
+    learnerJoined: row.learner_joined || false,
+    hasBothJoined: row.has_both_joined || false
   };
 }
 
@@ -193,7 +206,10 @@ export function mapLiveSessionToSupabase(session: LiveSession): any {
     status: session.status,
     start_time: session.startTime,
     end_time: session.endTime || null,
-    created_at: session.createdAt
+    created_at: session.createdAt,
+    teacher_joined: session.teacherJoined || false,
+    learner_joined: session.learnerJoined || false,
+    has_both_joined: session.hasBothJoined || false
   };
   if (session.id && !session.id.startsWith('session-')) {
     row.id = session.id;
