@@ -20,7 +20,6 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
     'user-alex', 'user-sofia', 'user-marcus', 'user-elena', 'user-david',
     'user-maya', 'user-liam', 'user-yuki', 'user-zara', 'user-tyler'
   ];
-  const isCreatedAccount = !DEFAULT_USER_IDS.includes(currentUser.id);
 
   const hasConfirmedBookingWith = (otherUserId: string) =>
     bookings.some(b =>
@@ -32,7 +31,6 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
   const [activeContactId, setActiveContactId] = useState<string | null>(initialActiveContactId || (contacts[0]?.id || null));
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   
   // Real WebRTC Voice Call States
@@ -284,72 +282,9 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
         return [...prev, savedMsg];
       });
       setInputText('');
-
-      // Auto reply simulation after 2 seconds for rich interactivity!
-      simulateAutoReply();
     } catch (err) {
       console.error('Error sending message to Supabase:', err);
     }
-  };
-
-  const simulateAutoReply = () => {
-    if (isCreatedAccount) {
-      console.log('Auto-chat simulation is disabled for custom created accounts.');
-      return;
-    }
-
-    if (!activeContact) return;
-    setIsTyping(true);
-
-    setTimeout(async () => {
-      setIsTyping(false);
-      const responses = [
-        `Thanks for reaching out! I'd love to swap skills with you. Let me check my schedule for a session!`,
-        `That sounds perfect! Let's arrange a Live 1-on-1 Swap. Does morning or evening work better for you?`,
-        `Nice message! Let's definitely coordinate. I can help you with that and we can work on our exchange goals.`,
-        `I just checked your profile and I would definitely love to learn what you offer! Let's book a session.`,
-        `Great details! I've uploaded the resources we need for our exchange project. Let me know what you think.`
-      ];
-      const randomText = responses[Math.floor(Math.random() * responses.length)];
-
-      const replyMsgTemp: Message = {
-        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-        senderId: activeContact.id,
-        receiverId: currentUser.id,
-        text: randomText,
-        timestamp: new Date().toISOString()
-      };
-
-      try {
-        const { data, error } = await supabase
-          .from('messages')
-          .insert(mapMessageToSupabase(replyMsgTemp))
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        // Create a notification for the currentUser as well
-        await supabase.from('notifications').insert({
-          user_id: currentUser.id,
-          title: 'New Message',
-          message: `You received a message: "${randomText.substring(0, 30)}${randomText.length > 30 ? '...' : ''}"`,
-          type: 'message',
-          read: false,
-          timestamp: new Date().toISOString()
-        });
-
-        const savedReply = data ? mapSupabaseToMessage(data) : replyMsgTemp;
-
-        // Append if activeContactId is still activeContact.id
-        setMessages(prev => {
-          if (prev.some(m => m.id === savedReply.id)) return prev;
-          return [...prev, savedReply];
-        });
-      } catch (err) {
-        console.error('Error receiving auto reply in Supabase:', err);
-      }
-    }, 2000);
   };
 
   // Simulating File upload selection
@@ -675,18 +610,6 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
         <div className="p-4 border-b border-zinc-800">
           <h3 className="font-bold text-white text-sm">Direct Contacts</h3>
           <p className="text-zinc-400 text-[10px] mt-0.5">Click a contact to exchange messages</p>
-          
-          {isCreatedAccount ? (
-            <div className="mt-2.5 px-2.5 py-1 bg-amber-500/10 text-amber-300 rounded-lg border border-amber-500/20 font-mono text-[9px] flex items-center gap-1.5 font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-              Auto-Chat Simulator: Disabled
-            </div>
-          ) : (
-            <div className="mt-2.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-300 rounded-lg border border-indigo-500/20 font-mono text-[9px] flex items-center gap-1.5 font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              Auto-Chat Simulator: Active
-            </div>
-          )}
         </div>
 
         <div className="flex-1 overflow-y-auto divide-y divide-zinc-800/60">
@@ -837,17 +760,6 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                     </div>
                   );
                 })
-              )}
-
-              {/* Typing indicator */}
-              {isTyping && (
-                <div className="flex justify-start">
-                  <div className="p-3 bg-zinc-800 border border-zinc-700 rounded-2xl rounded-bl-none flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                  </div>
-                </div>
               )}
 
               <div ref={chatEndRef} />
