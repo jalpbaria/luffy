@@ -25,6 +25,7 @@ import {
 import { UserProfile, AppNotification, Booking } from '../types';
 import { Avatar } from './ui/Avatar';
 import { Badge } from './ui/Badge';
+import { supabase, mapSupabaseToBooking } from '../lib/supabase';
 
 export type NavTabId = 'dashboard' | 'explore' | 'chat' | 'study-hub' | 'skill-path' | 'gamification' | 'profile';
 
@@ -277,12 +278,49 @@ export const Navbar: React.FC<NavbarProps> = ({
                           const bookingResolvedStatus = relatedBooking && relatedBooking.status !== 'pending' ? relatedBooking.status : null;
                           const isResolved = isActedOnLocally || !!bookingResolvedStatus;
 
+                          const handleJoinSession = async (e?: React.MouseEvent) => {
+                            if (e) e.stopPropagation();
+                            onMarkNotificationRead(notif.id);
+                            setIsNotifOpen(false);
+
+                            if (!onStartLiveSession) return;
+
+                            let target = relatedBooking;
+                            if (!target && notif.bookingId) {
+                              try {
+                                const { data } = await supabase.from('bookings').select('*').eq('id', notif.bookingId).single();
+                                if (data) target = mapSupabaseToBooking(data);
+                              } catch (err) {
+                                console.warn('Could not fetch booking for notification:', err);
+                              }
+                            }
+
+                            if (target) {
+                              onStartLiveSession(target);
+                            } else {
+                              setActiveTab('dashboard');
+                            }
+                          };
+
+                          const canJoinRoom = !!notif.bookingId && onStartLiveSession && (
+                            notif.type === 'call' ||
+                            notif.type === 'match' ||
+                            (relatedBooking && (relatedBooking.status === 'confirmed' || relatedBooking.status === 'rescheduled'))
+                          );
+
                           return (
                             <div
                               key={notif.id}
+                              onClick={() => {
+                                if (canJoinRoom) {
+                                  handleJoinSession();
+                                } else {
+                                  onMarkNotificationRead(notif.id);
+                                }
+                              }}
                               className={`p-3 rounded-xl transition flex items-start gap-3 group ${
                                 notif.read ? 'bg-white opacity-80' : 'bg-indigo-50/40'
-                              }`}
+                              } ${canJoinRoom ? 'cursor-pointer hover:bg-indigo-50' : ''}`}
                             >
                               <div className="w-2 h-2 rounded-full bg-indigo-600 mt-2 shrink-0" style={{ opacity: notif.read ? 0 : 1 }} />
                               <div className="flex-1 min-w-0">
@@ -348,15 +386,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                                   {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
 
-                                {relatedBooking && (relatedBooking.status === 'confirmed' || relatedBooking.status === 'rescheduled') && onStartLiveSession && (
+                                {canJoinRoom && (
                                   <div className="mt-2">
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onMarkNotificationRead(notif.id);
-                                        setIsNotifOpen(false);
-                                        onStartLiveSession(relatedBooking);
-                                      }}
+                                      onClick={handleJoinSession}
                                       className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg flex items-center gap-1 shadow-xs transition cursor-pointer border-0"
                                     >
                                       <Video className="w-3.5 h-3.5" />

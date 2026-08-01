@@ -129,8 +129,24 @@ export default function App() {
     }
 
     if (booking.status !== 'confirmed' && booking.status !== 'rescheduled') {
-      alert(`Cannot join: This booking status is currently "${booking.status}". Only confirmed or rescheduled sessions can launch the live classroom.`);
-      return;
+      try {
+        const { data: latestData } = await supabase.from('bookings').select('*').eq('id', booking.id).single();
+        if (latestData) {
+          const freshBooking = mapSupabaseToBooking(latestData);
+          if (freshBooking.status === 'confirmed' || freshBooking.status === 'rescheduled') {
+            booking = freshBooking;
+          } else {
+            alert(`Cannot join: This booking status is currently "${freshBooking.status}". Only confirmed or rescheduled sessions can launch the live classroom.`);
+            return;
+          }
+        } else {
+          alert(`Cannot join: This booking status is currently "${booking.status}". Only confirmed or rescheduled sessions can launch the live classroom.`);
+          return;
+        }
+      } catch (e) {
+        alert(`Cannot join: This booking status is currently "${booking.status}". Only confirmed or rescheduled sessions can launch the live classroom.`);
+        return;
+      }
     }
 
     // 5. Check scheduled session time window (10 min before to 60 min after)
@@ -1717,8 +1733,16 @@ export default function App() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => {
-                const targetBooking = bookings.find(b => b.id === incomingCall.bookingId);
+              onClick={async () => {
+                let targetBooking = bookings.find(b => b.id === incomingCall.bookingId);
+                if (!targetBooking && incomingCall.bookingId) {
+                  try {
+                    const { data } = await supabase.from('bookings').select('*').eq('id', incomingCall.bookingId).single();
+                    if (data) targetBooking = mapSupabaseToBooking(data);
+                  } catch (err) {
+                    console.warn('Could not fetch booking for incoming call:', err);
+                  }
+                }
                 if (targetBooking) {
                   handleStartLiveSession(targetBooking);
                 } else {

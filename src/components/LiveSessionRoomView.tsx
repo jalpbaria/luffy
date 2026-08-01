@@ -140,6 +140,7 @@ export default function LiveSessionRoomView({
   const lobbyVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const channelRef = useRef<any>(null);
@@ -200,6 +201,14 @@ export default function LiveSessionRoomView({
         }
       });
   }, [liveSession.id]);
+
+  // Sync remote stream to video element when entering classroom or when stream is ready
+  useEffect(() => {
+    if (!inLobby && remoteVideoRef.current && remoteStreamRef.current) {
+      remoteVideoRef.current.srcObject = remoteStreamRef.current;
+      remoteVideoRef.current.play().catch(e => console.warn('[LiveSessionRoomView] Remote video play warning:', e));
+    }
+  }, [inLobby]);
 
   // 1. Initialize & Verify Local Devices (Camera & Microphone)
   const initLobbyMedia = async () => {
@@ -490,8 +499,12 @@ export default function LiveSessionRoomView({
 
     pc.ontrack = (event) => {
       console.log('[WebRTC] Received remote track:', event.track.kind);
-      if (remoteVideoRef.current && event.streams[0]) {
-        remoteVideoRef.current.srcObject = event.streams[0];
+      if (event.streams && event.streams[0]) {
+        remoteStreamRef.current = event.streams[0];
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+          remoteVideoRef.current.play().catch(e => console.warn('[WebRTC] Remote play error:', e));
+        }
         setConnectionStatus('connected');
         setRemoteUserLeft(false);
         setHasBothJoinedState(true);
@@ -570,6 +583,25 @@ export default function LiveSessionRoomView({
             isCameraOn: remoteCam ?? true,
             isMicOn: remoteMic ?? true
           });
+        } else if (signalType === 'request-offer') {
+          if (isTeacher && pc) {
+            console.log('[WebRTC] Received request-offer from peer. Creating offer...');
+            try {
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              channel.send({
+                type: 'broadcast',
+                event: 'signal',
+                payload: {
+                  senderId: currentUser.id,
+                  signalType: 'offer',
+                  offer
+                }
+              });
+            } catch (err) {
+              console.error('[WebRTC] Error creating offer on request-offer:', err);
+            }
+          }
         } else if (signalType === 'offer') {
           console.log('[WebRTC] Received offer from peer');
           await pc.setRemoteDescription(new RTCSessionDescription(offer));
@@ -650,9 +682,9 @@ export default function LiveSessionRoomView({
           console.warn('[LiveSessions] Failed to update hasBothJoined:', e);
         }
 
-        if (isTeacher || currentUser.id < otherUser.id) {
+        if (isTeacher) {
           try {
-            console.log('[WebRTC] Creating offer...');
+            console.log('[WebRTC] Teacher creating offer...');
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
@@ -668,6 +700,21 @@ export default function LiveSessionRoomView({
           } catch (err) {
             console.error('[WebRTC] Error creating offer:', err);
           }
+        } else {
+          // Learner requests offer if connection is not connected after 1s
+          setTimeout(() => {
+            if (pc.connectionState !== 'connected' && channelRef.current) {
+              console.log('[WebRTC] Learner requesting offer from teacher...');
+              channelRef.current.send({
+                type: 'broadcast',
+                event: 'signal',
+                payload: {
+                  senderId: currentUser.id,
+                  signalType: 'request-offer'
+                }
+              });
+            }
+          }, 1000);
         }
       } else {
         if (connectionStatus === 'connected') {
