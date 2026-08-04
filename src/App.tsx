@@ -688,7 +688,6 @@ export default function App() {
         rating: 5,
         reviewsCount: 0,
         successfulExchanges: 0,
-        credits: 5,
         badges: [],
         hasSeenOnboarding: false
       };
@@ -960,11 +959,6 @@ export default function App() {
   ) => {
     if (!currentUser) return;
 
-    if (currentUser.credits < 1) {
-      alert('Insufficient credits to book this session.');
-      return;
-    }
-
     const bookingPayload: Booking = {
       id: `booking-${Date.now()}`,
       teacherId: teacher.id,
@@ -983,23 +977,7 @@ export default function App() {
     };
 
     try {
-      // 1. Deduct 1 credit from learner profile in Supabase
-      const updatedLearner = {
-        ...currentUser,
-        credits: Math.max(0, currentUser.credits - 1)
-      };
-
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update(mapProfileToSupabase(updatedLearner))
-        .eq('id', currentUser.id);
-
-      if (profileError) {
-        alert(`Booking failed: ${profileError.message}`);
-        return;
-      }
-
-      // 2. Insert booking row into Supabase bookings table
+      // 1. Insert booking row into Supabase bookings table
       const mappedBooking = mapBookingToSupabase(bookingPayload);
       const { data: insertedBooking, error: insertError } = await supabase
         .from('bookings')
@@ -1008,18 +986,13 @@ export default function App() {
         .single();
 
       if (insertError) {
-        // Rollback credit deduction if possible
-        await supabase
-          .from('profiles')
-          .update(mapProfileToSupabase(currentUser))
-          .eq('id', currentUser.id);
         alert(`Booking failed: ${insertError.message}`);
         return;
       }
 
       const createdBookingId = insertedBooking?.id || bookingPayload.id;
 
-      // 3. Create notifications using Supabase
+      // 2. Create notifications using Supabase
       // Notification to Teacher
       const { error: notif1Err } = await supabase.from('notifications').insert({
         user_id: teacher.id,
@@ -1036,8 +1009,8 @@ export default function App() {
       const { error: notif2Err } = await supabase.from('notifications').insert({
         user_id: currentUser.id,
         title: 'Session Requested',
-        message: `You requested a session with ${teacher.name} for ${skill.name}. 1 credit reserved.`,
-        type: 'credit',
+        message: `You requested a session with ${teacher.name} for ${skill.name}.`,
+        type: 'request',
         booking_id: createdBookingId,
         read: false,
         timestamp: new Date().toISOString()
@@ -1092,12 +1065,11 @@ export default function App() {
       const oldStatus = booking.status;
 
       if (status === 'completed' && oldStatus !== 'completed') {
-        // Teacher earns 1 credit and increases successful exchanges count
+        // Teacher increases successful exchanges count
         const teacher = allUsers.find(u => u.id === booking.teacherId);
         if (teacher) {
           const updatedTeacher = {
             ...teacher,
-            credits: teacher.credits + 1,
             successfulExchanges: teacher.successfulExchanges + 1
           };
 
@@ -1166,9 +1138,9 @@ export default function App() {
         await supabase.from('notifications').insert([
           {
             user_id: booking.teacherId,
-            title: 'Credits Earned!',
-            message: `You earned 1 credit for completing the exchange with ${booking.learnerName}.`,
-            type: 'credit',
+            title: 'Session Completed!',
+            message: `Great job! You completed the exchange with ${booking.learnerName}.`,
+            type: 'match',
             booking_id: booking.id,
             read: false,
             timestamp: new Date().toISOString()
@@ -1196,46 +1168,6 @@ export default function App() {
             .eq('booking_id', booking.id);
         } catch (lsErr) {
           console.warn('[App] Error invalidating connected live session on cancel:', lsErr);
-        }
-
-        // 2. Refund logic: Only refund learner credit if NOT a late cancellation (cancelled > 30 mins before scheduled start)
-        if (!isLateCancellation) {
-          const learner = allUsers.find(u => u.id === booking.learnerId);
-          if (learner) {
-            const updatedLearner = {
-              ...learner,
-              credits: learner.credits + 1
-            };
-
-            const { error: learnerError } = await supabase
-              .from('profiles')
-              .update(mapProfileToSupabase(updatedLearner))
-              .eq('id', learner.id);
-
-            if (learnerError) console.warn('Failed to refund learner credit:', learnerError);
-          }
-
-          // Refund notification to learner
-          await supabase.from('notifications').insert({
-            user_id: booking.learnerId,
-            title: 'Session Cancelled (1 Credit Refunded)',
-            message: `Your booking for ${booking.skillName} was cancelled. 1 credit has been returned to your balance.`,
-            type: 'credit',
-            booking_id: booking.id,
-            read: false,
-            timestamp: new Date().toISOString()
-          });
-        } else {
-          // Late cancellation notification to learner
-          await supabase.from('notifications').insert({
-            user_id: booking.learnerId,
-            title: 'Session Cancelled (Late Cancellation)',
-            message: `Your booking for ${booking.skillName} was cancelled within 30 minutes of the start time. As per the late cancellation policy, spent credit is non-refundable.`,
-            type: 'request',
-            booking_id: booking.id,
-            read: false,
-            timestamp: new Date().toISOString()
-          });
         }
 
         // 3. Notify the other participant immediately in real-time
@@ -1471,7 +1403,7 @@ export default function App() {
       const uData = (dbRows || []).map(mapSupabaseToProfile);
       setAllUsers(uData);
 
-      // Refresh current user stats (e.g. credits, swaps count)
+      // Refresh current user stats (e.g. swaps count)
       const freshCurrentUser = uData.find((u: any) => u.id === currentUser.id);
       if (freshCurrentUser) {
         setCurrentUser(freshCurrentUser);
@@ -1535,7 +1467,7 @@ export default function App() {
         </div>
         <footer className="bg-white border-t border-slate-200 py-4 text-center text-[10px] text-slate-400 font-medium">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <p>© 2026 Skill Swap Platform. Built for mutual skill barters. No money required. Powered by Spark Economy.</p>
+            <p>© 2026 Skill Swap Platform. Built for mutual skill barters. No money required.</p>
           </div>
         </footer>
       </div>
@@ -1616,7 +1548,6 @@ export default function App() {
                     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
                     skillsToTeach: [],
                     skillsToLearn: [],
-                    credits: 1,
                     completedSwapsCount: 0,
                     badges: []
                   }
@@ -1713,7 +1644,7 @@ export default function App() {
             <div className="w-5 h-5 rounded-md bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">⇆</div>
             <span className="font-semibold text-zinc-300">SkillSwap SaaS 2026</span>
           </div>
-          <p>© 2026 ExchangeYourSkill. Built for mutual skill barters. No money required. Powered by Spark Economy.</p>
+          <p>© 2026 ExchangeYourSkill. Built for mutual skill barters. No money required.</p>
         </div>
       </footer>
 

@@ -314,12 +314,6 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
           <h1 className="text-3xl font-bold tracking-tight text-white">Discover Skill Swappers</h1>
           <p className="text-zinc-400 mt-1 text-sm">Find your perfect skill-sharing partner. Filter by language, level, and availability.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="px-3.5 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-xs font-semibold text-indigo-300 flex items-center gap-2 backdrop-blur-md">
-            <span>✨ Spark Economy</span>
-            <span className="font-bold bg-indigo-500/20 text-indigo-200 px-2 py-0.5 rounded-full text-[10px]">{currentUser.credits} Credits Available</span>
-          </div>
-        </div>
       </div>
 
       {/* Search and Filters bar */}
@@ -945,7 +939,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                     <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
                         <h5 className="font-bold text-white text-sm">Ready to make the exchange?</h5>
-                        <p className="text-zinc-400 text-xs mt-0.5">Booking costs 1 Spark credit. No money required.</p>
+                        <p className="text-zinc-400 text-xs mt-0.5">Free skill exchange. No money or tokens required.</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button 
@@ -973,7 +967,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                           <CheckCircle2 className="w-10 h-10" />
                         </div>
                         <h3 className="text-lg font-bold text-white">Exchange Requested!</h3>
-                        <p className="text-zinc-400 text-sm">We reserved 1 credit. {selectedTeacher.name} will review your request.</p>
+                        <p className="text-zinc-400 text-sm">{selectedTeacher.name} will review your request.</p>
                       </div>
                     ) : (
                       <>
@@ -1081,12 +1075,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                           </button>
                           <button 
                             type="submit"
-                            disabled={currentUser.credits < 1}
-                            className={`px-5 py-2 rounded-xl font-semibold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer ${
-                              currentUser.credits >= 1 
-                                ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-indigo-500/20' 
-                                : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                            }`}
+                            className="px-5 py-2 rounded-xl font-semibold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-indigo-500/20"
                           >
                             <Calendar className="w-4 h-4" />
                             Request Session

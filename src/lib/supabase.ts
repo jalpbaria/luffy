@@ -31,7 +31,7 @@ export function mapSupabaseToProfile(row: any): UserProfile {
     rating: typeof row.rating === 'number' ? row.rating : parseFloat(row.rating || '5.0'),
     reviewsCount: row.reviews_count || 0,
     successfulExchanges: row.successful_exchanges || 0,
-    credits: row.credits || 0,
+    credits: 0,
     timeZone: row.time_zone || 'EST',
     badges: Array.isArray(row.badges) ? row.badges : [],
     hasSeenOnboarding: row.has_seen_onboarding ?? true
@@ -61,7 +61,6 @@ export function mapProfileToSupabase(profile: UserProfile): any {
     rating: profile.rating,
     reviews_count: profile.reviewsCount,
     successful_exchanges: profile.successfulExchanges,
-    credits: profile.credits,
     time_zone: profile.timeZone,
     badges: profile.badges,
     has_seen_onboarding: profile.hasSeenOnboarding ?? false

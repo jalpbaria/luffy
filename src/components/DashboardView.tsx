@@ -7,6 +7,7 @@ import {
   Play, Bot, Heart, Share2, Activity, ShieldCheck, ArrowRight, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review } from '../types';
+import { calculateUserXP } from '../lib/gamification';
 import { getSessionGateStatus, computeStartTime } from '../lib/liveSessions';
 import { computeAllUserMatches } from '../lib/matchUtils';
 import { VerifiedSkillBadge } from './VerifiedSkillBadge';
@@ -429,7 +430,7 @@ export default function DashboardView({
 
   // XP & Gamification Metrics
   const xpPoints = useMemo(() => {
-    return (currentUser.credits || 0) * 120 + (currentUser.successfulExchanges || 0) * 250 + 350;
+    return calculateUserXP(currentUser);
   }, [currentUser]);
 
   const userLevel = useMemo(() => {
@@ -1298,7 +1299,7 @@ export default function DashboardView({
                         <div className="space-y-1 text-xs">
                           <p className="font-bold">Late Cancellation Notice (&lt;30 Mins)</p>
                           <p className="text-amber-800 leading-snug">
-                            This session is scheduled to start in less than 30 minutes. Cancelling now is flagged as a late cancellation. Spent credit will <strong>not</strong> be refunded.
+                            This session is scheduled to start in less than 30 minutes. Cancelling now is flagged as a late cancellation.
                           </p>
                         </div>
                       </div>
@@ -1311,7 +1312,7 @@ export default function DashboardView({
                       <div className="space-y-1 text-xs">
                         <p className="font-bold">Standard Cancellation Policy</p>
                         <p className="text-emerald-800 leading-snug">
-                          Cancelling more than 30 minutes prior to session start will automatically return 1 credit to the learner's balance.
+                          You can cancel standard bookings anytime prior to 30 minutes before the session starts.
                         </p>
                       </div>
                     </div>

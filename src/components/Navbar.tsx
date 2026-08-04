@@ -444,9 +444,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {currentUser.name}
                   </p>
                   <div className="flex items-center gap-1 mt-0.5">
-                    <Zap className="w-3 h-3 text-amber-500 fill-amber-400" />
-                    <span className="text-[10px] font-extrabold text-amber-700">
-                      {currentUser.credits} Credits
+                    <span className="text-[10px] font-semibold text-slate-500">
+                      {currentUser.successfulExchanges || 0} Swaps
                     </span>
                   </div>
                 </div>
@@ -474,14 +473,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <p className="font-extrabold text-slate-900 text-sm truncate">{currentUser.name}</p>
                           <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
                         </div>
-                      </div>
-                      <div className="mt-3 pt-2 border-t border-indigo-100/80 flex items-center justify-between text-xs font-bold">
-                        <span className="text-slate-600 flex items-center gap-1">
-                          <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-400" /> Spark Credits
-                        </span>
-                        <span className="text-indigo-700 font-extrabold px-2 py-0.5 bg-white rounded-full border border-indigo-200">
-                          {currentUser.credits}
-                        </span>
                       </div>
                     </div>
 

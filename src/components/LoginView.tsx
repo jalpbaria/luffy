@@ -11,7 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface LoginViewProps {
   onLogin: (user: UserProfile) => void;
-  onRegister: (newUserPayload: Omit<UserProfile, 'id' | 'rating' | 'reviewsCount' | 'successfulExchanges' | 'credits' | 'badges'> & { id: string }) => Promise<{ success: boolean; error?: string }>;
+  onRegister: (newUserPayload: Omit<UserProfile, 'id' | 'rating' | 'reviewsCount' | 'successfulExchanges' | 'badges'> & { id: string }) => Promise<{ success: boolean; error?: string }>;
   allUsers: UserProfile[];
   accountDeletedNotice?: string;
 }
@@ -286,7 +286,7 @@ export default function LoginView({ onLogin, onRegister, allUsers, accountDelete
     {
       icon: <Sparkles className="w-5 h-5 text-blue-600" />,
       title: 'Teach What You Know',
-      description: 'Share your unique expertise, build authority, and earn barter credits.',
+      description: 'Share your unique expertise, build authority, and gain community recognition.',
       bg: 'bg-blue-50/80 border-blue-100'
     },
     {

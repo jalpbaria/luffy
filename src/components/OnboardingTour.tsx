@@ -37,7 +37,7 @@ export default function OnboardingTour({ onComplete, userName }: OnboardingTourP
       accentGradient: 'from-emerald-500 to-teal-600',
       highlights: [
         '100% Free Skill Barter System',
-        'Spend & Earn Spark Credits',
+        'Direct Peer-to-Peer Swapping',
         'Global Peer-to-Peer Learning'
       ]
     },
@@ -57,17 +57,17 @@ export default function OnboardingTour({ onComplete, userName }: OnboardingTourP
       ]
     },
     {
-      id: 'credits',
-      tag: 'Credit Economy',
-      title: 'Spark Credits & Swapping',
-      description: 'You start with 5 Spark Credits right away! Spend 1 credit to book a live 1-on-1 session or chat guidance with an expert swapper.',
+      id: 'swapping',
+      tag: 'Skill Swapping',
+      title: 'Book Sessions & Swap Skills',
+      description: 'Book 1-on-1 sessions or chat guidance directly with expert swappers. Share knowledge freely without any restrictions.',
       icon: <Zap className="w-8 h-8 text-amber-500" />,
       badgeBg: 'bg-amber-100/80 border-amber-200',
       badgeText: 'text-amber-800',
       accentGradient: 'from-amber-500 to-orange-600',
       highlights: [
-        'Spend 1 Credit to book a learning session',
-        'Earn 1 Credit back whenever you teach a session',
+        'Book unlimited learning sessions for free',
+        'Gain XP and badges whenever you teach',
         'Fair community-driven exchange model'
       ]
     },

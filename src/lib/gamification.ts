@@ -32,11 +32,10 @@ export function triggerCelebrationConfetti() {
 
 // XP & Level calculations
 export function calculateUserXP(user: UserProfile): number {
-  const base = 350;
-  const creditXP = (user.credits || 0) * 120;
-  const swapXP = (user.successfulExchanges || 0) * 250;
-  const badgeXP = (user.badges?.length || 0) * 150;
-  return base + creditXP + swapXP + badgeXP;
+  const base = 500;
+  const swapXP = (user.successfulExchanges || 0) * 350;
+  const badgeXP = (user.badges?.length || 0) * 200;
+  return base + swapXP + badgeXP;
 }
 
 export function calculateUserLevel(xp: number): { level: number; title: string; currentLevelXp: number; nextLevelXp: number; progressPercent: number } {
