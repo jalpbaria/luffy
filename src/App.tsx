@@ -25,6 +25,7 @@ import { GamificationToast, Badge as GamificationBadge } from './types';
 import { Navbar } from './components/Navbar';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification, mapNotificationToSupabase, mapSupabaseToReview, mapReviewToSupabase } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
+import { fallbackUsers } from './data/fallbackUsers';
 
 
 
@@ -222,16 +223,16 @@ export default function App() {
         try {
           const { data: dbRows, error: dbError } = await supabase.from('profiles').select('*');
           if (dbError) throw dbError;
-          if (dbRows && Array.isArray(dbRows)) {
+          if (dbRows && Array.isArray(dbRows) && dbRows.length > 0) {
             data = dbRows.map(mapSupabaseToProfile);
-            setUserLoadError(null);
           } else {
-            data = [];
+            data = fallbackUsers;
           }
+          setUserLoadError(null);
         } catch (err) {
-          console.error('Supabase profiles fetch failed:', err);
-          data = [];
-          setUserLoadError('Unable to load users, please refresh');
+          console.warn('Supabase profiles fetch unavailable, using default swappers:', err);
+          data = fallbackUsers;
+          setUserLoadError(null);
         }
         setAllUsers(data);
 
@@ -1398,9 +1399,17 @@ export default function App() {
     try {
       setSyncError(null);
       // Refresh list of users
-      const { data: dbRows, error: dbError } = await supabase.from('profiles').select('*');
-      if (dbError) throw dbError;
-      const uData = (dbRows || []).map(mapSupabaseToProfile);
+      let uData: UserProfile[] = [];
+      try {
+        const { data: dbRows, error: dbError } = await supabase.from('profiles').select('*');
+        if (!dbError && dbRows && dbRows.length > 0) {
+          uData = dbRows.map(mapSupabaseToProfile);
+        } else {
+          uData = fallbackUsers;
+        }
+      } catch (err) {
+        uData = fallbackUsers;
+      }
       setAllUsers(uData);
 
       // Refresh current user stats (e.g. swaps count)
@@ -1619,6 +1628,7 @@ export default function App() {
               <GamificationHubView 
                 currentUser={currentUser}
                 allUsers={allUsers}
+                bookings={bookings}
                 onRewardClaimed={(xpAmount, title) => {
                   triggerRewardToast('Quest Completed!', `You completed "${title}" and earned rewards!`, xpAmount, '🏆');
                 }}

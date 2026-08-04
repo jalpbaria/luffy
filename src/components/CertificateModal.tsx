@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Certificate } from '../types';
 import { Award, CheckCircle, Download, Share2, Sparkles, X, ShieldCheck } from 'lucide-react';
 import { triggerCelebrationConfetti } from '../lib/gamification';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 interface CertificateModalProps {
   certificate: Certificate | null;
@@ -10,11 +12,56 @@ interface CertificateModalProps {
 }
 
 export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate, onClose }) => {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const certificateRef = useRef<HTMLDivElement>(null);
+
   if (!certificate) return null;
 
-  const handleDownload = () => {
-    triggerCelebrationConfetti();
-    alert(`Downloading Official Skill Certificate: ${certificate.certificateCode}.pdf`);
+  const handleDownload = async () => {
+    if (!certificateRef.current || isGenerating) return;
+
+    try {
+      setIsGenerating(true);
+
+      const element = certificateRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      const filename = `SkillSwap-Certificate-${certificate.certificateCode}.pdf`;
+      pdf.save(filename);
+
+      triggerCelebrationConfetti();
+    } catch (err) {
+      console.error('Failed to generate PDF, attempting PNG fallback:', err);
+      try {
+        if (certificateRef.current) {
+          const canvas = await html2canvas(certificateRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+          const image = canvas.toDataURL('image/png');
+          const link = document.createElement('a');
+          link.href = image;
+          link.download = `SkillSwap-Certificate-${certificate.certificateCode}.png`;
+          link.click();
+          triggerCelebrationConfetti();
+        }
+      } catch (fallbackErr) {
+        console.error('Download failed:', fallbackErr);
+        alert('Could not download certificate. Please try again.');
+      }
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleShare = () => {
@@ -54,7 +101,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate,
           </div>
 
           {/* Certificate Inner Frame */}
-          <div className="p-8 sm:p-12 text-center bg-gradient-to-b from-amber-50/50 via-white to-amber-50/30 relative border-8 border-double border-amber-300 m-4 rounded-2xl shadow-inner">
+          <div ref={certificateRef} className="p-8 sm:p-12 text-center bg-gradient-to-b from-amber-50/50 via-white to-amber-50/30 relative border-8 border-double border-amber-300 m-4 rounded-2xl shadow-inner">
             
             {/* Watermark Logo */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none">
@@ -123,9 +170,19 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ certificate,
               </button>
               <button
                 onClick={handleDownload}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-extrabold text-xs transition shadow-md shadow-indigo-500/20 flex items-center gap-1.5 cursor-pointer"
+                disabled={isGenerating}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-extrabold text-xs transition shadow-md shadow-indigo-500/20 flex items-center gap-1.5 cursor-pointer"
               >
-                <Download className="w-4 h-4" /> Download PDF
+                {isGenerating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" /> Download PDF
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import confetti from 'canvas-confetti';
-import { UserProfile, Challenge, Certificate, LeaderboardEntry, Badge } from '../types';
+import { UserProfile, Challenge, Certificate, LeaderboardEntry, Badge, Booking } from '../types';
 
 // Fire Confetti Animation
 export function triggerCelebrationConfetti() {
@@ -146,29 +146,64 @@ export const initialWeeklyChallenges: Challenge[] = [
   }
 ];
 
-// Initial Certificates
-export function getSampleCertificates(user: UserProfile): Certificate[] {
-  return [
-    {
-      id: 'cert-1',
-      title: 'Verified Peer Instructor Certificate',
-      recipientName: user.name,
-      skillName: user.skillsOffered?.[0]?.name || 'Web Development & System Design',
-      issueDate: '2026-02-15',
-      certificateCode: 'SKILLSWAP-2026-PRO-9821',
-      issuer: 'SkillSwap Global Peer Academy'
-    },
-    {
-      id: 'cert-2',
-      title: 'Conversational Fluency Mastery',
-      recipientName: user.name,
-      skillName: user.skillsWanted?.[0]?.name || 'Conversational Spanish',
-      issueDate: '2026-01-20',
-      certificateCode: 'SKILLSWAP-2026-LANG-4412',
-      issuer: 'SkillSwap Language Exchange Circle'
+// Certificates generated dynamically for each skill where user was learner in completed bookings
+export function getSampleCertificates(user: UserProfile, bookings: Booking[] = []): Certificate[] {
+  if (!user || !bookings || bookings.length === 0) {
+    return [];
+  }
+
+  // Filter completed bookings where current user is the learner
+  const completedLearnerBookings = bookings.filter(
+    (b) => b.learnerId === user.id && b.status === 'completed' && b.skillName
+  );
+
+  if (completedLearnerBookings.length === 0) {
+    return [];
+  }
+
+  // Group by skill_name
+  const skillGroupMap = new Map<string, Booking>();
+
+  completedLearnerBookings.forEach((booking) => {
+    const key = booking.skillName.trim().toLowerCase();
+    if (!skillGroupMap.has(key)) {
+      skillGroupMap.set(key, booking);
+    } else {
+      const existing = skillGroupMap.get(key)!;
+      const existingDate = existing.completedAt || existing.date || '';
+      const currentDate = booking.completedAt || booking.date || '';
+      if (currentDate > existingDate) {
+        skillGroupMap.set(key, booking);
+      }
     }
-  ];
+  });
+
+  const certificates: Certificate[] = [];
+
+  skillGroupMap.forEach((booking) => {
+    const rawDate = booking.completedAt || booking.date || new Date().toISOString();
+    const issueDate = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate;
+
+    // Deterministic certificate code from booking ID
+    const cleanId = booking.id.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const certSuffix = cleanId.slice(-8).padStart(8, 'X');
+    const certificateCode = `SKILLSWAP-2026-${certSuffix}`;
+
+    certificates.push({
+      id: `cert-${booking.id}`,
+      title: `${booking.skillName} Mastery Certificate`,
+      recipientName: user.name,
+      skillName: booking.skillName,
+      issueDate,
+      certificateCode,
+      issuer: 'SkillSwap Global Peer Academy'
+    });
+  });
+
+  return certificates;
 }
+
+export const getUserCertificates = getSampleCertificates;
 
 // Build Global Leaderboard Ranking
 export function buildGlobalLeaderboard(allUsers: UserProfile[]): LeaderboardEntry[] {

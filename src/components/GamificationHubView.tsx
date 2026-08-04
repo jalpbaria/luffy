@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { UserProfile, Challenge, Certificate, LeaderboardEntry, Badge } from '../types';
+import { UserProfile, Challenge, Certificate, LeaderboardEntry, Badge, Booking } from '../types';
 import { 
   Trophy, Zap, Flame, Award, CheckCircle2, ShieldCheck, Star, Clock, Target, 
   Sparkles, Medal, ChevronRight, Download, Share2, Compass, Play, RefreshCw, Check
@@ -16,6 +16,7 @@ import { CertificateModal } from './CertificateModal';
 interface GamificationHubViewProps {
   currentUser: UserProfile;
   allUsers: UserProfile[];
+  bookings?: Booking[];
   onRewardClaimed: (xpAmount: number, challengeTitle: string) => void;
   onNavigateToExplore?: () => void;
 }
@@ -23,6 +24,7 @@ interface GamificationHubViewProps {
 export function GamificationHubView({
   currentUser,
   allUsers,
+  bookings = [],
   onRewardClaimed,
   onNavigateToExplore
 }: GamificationHubViewProps) {
@@ -36,7 +38,7 @@ export function GamificationHubView({
   const userLevelInfo = useMemo(() => calculateUserLevel(userXp), [userXp]);
 
   // Certificates
-  const userCertificates = useMemo(() => getSampleCertificates(currentUser), [currentUser]);
+  const userCertificates = useMemo(() => getSampleCertificates(currentUser, bookings), [currentUser, bookings]);
 
   // Leaderboard
   const leaderboardEntries = useMemo(() => buildGlobalLeaderboard(allUsers), [allUsers]);
