@@ -34,7 +34,8 @@ export function mapSupabaseToProfile(row: any): UserProfile {
     credits: 0,
     timeZone: row.time_zone || 'EST',
     badges: Array.isArray(row.badges) ? row.badges : [],
-    hasSeenOnboarding: row.has_seen_onboarding ?? true
+    hasSeenOnboarding: row.has_seen_onboarding ?? true,
+    lastActive: row.last_active || undefined
   };
 }
 
@@ -63,6 +64,7 @@ export function mapProfileToSupabase(profile: UserProfile): any {
     successful_exchanges: profile.successfulExchanges,
     time_zone: profile.timeZone,
     badges: profile.badges,
+    last_active: profile.lastActive || new Date().toISOString(),
     has_seen_onboarding: profile.hasSeenOnboarding ?? false
   };
 }
@@ -162,7 +164,9 @@ export function mapSupabaseToMessage(row: any): Message {
     text: row.text,
     fileUrl: row.file_url || undefined,
     fileName: row.file_name || undefined,
-    timestamp: row.timestamp || new Date().toISOString()
+    timestamp: row.timestamp || new Date().toISOString(),
+    status: row.status || 'sent',
+    replyToMessageId: row.reply_to_message_id || undefined
   };
 }
 
@@ -173,7 +177,9 @@ export function mapMessageToSupabase(msg: Message): any {
     text: msg.text,
     file_url: msg.fileUrl || null,
     file_name: msg.fileName || null,
-    timestamp: msg.timestamp
+    timestamp: msg.timestamp,
+    status: msg.status || 'sent',
+    reply_to_message_id: msg.replyToMessageId || null
   };
   if (msg.id && !msg.id.startsWith('msg-')) {
     row.id = msg.id;

@@ -40,6 +40,7 @@ export interface UserProfile {
   timeZone: string;
   badges: Badge[];
   hasSeenOnboarding?: boolean;
+  lastActive?: string;
 }
 
 export type LearningOption =
@@ -99,6 +100,8 @@ export interface Message {
   fileUrl?: string;
   fileName?: string;
   timestamp: string;
+  status?: 'sent' | 'delivered' | 'read';
+  replyToMessageId?: string;
 }
 
 export interface Review {

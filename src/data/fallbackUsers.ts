@@ -29,7 +29,8 @@ export const fallbackUsers: UserProfile[] = [
       { id: 'b1', name: 'Master Tutor', icon: '🏆', description: 'Taught 10+ successful sessions', dateEarned: '2026-01-10' },
       { id: 'b2', name: 'Verified Instructor', icon: '⚡', description: 'Passed peer review', dateEarned: '2026-01-15' }
     ],
-    hasSeenOnboarding: true
+    hasSeenOnboarding: true,
+    lastActive: new Date(Date.now() - 5 * 60 * 1000).toISOString()
   },
   {
     id: 'user-maria-garcia',
@@ -58,7 +59,8 @@ export const fallbackUsers: UserProfile[] = [
     badges: [
       { id: 'b3', name: 'Polyglot Guru', icon: '🌍', description: 'Taught 20+ language classes', dateEarned: '2026-01-05' }
     ],
-    hasSeenOnboarding: true
+    hasSeenOnboarding: true,
+    lastActive: new Date(Date.now() - 35 * 60 * 1000).toISOString()
   },
   {
     id: 'user-liam-johnson',
@@ -84,7 +86,8 @@ export const fallbackUsers: UserProfile[] = [
     successfulExchanges: 9,
     timeZone: 'PST',
     badges: [],
-    hasSeenOnboarding: true
+    hasSeenOnboarding: true,
+    lastActive: new Date(Date.now() - 3 * 3600 * 1000).toISOString()
   },
   {
     id: 'user-priya-patel',
@@ -110,7 +113,8 @@ export const fallbackUsers: UserProfile[] = [
     successfulExchanges: 8,
     timeZone: 'EST',
     badges: [],
-    hasSeenOnboarding: true
+    hasSeenOnboarding: true,
+    lastActive: new Date(Date.now() - 26 * 3600 * 1000).toISOString()
   }
 ];
 

@@ -295,6 +295,24 @@ export default function App() {
     };
   }, []);
 
+  // Periodic last_active update for logged in user
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const updateLastActive = async () => {
+      const nowIso = new Date().toISOString();
+      try {
+        await supabase.from('profiles').update({ last_active: nowIso }).eq('id', currentUser.id);
+      } catch (err) {
+        // Silent catch if table/column missing
+      }
+    };
+
+    updateLastActive();
+    const interval = setInterval(updateLastActive, 60000);
+    return () => clearInterval(interval);
+  }, [currentUser?.id]);
+
   // Set up Supabase Realtime subscription for notifications when currentUser changes
   useEffect(() => {
     if (!currentUser?.id) return;

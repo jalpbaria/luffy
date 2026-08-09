@@ -2,11 +2,67 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Send, Phone, Paperclip, Mic, MicOff, 
-  X, PhoneOff, Circle, Check, CheckCheck, Smile, HelpCircle, FileText, Image, Globe, ArrowLeft
+  X, PhoneOff, Circle, Check, CheckCheck, Smile, HelpCircle, FileText, Image, Globe, ArrowLeft, CornerUpLeft
 } from 'lucide-react';
 import { UserProfile, Message, Booking } from '../types';
 import { supabase, mapSupabaseToMessage, mapMessageToSupabase } from '../lib/supabase';
 import { EmptyState } from './ui';
+
+function isDifferentDay(ts1: string, ts2: string): boolean {
+  const d1 = new Date(ts1);
+  const d2 = new Date(ts2);
+  return (
+    d1.getFullYear() !== d2.getFullYear() ||
+    d1.getMonth() !== d2.getMonth() ||
+    d1.getDate() !== d2.getDate()
+  );
+}
+
+function formatDateSeparator(timestamp: string): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+
+  const isSameDay = (d1: Date, d2: Date) =>
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate();
+
+  if (isSameDay(date, now)) {
+    return 'Today';
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (isSameDay(date, yesterday)) {
+    return 'Yesterday';
+  }
+
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+function formatLastSeen(lastActiveStr?: string): string {
+  if (!lastActiveStr) return 'Offline';
+  const date = new Date(lastActiveStr);
+  if (isNaN(date.getTime())) return 'Offline';
+
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'Last seen just now';
+  if (diffMins < 60) return `Last seen ${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
+  if (diffHours < 24) return `Last seen ${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+  if (diffDays === 1) return 'Last seen yesterday';
+  if (diffDays < 7) return `Last seen ${diffDays} days ago`;
+  return `Last seen on ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+}
 
 interface ChatViewProps {
   currentUser: UserProfile;
@@ -29,6 +85,11 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
     );
 
   const [activeContactId, setActiveContactId] = useState<string | null>(initialActiveContactId || (contacts[0]?.id || null));
+  const activeContactIdRef = useRef<string | null>(activeContactId);
+  useEffect(() => {
+    activeContactIdRef.current = activeContactId;
+  }, [activeContactId]);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
@@ -44,7 +105,15 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
     callerAvatar: string;
   } | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
+  const [typingUsers, setTypingUsers] = useState<Record<string, number>>({});
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [latestMessageTimes, setLatestMessageTimes] = useState<Record<string, string>>({});
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
+
+  const lastTypingSentRef = useRef<number>(0);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Stream and WebRTC Connection references
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -111,6 +180,19 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
           setTimeout(() => setCallState('idle'), 3000);
         }
       })
+      .on('broadcast', { event: 'typing' }, ({ payload }) => {
+        if (!payload || payload.to !== currentUser.id) return;
+        const { from, isTyping } = payload;
+        if (isTyping) {
+          setTypingUsers((prev) => ({ ...prev, [from]: Date.now() }));
+        } else {
+          setTypingUsers((prev) => {
+            const copy = { ...prev };
+            delete copy[from];
+            return copy;
+          });
+        }
+      })
       .on('presence', { event: 'sync' }, () => {
         const newState = channel.presenceState();
         const onlineMap: Record<string, boolean> = {};
@@ -134,12 +216,60 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
     };
   }, [currentUser.id]);
 
+  // Initial metadata loader for unread counts and latest message timestamps
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const fetchConversationsMeta = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+          .order('timestamp', { ascending: true });
+
+        if (error) throw error;
+        if (data) {
+          const allMsgs = data.map(mapSupabaseToMessage);
+          const counts: Record<string, number> = {};
+          const times: Record<string, string> = {};
+
+          allMsgs.forEach((msg) => {
+            const otherId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
+
+            // Track latest message timestamp
+            if (!times[otherId] || new Date(msg.timestamp) > new Date(times[otherId])) {
+              times[otherId] = msg.timestamp;
+            }
+
+            // Track unread messages sent to current user
+            if (msg.receiverId === currentUser.id && msg.status !== 'read') {
+              counts[otherId] = (counts[otherId] || 0) + 1;
+            }
+          });
+
+          // If active chat is currently open, reset its unread count
+          if (activeContactIdRef.current) {
+            counts[activeContactIdRef.current] = 0;
+          }
+
+          setUnreadCounts(counts);
+          setLatestMessageTimes(times);
+        }
+      } catch (err) {
+        console.error('Error fetching conversation activity metadata:', err);
+      }
+    };
+
+    fetchConversationsMeta();
+  }, [currentUser?.id]);
+
   // Supabase Realtime subscription for messages
   useEffect(() => {
-    if (!currentUser?.id || !activeContactId) return;
+    if (!currentUser?.id) return;
 
     const channel = supabase
-      .channel(`realtime-messages-${currentUser.id}-${activeContactId}`)
+      .channel(`realtime-messages-${currentUser.id}`)
       .on(
         'postgres_changes',
         {
@@ -147,17 +277,75 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
           schema: 'public',
           table: 'messages',
         },
-        (payload) => {
+        async (payload) => {
           const newMsg = mapSupabaseToMessage(payload.new);
+          const otherId = newMsg.senderId === currentUser.id ? newMsg.receiverId : newMsg.senderId;
+
+          // Update latest message timestamp for this contact
+          setLatestMessageTimes((prev) => ({
+            ...prev,
+            [otherId]: newMsg.timestamp,
+          }));
+
+          // If this message is received by current user
+          if (newMsg.receiverId === currentUser.id) {
+            if (activeContactIdRef.current === newMsg.senderId) {
+              // Active chat open -> mark as read
+              newMsg.status = 'read';
+              supabase.from('messages').update({ status: 'read' }).eq('id', newMsg.id).then();
+              setUnreadCounts((prev) => ({ ...prev, [otherId]: 0 }));
+            } else {
+              // Received in background -> mark as delivered if sent & increment unread count
+              if (newMsg.status === 'sent') {
+                newMsg.status = 'delivered';
+                supabase.from('messages').update({ status: 'delivered' }).eq('id', newMsg.id).then();
+              }
+              setUnreadCounts((prev) => ({
+                ...prev,
+                [otherId]: (prev[otherId] || 0) + 1,
+              }));
+            }
+          }
+
           // Only append if it belongs to the current open chat
           if (
-            (newMsg.senderId === currentUser.id && newMsg.receiverId === activeContactId) ||
-            (newMsg.senderId === activeContactId && newMsg.receiverId === currentUser.id)
+            (newMsg.senderId === currentUser.id && newMsg.receiverId === activeContactIdRef.current) ||
+            (newMsg.senderId === activeContactIdRef.current && newMsg.receiverId === currentUser.id)
           ) {
             setMessages((prev) => {
-              if (prev.some((m) => m.id === newMsg.id)) return prev;
+              if (prev.some((m) => m.id === newMsg.id)) {
+                return prev.map((m) => (m.id === newMsg.id ? newMsg : m));
+              }
               return [...prev, newMsg];
             });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+        },
+        (payload) => {
+          const updatedMsg = mapSupabaseToMessage(payload.new);
+          const otherId = updatedMsg.senderId === currentUser.id ? updatedMsg.receiverId : updatedMsg.senderId;
+
+          if (updatedMsg.receiverId === currentUser.id && updatedMsg.status === 'read') {
+            setUnreadCounts((prev) => {
+              if (!prev[otherId]) return prev;
+              return { ...prev, [otherId]: Math.max(0, prev[otherId] - 1) };
+            });
+          }
+
+          if (
+            (updatedMsg.senderId === currentUser.id && updatedMsg.receiverId === activeContactIdRef.current) ||
+            (updatedMsg.senderId === activeContactIdRef.current && updatedMsg.receiverId === currentUser.id)
+          ) {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m))
+            );
           }
         }
       )
@@ -166,7 +354,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUser?.id, activeContactId]);
+  }, [currentUser?.id]);
 
   // Synchronize mute state with physical localStream tracks
   useEffect(() => {
@@ -195,6 +383,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
 
   useEffect(() => {
     if (!activeContactId) return;
+    setReplyingTo(null);
 
     const fetchMessages = async () => {
       setIsLoadingMessages(true);
@@ -207,7 +396,36 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
 
         if (error) throw error;
         if (data) {
-          setMessages(data.map(mapSupabaseToMessage));
+          const mapped = data.map(mapSupabaseToMessage);
+          
+          // Clear unread count badge for this active contact
+          setUnreadCounts((prev) => ({
+            ...prev,
+            [activeContactId]: 0,
+          }));
+
+          // Check if there are unread messages sent to current user
+          const hasUnread = mapped.some(m => m.receiverId === currentUser.id && m.status !== 'read');
+          if (hasUnread) {
+            supabase
+              .from('messages')
+              .update({ status: 'read' })
+              .eq('sender_id', activeContactId)
+              .eq('receiver_id', currentUser.id)
+              .neq('status', 'read')
+              .then(({ error: markErr }) => {
+                if (markErr) console.error('Error marking messages as read:', markErr);
+              });
+          }
+
+          const updatedMapped = mapped.map(m => {
+            if (m.receiverId === currentUser.id && m.status !== 'read') {
+              return { ...m, status: 'read' as const };
+            }
+            return m;
+          });
+
+          setMessages(updatedMapped);
         }
       } catch (err) {
         console.error('Error fetching chat log from Supabase:', err);
@@ -241,9 +459,53 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
     };
   }, [callState]);
 
+  const handleInputChange = (val: string) => {
+    setInputText(val);
+
+    if (!activeContactId) return;
+
+    const now = Date.now();
+    if (now - lastTypingSentRef.current > 1500 && val.trim().length > 0) {
+      lastTypingSentRef.current = now;
+      socketRef.current?.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { from: currentUser.id, to: activeContactId, isTyping: true }
+      });
+    }
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    if (val.trim().length === 0) {
+      socketRef.current?.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { from: currentUser.id, to: activeContactId, isTyping: false }
+      });
+    } else {
+      typingTimeoutRef.current = setTimeout(() => {
+        socketRef.current?.send({
+          type: 'broadcast',
+          event: 'typing',
+          payload: { from: currentUser.id, to: activeContactId, isTyping: false }
+        });
+      }, 2500);
+    }
+  };
+
   const handleSendMessage = async (text: string, fileInfo?: { name: string; url: string }) => {
     if (!text.trim() && !fileInfo) return;
     if (!activeContactId) return;
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    socketRef.current?.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { from: currentUser.id, to: activeContactId, isTyping: false }
+    });
+
+    const currentReplyId = replyingTo?.id;
+    setReplyingTo(null);
 
     const newMessageTemp: Message = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
@@ -252,7 +514,9 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
       text: text,
       fileName: fileInfo?.name,
       fileUrl: fileInfo?.url,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      status: 'sent',
+      replyToMessageId: currentReplyId
     };
 
     try {
@@ -275,6 +539,12 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
       });
 
       const savedMsg = data ? mapSupabaseToMessage(data) : newMessageTemp;
+
+      // Update latest message timestamp for activity sorting
+      setLatestMessageTimes((prev) => ({
+        ...prev,
+        [activeContactId]: savedMsg.timestamp,
+      }));
 
       // Update state locally
       setMessages(prev => {
@@ -602,6 +872,17 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const sortedContacts = React.useMemo(() => {
+    return [...contacts].sort((a, b) => {
+      const timeA = latestMessageTimes[a.id] ? new Date(latestMessageTimes[a.id]).getTime() : 0;
+      const timeB = latestMessageTimes[b.id] ? new Date(latestMessageTimes[b.id]).getTime() : 0;
+      if (timeA !== timeB) {
+        return timeB - timeA;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [contacts, latestMessageTimes]);
+
   return (
     <div id="chat-view-root" className="bg-zinc-900/90 rounded-[28px] border border-zinc-800 shadow-2xl overflow-hidden flex flex-col md:flex-row h-[calc(100vh-140px)] min-h-[500px] max-h-[680px] md:h-[620px] text-xs text-zinc-300">
       
@@ -613,7 +894,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
         </div>
 
         <div className="flex-1 overflow-y-auto divide-y divide-zinc-800/60">
-          {contacts.length === 0 ? (
+          {sortedContacts.length === 0 ? (
             <div className="p-6 text-center text-zinc-500">
               <p className="text-xs font-semibold text-zinc-400">No contacts yet</p>
               <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">
@@ -621,8 +902,10 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
               </p>
             </div>
           ) : (
-            contacts.map((contact) => {
+            sortedContacts.map((contact) => {
               const isContactOnline = onlineUsers[contact.id] || DEFAULT_USER_IDS.includes(contact.id);
+              const isContactTyping = Boolean(typingUsers[contact.id] && Date.now() - (typingUsers[contact.id] || 0) < 4000);
+              const unreadCount = unreadCounts[contact.id] || 0;
               return (
                 <div
                   key={contact.id}
@@ -641,11 +924,26 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                     className="w-10 h-10 rounded-full object-cover border border-zinc-700 shrink-0"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-1">
                       <span className="font-bold text-white truncate">{contact.name}</span>
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isContactOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} title={isContactOnline ? 'Online' : 'Offline'}></span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {unreadCount > 0 && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-extrabold bg-indigo-500 text-white rounded-full min-w-[18px] text-center leading-none shadow-sm shadow-indigo-500/30">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                          </span>
+                        )}
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isContactOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} title={isContactOnline ? 'Online' : 'Offline'}></span>
+                      </div>
                     </div>
-                    <p className="text-[10px] text-zinc-400 truncate mt-0.5">{contact.skillsOffered[0]?.name || 'Explorer'}</p>
+                    <p className="text-[10px] text-zinc-400 truncate mt-0.5">
+                      {isContactTyping ? (
+                        <span className="text-indigo-400 font-semibold animate-pulse">typing...</span>
+                      ) : isContactOnline ? (
+                        contact.skillsOffered[0]?.name || 'Explorer'
+                      ) : (
+                        formatLastSeen(contact.lastActive)
+                      )}
+                    </p>
                   </div>
                 </div>
               );
@@ -679,9 +977,26 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                   <h4 className="font-bold text-white text-xs sm:text-sm truncate">{activeContact.name}</h4>
                   {(() => {
                     const isContactOnline = onlineUsers[activeContact.id] || DEFAULT_USER_IDS.includes(activeContact.id);
+                    const isContactTyping = Boolean(typingUsers[activeContact.id] && Date.now() - (typingUsers[activeContact.id] || 0) < 4000);
+
+                    if (isContactTyping) {
+                      return (
+                        <p className="text-[10px] text-indigo-400 font-semibold animate-pulse flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping shrink-0" />
+                          {activeContact.name} is typing...
+                        </p>
+                      );
+                    }
+                    if (isContactOnline) {
+                      return (
+                        <p className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                          <Circle className="w-1.5 h-1.5 fill-current text-emerald-400 animate-ping shrink-0" /> Online
+                        </p>
+                      );
+                    }
                     return (
-                      <p className={`text-[10px] flex items-center gap-1 ${isContactOnline ? 'text-emerald-400 font-semibold' : 'text-zinc-500'}`}>
-                        <Circle className={`w-1.5 h-1.5 fill-current ${isContactOnline ? 'text-emerald-400 animate-ping' : 'text-zinc-500'}`} /> {isContactOnline ? 'Online' : 'Offline'}
+                      <p className="text-[10px] text-zinc-400 font-medium flex items-center gap-1">
+                        <Circle className="w-1.5 h-1.5 fill-current text-zinc-500 shrink-0" /> {formatLastSeen(activeContact.lastActive)}
                       </p>
                     );
                   })()}
@@ -716,48 +1031,126 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
             </div>
 
             {/* Messages Feed */}
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3.5 bg-zinc-950/40 min-h-0">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-zinc-950/40 min-h-0">
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center h-full text-zinc-500">
                   <span>Loading chat history...</span>
                 </div>
               ) : (
-                messages.map((m) => {
+                messages.map((m, i) => {
                   const isCurrentUser = m.senderId === currentUser.id;
-                  return (
-                    <div 
-                      key={m.id}
-                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} w-full`}
-                    >
-                      <div className={`max-w-[85%] sm:max-w-[75%] p-3.5 rounded-2xl shadow-lg space-y-1 min-w-0 break-words overflow-hidden ${
-                        isCurrentUser 
-                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-none' 
-                          : 'bg-zinc-800/90 border border-zinc-700/60 text-zinc-100 rounded-bl-none'
-                      }`}>
-                        
-                        {/* File asset layout */}
-                        {m.fileName && (
-                          <div className={`p-2 rounded-xl border flex items-center gap-2 mb-1.5 min-w-0 ${
-                            isCurrentUser ? 'bg-white/10 border-white/15 text-white' : 'bg-zinc-900 border-zinc-700 text-zinc-200'
-                          }`}>
-                            <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="font-bold text-[10px] truncate leading-tight">{m.fileName}</p>
-                              <span className="text-[9px] opacity-75 block truncate">Simulated resource attachment</span>
-                            </div>
-                          </div>
-                        )}
 
-                        <p className="leading-relaxed text-xs break-words whitespace-pre-wrap max-w-full">{m.text}</p>
-                        
-                        <div className="flex items-center justify-end gap-1 text-[9px] opacity-70 shrink-0">
-                          <span>{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          {isCurrentUser && (
-                            <CheckCheck className="w-3.5 h-3.5 stroke-[2.5]" />
-                          )}
+                  // Date separator check
+                  const prevMsg = i > 0 ? messages[i - 1] : null;
+                  const showDateSeparator = i === 0 || (prevMsg ? isDifferentDay(prevMsg.timestamp, m.timestamp) : false);
+
+                  // Grouping check with next message
+                  const nextMsg = i < messages.length - 1 ? messages[i + 1] : null;
+                  const isSameSenderAsNext = nextMsg ? nextMsg.senderId === m.senderId : false;
+                  const isSameDayAsNext = nextMsg ? !isDifferentDay(m.timestamp, nextMsg.timestamp) : false;
+                  const isWithin2MinNext = nextMsg ? Math.abs(new Date(nextMsg.timestamp).getTime() - new Date(m.timestamp).getTime()) < 120000 : false;
+
+                  const isLastInGroup = !(isSameSenderAsNext && isSameDayAsNext && isWithin2MinNext);
+
+                  return (
+                    <React.Fragment key={m.id}>
+                      {showDateSeparator && (
+                        <div className="flex items-center justify-center my-3.5">
+                          <div className="px-3 py-1 bg-zinc-800/90 border border-zinc-700/60 rounded-full text-[10px] font-semibold text-zinc-400 shadow-sm select-none">
+                            {formatDateSeparator(m.timestamp)}
+                          </div>
                         </div>
+                      )}
+
+                      <div 
+                        id={`msg-${m.id}`}
+                        className={`flex items-center gap-1 group ${isCurrentUser ? 'flex-row-reverse justify-start' : 'justify-start'} w-full ${isLastInGroup ? 'mb-3' : 'mb-1'}`}
+                      >
+                        <div className={`max-w-[85%] sm:max-w-[75%] p-3 rounded-2xl shadow-md min-w-0 break-words overflow-hidden transition-all duration-300 ${
+                          highlightedMsgId === m.id ? 'ring-2 ring-indigo-400 scale-[1.01] shadow-indigo-500/30' : ''
+                        } ${
+                          isCurrentUser 
+                            ? `bg-gradient-to-r from-indigo-600 to-purple-600 text-white ${isLastInGroup ? 'rounded-br-none' : ''}` 
+                            : `bg-zinc-800/90 border border-zinc-700/60 text-zinc-100 ${isLastInGroup ? 'rounded-bl-none' : ''}`
+                        }`}>
+                          
+                          {/* Quoted Reply Preview */}
+                          {m.replyToMessageId && (() => {
+                            const repliedMsg = messages.find((msg) => msg.id === m.replyToMessageId);
+                            return (
+                              <div
+                                onClick={() => {
+                                  const targetId = `msg-${m.replyToMessageId}`;
+                                  const el = document.getElementById(targetId);
+                                  if (el) {
+                                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    setHighlightedMsgId(m.replyToMessageId!);
+                                    setTimeout(() => setHighlightedMsgId(null), 2000);
+                                  }
+                                }}
+                                className={`mb-2 p-2 rounded-lg text-[11px] border-l-2 cursor-pointer transition select-none ${
+                                  isCurrentUser
+                                    ? 'bg-black/30 border-indigo-300 text-indigo-100 hover:bg-black/40'
+                                    : 'bg-zinc-900/90 border-indigo-500 text-zinc-300 hover:bg-zinc-900'
+                                }`}
+                              >
+                                <div className="font-bold text-[10px] text-indigo-400 mb-0.5">
+                                  {repliedMsg
+                                    ? (repliedMsg.senderId === currentUser.id ? 'You' : activeContact?.name || 'User')
+                                    : 'Original message'}
+                                </div>
+                                <p className="truncate text-[10px] opacity-90 font-normal">
+                                  {repliedMsg
+                                    ? (repliedMsg.text || (repliedMsg.fileName ? `📎 ${repliedMsg.fileName}` : 'Attachment'))
+                                    : 'Original message not found'}
+                                </p>
+                              </div>
+                            );
+                          })()}
+
+                          {/* File asset layout */}
+                          {m.fileName && (
+                            <div className={`p-2 rounded-xl border flex items-center gap-2 mb-1.5 min-w-0 ${
+                              isCurrentUser ? 'bg-white/10 border-white/15 text-white' : 'bg-zinc-900 border-zinc-700 text-zinc-200'
+                            }`}>
+                              <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold text-[10px] truncate leading-tight">{m.fileName}</p>
+                                <span className="text-[9px] opacity-75 block truncate">Simulated resource attachment</span>
+                              </div>
+                            </div>
+                          )}
+
+                          <p className="leading-relaxed text-xs break-words whitespace-pre-wrap max-w-full">{m.text}</p>
+                          
+                          <div className={`flex items-center justify-end gap-1 shrink-0 ${
+                            !isLastInGroup ? 'text-[8px] opacity-60 mt-0.5' : 'text-[9px] opacity-75 mt-1'
+                          }`}>
+                            <span>{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            {isCurrentUser && (
+                              <span className="inline-flex items-center ml-0.5" title={m.status || 'sent'}>
+                                {m.status === 'read' ? (
+                                  <CheckCheck className={`stroke-[2.5] text-sky-300 ${!isLastInGroup ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+                                ) : m.status === 'delivered' ? (
+                                  <CheckCheck className={`stroke-[2.5] opacity-80 ${!isLastInGroup ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+                                ) : (
+                                  <Check className={`stroke-[2.5] opacity-80 ${!isLastInGroup ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Reply trigger button on hover / touch */}
+                        <button
+                          onClick={() => setReplyingTo(m)}
+                          className="p-1.5 text-zinc-500 hover:text-indigo-400 hover:bg-zinc-800/80 rounded-lg transition opacity-100 sm:opacity-0 group-hover:opacity-100 shrink-0 cursor-pointer"
+                          title="Reply to message"
+                        >
+                          <CornerUpLeft className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                    </div>
+                    </React.Fragment>
                   );
                 })
               )}
@@ -766,36 +1159,62 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
             </div>
 
             {/* Text Input Footer */}
-            <div className="p-2.5 sm:p-3 border-t border-zinc-800 bg-zinc-950/80 flex items-center gap-2 sticky bottom-0 z-10 shrink-0">
-              <input 
-                type="file" 
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                className="hidden" 
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center border-0 bg-transparent"
-                title="Share simulated file"
-              >
-                <Paperclip className="w-4 h-4" />
-              </button>
+            <div className="border-t border-zinc-800 bg-zinc-950/80 flex flex-col sticky bottom-0 z-10 shrink-0">
+              {/* Reply Preview Bar */}
+              {replyingTo && (
+                <div className="px-3.5 py-2 bg-zinc-900/90 border-b border-zinc-800 flex items-center justify-between gap-2 animate-fade-in">
+                  <div className="flex items-center gap-2 min-w-0 border-l-2 border-indigo-500 pl-2">
+                    <CornerUpLeft className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-indigo-400 leading-tight">
+                        Replying to {replyingTo.senderId === currentUser.id ? 'yourself' : activeContact?.name || 'User'}
+                      </p>
+                      <p className="text-[11px] text-zinc-300 truncate max-w-sm sm:max-w-md leading-tight mt-0.5">
+                        {replyingTo.text || (replyingTo.fileName ? `📎 ${replyingTo.fileName}` : 'Attachment')}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setReplyingTo(null)}
+                    className="p-1 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition shrink-0 cursor-pointer"
+                    title="Cancel reply"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
 
-              <input
-                type="text"
-                placeholder="Type your message..."
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputText)}
-                className="flex-1 min-w-0 bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-zinc-600"
-              />
+              <div className="p-2.5 sm:p-3 flex items-center gap-2">
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  className="hidden" 
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center border-0 bg-transparent"
+                  title="Share simulated file"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </button>
 
-              <button
-                onClick={() => handleSendMessage(inputText)}
-                className="p-2.5 sm:p-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center border-0"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
+                <input
+                  type="text"
+                  placeholder="Type your message..."
+                  value={inputText}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputText)}
+                  className="flex-1 min-w-0 bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-zinc-600"
+                />
+
+                <button
+                  onClick={() => handleSendMessage(inputText)}
+                  className="p-2.5 sm:p-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center border-0"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </>
         ) : (
