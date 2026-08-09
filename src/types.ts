@@ -99,9 +99,16 @@ export interface Message {
   text: string;
   fileUrl?: string;
   fileName?: string;
+  fileSize?: number;
+  fileType?: string;
   timestamp: string;
   status?: 'sent' | 'delivered' | 'read';
   replyToMessageId?: string;
+  reactions?: Record<string, string[]>;
+  deletedForEveryone?: boolean;
+  deletedForSender?: boolean;
+  deletedForReceiver?: boolean;
+  isForwarded?: boolean;
 }
 
 export interface Review {

@@ -412,7 +412,7 @@ export default function App() {
     };
   }, [currentUser?.id]);
 
-  // Fetch message partner IDs when currentUser changes
+  // Fetch message partner IDs when currentUser changes and subscribe to realtime message events
   useEffect(() => {
     if (!currentUser?.id) {
       setMessagePartnerIds(new Set());
@@ -434,13 +434,32 @@ export default function App() {
         if (data && Array.isArray(data)) {
           const partnerIds = new Set<string>();
           data.forEach((msg: { sender_id: string; receiver_id: string }) => {
-            if (msg.sender_id === currentUser.id && msg.receiver_id !== currentUser.id) {
+            if (msg.sender_id === currentUser.id && msg.receiver_id && msg.receiver_id !== currentUser.id) {
               partnerIds.add(msg.receiver_id);
-            } else if (msg.receiver_id === currentUser.id && msg.sender_id !== currentUser.id) {
+            } else if (msg.receiver_id === currentUser.id && msg.sender_id && msg.sender_id !== currentUser.id) {
               partnerIds.add(msg.sender_id);
             }
           });
           setMessagePartnerIds(partnerIds);
+
+          // Check for any partner IDs not currently in allUsers and fetch their profiles
+          const missingPartnerIds = Array.from(partnerIds).filter(
+            id => !allUsers.some(u => u.id === id)
+          );
+          if (missingPartnerIds.length > 0) {
+            const { data: missingProfiles } = await supabase
+              .from('profiles')
+              .select('*')
+              .in('id', missingPartnerIds);
+            if (missingProfiles && missingProfiles.length > 0) {
+              const mapped = missingProfiles.map(mapSupabaseToProfile);
+              setAllUsers(prev => {
+                const existingIds = new Set(prev.map(u => u.id));
+                const toAdd = mapped.filter(m => !existingIds.has(m.id));
+                return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
+              });
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to load message partner IDs:', err);
@@ -448,6 +467,64 @@ export default function App() {
     };
 
     fetchMessagePartners();
+
+    // Subscribe to realtime messages to automatically add new conversation contacts live
+    const channel = supabase
+      .channel(`realtime-message-partners-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        },
+        (payload) => {
+          const newMsg = payload.new;
+          if (newMsg) {
+            let partnerId: string | null = null;
+            if (newMsg.sender_id === currentUser.id && newMsg.receiver_id && newMsg.receiver_id !== currentUser.id) {
+              partnerId = newMsg.receiver_id;
+            } else if (newMsg.receiver_id === currentUser.id && newMsg.sender_id && newMsg.sender_id !== currentUser.id) {
+              partnerId = newMsg.sender_id;
+            }
+
+            if (partnerId) {
+              setMessagePartnerIds((prev) => {
+                if (prev.has(partnerId!)) return prev;
+                const next = new Set(prev);
+                next.add(partnerId!);
+                return next;
+              });
+
+              // Ensure the partner's profile exists in allUsers state
+              setAllUsers((prevUsers) => {
+                if (!prevUsers.some((u) => u.id === partnerId)) {
+                  supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', partnerId)
+                    .single()
+                    .then(({ data: profileRow }) => {
+                      if (profileRow) {
+                        const newProfile = mapSupabaseToProfile(profileRow);
+                        setAllUsers((curr) => {
+                          if (curr.some((u) => u.id === newProfile.id)) return curr;
+                          return [...curr, newProfile];
+                        });
+                      }
+                    });
+                }
+                return prevUsers;
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [currentUser?.id]);
 
   // Periodic check (every 60 seconds) for 15-minute upcoming session reminders

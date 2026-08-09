@@ -164,9 +164,16 @@ export function mapSupabaseToMessage(row: any): Message {
     text: row.text,
     fileUrl: row.file_url || undefined,
     fileName: row.file_name || undefined,
+    fileSize: row.file_size != null ? Number(row.file_size) : undefined,
+    fileType: row.file_type || undefined,
     timestamp: row.timestamp || new Date().toISOString(),
     status: row.status || 'sent',
-    replyToMessageId: row.reply_to_message_id || undefined
+    replyToMessageId: row.reply_to_message_id || undefined,
+    reactions: (row.reactions && typeof row.reactions === 'object' && !Array.isArray(row.reactions)) ? row.reactions : {},
+    deletedForEveryone: Boolean(row.deleted_for_everyone),
+    deletedForSender: Boolean(row.deleted_for_sender),
+    deletedForReceiver: Boolean(row.deleted_for_receiver),
+    isForwarded: Boolean(row.is_forwarded)
   };
 }
 
@@ -177,9 +184,16 @@ export function mapMessageToSupabase(msg: Message): any {
     text: msg.text,
     file_url: msg.fileUrl || null,
     file_name: msg.fileName || null,
+    file_size: msg.fileSize || null,
+    file_type: msg.fileType || null,
     timestamp: msg.timestamp,
     status: msg.status || 'sent',
-    reply_to_message_id: msg.replyToMessageId || null
+    reply_to_message_id: msg.replyToMessageId || null,
+    reactions: msg.reactions || {},
+    deleted_for_everyone: msg.deletedForEveryone || false,
+    deleted_for_sender: msg.deletedForSender || false,
+    deleted_for_receiver: msg.deletedForReceiver || false,
+    is_forwarded: msg.isForwarded || false
   };
   if (msg.id && !msg.id.startsWith('msg-')) {
     row.id = msg.id;
