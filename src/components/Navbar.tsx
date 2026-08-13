@@ -21,13 +21,14 @@ import {
   CheckCheck,
   Trophy,
   Video,
+  Coins,
 } from 'lucide-react';
 import { UserProfile, AppNotification, Booking } from '../types';
 import { Avatar } from './ui/Avatar';
 import { Badge } from './ui/Badge';
 import { supabase, mapSupabaseToBooking } from '../lib/supabase';
 
-export type NavTabId = 'dashboard' | 'explore' | 'chat' | 'study-hub' | 'skill-path' | 'gamification' | 'profile';
+export type NavTabId = 'dashboard' | 'explore' | 'chat' | 'study-hub' | 'skill-path' | 'gamification' | 'credits' | 'profile';
 
 export interface NavbarProps {
   activeTab: NavTabId;
@@ -127,6 +128,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'study-hub' as NavTabId, label: 'Study Hub', icon: BookOpen },
     { id: 'skill-path' as NavTabId, label: 'AI Skill Path', icon: Sparkles },
     { id: 'gamification' as NavTabId, label: 'Rewards & Leaderboard', icon: Trophy },
+    { id: 'credits' as NavTabId, label: 'Credits', icon: Coins },
     { id: 'profile' as NavTabId, label: 'Profile', icon: User },
   ];
 
@@ -191,6 +193,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Right Action Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
             
+            {/* Credits Balance Badge */}
+            <button
+              onClick={() => setActiveTab('credits')}
+              className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 px-2.5 sm:px-3 py-1.5 rounded-xl border border-amber-500/30 transition text-xs font-black cursor-pointer shrink-0"
+              title="View Credits Wallet"
+            >
+              <Coins className="w-4 h-4 text-amber-500" />
+              <span>{currentUser.credits ?? 100}</span>
+            </button>
+
             {/* Quick Search Button */}
             <button
               onClick={() => setIsSearchOpen(true)}

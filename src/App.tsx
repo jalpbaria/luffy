@@ -17,6 +17,7 @@ import StudyHubView from './components/StudyHubView';
 import SkillPathView from './components/SkillPathView';
 import LoginView from './components/LoginView';
 import LiveSessionRoomView from './components/LiveSessionRoomView';
+import CreditsView from './components/CreditsView';
 import OnboardingTour from './components/OnboardingTour';
 import { GamificationHubView } from './components/GamificationHubView';
 import { GamificationOverlay } from './components/GamificationCelebration';
@@ -31,7 +32,7 @@ import { fallbackUsers } from './data/fallbackUsers';
 
 export default function App() {
   const { signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'study-hub' | 'skill-path' | 'gamification' | 'profile' | 'live-room'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'study-hub' | 'skill-path' | 'gamification' | 'credits' | 'profile' | 'live-room'>('dashboard');
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
@@ -963,6 +964,22 @@ export default function App() {
 
   const loadUserSpecificData = async (userId: string) => {
     try {
+      // 0. Refresh Current User Profile (to ensure credits and state are up-to-date)
+      try {
+        const { data: profileRow, error: profErr } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+        if (!profErr && profileRow) {
+          const freshUser = mapSupabaseToProfile(profileRow);
+          setCurrentUser(freshUser);
+          setAllUsers((prev) => prev.map((u) => (u.id === userId ? freshUser : u)));
+        }
+      } catch (pErr) {
+        console.warn('Supabase profile refresh failed:', pErr);
+      }
+
       // 1. Fetch Bookings
       let bookData: Booking[] = [];
       try {
@@ -1042,25 +1059,27 @@ export default function App() {
     }
   };
 
-
-
   const handleBookSession = async (
-    teacher: UserProfile,
+    targetSwapper: UserProfile,
     skill: Skill,
     learningOption: string,
     date: string,
     timeSlot: 'Morning' | 'Afternoon' | 'Evening',
     notes: string,
-    scheduledTime?: string
+    scheduledTime?: string,
+    swapRole: 'learn' | 'teach' = 'learn'
   ) => {
     if (!currentUser) return;
 
+    const teacherUser = swapRole === 'teach' ? currentUser : targetSwapper;
+    const learnerUser = swapRole === 'teach' ? targetSwapper : currentUser;
+
     const bookingPayload: Booking = {
       id: `booking-${Date.now()}`,
-      teacherId: teacher.id,
-      teacherName: teacher.name,
-      learnerId: currentUser.id,
-      learnerName: currentUser.name,
+      teacherId: teacherUser.id,
+      teacherName: teacherUser.name,
+      learnerId: learnerUser.id,
+      learnerName: learnerUser.name,
       skillName: skill.name,
       category: skill.category,
       learningOption: learningOption as any,
@@ -1089,29 +1108,33 @@ export default function App() {
       const createdBookingId = insertedBooking?.id || bookingPayload.id;
 
       // 2. Create notifications using Supabase
-      // Notification to Teacher
+      // Notification to target user
       const { error: notif1Err } = await supabase.from('notifications').insert({
-        user_id: teacher.id,
-        title: 'New Session Request',
-        message: `${currentUser.name} wants to book a session with you for ${skill.name}.`,
+        user_id: targetSwapper.id,
+        title: swapRole === 'teach' ? 'Session Offer Received' : 'New Session Request',
+        message: swapRole === 'teach' 
+          ? `${currentUser.name} offered to teach you ${skill.name}.`
+          : `${currentUser.name} wants to book a session with you for ${skill.name}.`,
         type: 'request',
         booking_id: createdBookingId,
         read: false,
         timestamp: new Date().toISOString()
       });
-      if (notif1Err) console.warn('Teacher notification warning:', notif1Err.message);
+      if (notif1Err) console.warn('Recipient notification warning:', notif1Err.message);
 
-      // Notification to Learner
+      // Notification to Current User
       const { error: notif2Err } = await supabase.from('notifications').insert({
         user_id: currentUser.id,
-        title: 'Session Requested',
-        message: `You requested a session with ${teacher.name} for ${skill.name}.`,
+        title: swapRole === 'teach' ? 'Teaching Offer Sent' : 'Session Requested',
+        message: swapRole === 'teach'
+          ? `You offered to teach ${targetSwapper.name} ${skill.name}.`
+          : `You requested a session with ${targetSwapper.name} for ${skill.name}.`,
         type: 'request',
         booking_id: createdBookingId,
         read: false,
         timestamp: new Date().toISOString()
       });
-      if (notif2Err) console.warn('Learner notification warning:', notif2Err.message);
+      if (notif2Err) console.warn('User notification warning:', notif2Err.message);
 
       await syncAllState();
     } catch (err: any) {
@@ -1728,6 +1751,13 @@ export default function App() {
                   triggerRewardToast('Quest Completed!', `You completed "${title}" and earned rewards!`, xpAmount, '🏆');
                 }}
                 onNavigateToExplore={() => setActiveTab('explore')}
+              />
+            )}
+
+            {activeTab === 'credits' && (
+              <CreditsView 
+                currentUser={currentUser}
+                onRefreshProfile={() => loadUserSpecificData(currentUser.id)}
               />
             )}
           </motion.div>

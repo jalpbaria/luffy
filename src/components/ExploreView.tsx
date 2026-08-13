@@ -4,7 +4,7 @@ import {
   Search, SlidersHorizontal, Star, Award, GraduationCap, 
   MapPin, Clock, Languages, Globe, Calendar, Check, MessageSquare,
   ArrowRight, ExternalLink, X, Compass, CheckCircle2, ChevronRight,
-  BookOpen, Sparkles, Send, CheckSquare, ArrowLeft, Code, RefreshCw, Layers
+  BookOpen, Sparkles, Send, CheckSquare, ArrowLeft, Code, RefreshCw, Layers, AlertTriangle
 } from 'lucide-react';
 import { UserProfile, Skill, LearningOption, Review } from '../types';
 import { getSkillGuide } from '../data/skillGuides';
@@ -16,7 +16,7 @@ import { EmptyState, CardSkeletonGrid } from './ui';
 interface ExploreViewProps {
   currentUser: UserProfile;
   users: UserProfile[];
-  onBookSession: (teacher: UserProfile, skill: Skill, option: LearningOption, date: string, slot: 'Morning' | 'Afternoon' | 'Evening', notes: string, scheduledTime?: string) => void;
+  onBookSession: (teacher: UserProfile, skill: Skill, option: LearningOption, date: string, slot: 'Morning' | 'Afternoon' | 'Evening', notes: string, scheduledTime?: string, swapRole?: 'learn' | 'teach') => void;
   onOpenChat: (userId: string) => void;
   isLoading: boolean;
   allReviews?: Review[];
@@ -59,6 +59,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
   const [bookingSlot, setBookingSlot] = useState<'Morning' | 'Afternoon' | 'Evening'>('Afternoon');
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [swapRole, setSwapRole] = useState<'learn' | 'teach'>('learn');
 
   // Self-Guided Learning Study Hub State
   const [activeStudySkill, setActiveStudySkill] = useState<Skill | null>(null);
@@ -278,6 +279,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
   const submitBooking = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTeacher || !selectedSkillToLearn) return;
+    if (swapRole === 'learn' && (currentUser.credits ?? 0) < 10) return;
     
     let scheduledTimeStr: string | undefined = undefined;
     if (bookingDate && bookingTime) {
@@ -294,7 +296,8 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
       bookingDate,
       bookingSlot,
       bookingNotes,
-      scheduledTimeStr
+      scheduledTimeStr,
+      swapRole
     );
 
     setBookingSuccess(true);
@@ -303,6 +306,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
       setSelectedTeacher(null);
       setBookingSuccess(false);
       setBookingNotes('');
+      setSwapRole('learn');
     }, 2000);
   };
 
@@ -982,6 +986,76 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                           </div>
                         </div>
 
+                        {/* Session Role Selection (Learn vs Teach) */}
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                            Session Role <span className="text-indigo-400">*</span>
+                          </label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div
+                              onClick={() => setSwapRole('learn')}
+                              className={`p-3.5 border rounded-2xl cursor-pointer transition flex items-start gap-3 ${
+                                swapRole === 'learn'
+                                  ? 'bg-indigo-500/10 border-indigo-500 ring-1 ring-indigo-500/30'
+                                  : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                id="role-learn"
+                                name="swapRole"
+                                value="learn"
+                                checked={swapRole === 'learn'}
+                                onChange={() => setSwapRole('learn')}
+                                className="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              />
+                              <div>
+                                <label htmlFor="role-learn" className="font-bold text-white text-xs cursor-pointer block">
+                                  I want to LEARN this skill from them
+                                </label>
+                                <p className="text-[10px] text-zinc-400 mt-0.5">
+                                  You will be the learner (costs 10 credits when completed)
+                                </p>
+                              </div>
+                            </div>
+
+                            <div
+                              onClick={() => setSwapRole('teach')}
+                              className={`p-3.5 border rounded-2xl cursor-pointer transition flex items-start gap-3 ${
+                                swapRole === 'teach'
+                                  ? 'bg-indigo-500/10 border-indigo-500 ring-1 ring-indigo-500/30'
+                                  : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                id="role-teach"
+                                name="swapRole"
+                                value="teach"
+                                checked={swapRole === 'teach'}
+                                onChange={() => setSwapRole('teach')}
+                                className="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              />
+                              <div>
+                                <label htmlFor="role-teach" className="font-bold text-white text-xs cursor-pointer block">
+                                  I want to TEACH them this skill
+                                </label>
+                                <p className="text-[10px] text-zinc-400 mt-0.5">
+                                  You will be the teacher (earns 10 credits when completed)
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Insufficient credits warning */}
+                          {swapRole === 'learn' && (currentUser.credits ?? 0) < 10 && (
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 flex items-center gap-2 mt-2">
+                              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                              <span>You need at least 10 credits to book a learning session.</span>
+                            </div>
+                          )}
+                        </div>
+
                         {/* Learning Options Segment */}
                         <div className="space-y-2">
                           <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider">How do you want to learn?</label>
@@ -1075,7 +1149,8 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                           </button>
                           <button 
                             type="submit"
-                            className="px-5 py-2 rounded-xl font-semibold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-indigo-500/20"
+                            disabled={swapRole === 'learn' && (currentUser.credits ?? 0) < 10}
+                            className="px-5 py-2 rounded-xl font-semibold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Calendar className="w-4 h-4" />
                             Request Session

@@ -36,7 +36,7 @@ export interface UserProfile {
   rating: number;
   reviewsCount: number;
   successfulExchanges: number;
-  credits?: number;
+  credits: number;
   timeZone: string;
   badges: Badge[];
   hasSeenOnboarding?: boolean;
