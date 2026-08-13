@@ -375,7 +375,7 @@ export function GamificationHubView({
                 </div>
               ) : xpTransactions.length === 0 ? (
                 <EmptyState
-                  icon={Zap}
+                  icon={<Zap className="w-8 h-8 text-amber-500" />}
                   title="No XP Transactions Yet"
                   description="Complete daily logins, skill bookings, and quests to earn XP points!"
                 />
