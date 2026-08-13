@@ -32,10 +32,7 @@ export function triggerCelebrationConfetti() {
 
 // XP & Level calculations
 export function calculateUserXP(user: UserProfile): number {
-  const base = 500;
-  const swapXP = (user.successfulExchanges || 0) * 350;
-  const badgeXP = (user.badges?.length || 0) * 200;
-  return base + swapXP + badgeXP;
+  return user?.xp ?? 0;
 }
 
 export function calculateUserLevel(xp: number): { level: number; title: string; currentLevelXp: number; nextLevelXp: number; progressPercent: number } {
@@ -208,9 +205,9 @@ export const getUserCertificates = getSampleCertificates;
 // Build Global Leaderboard Ranking
 export function buildGlobalLeaderboard(allUsers: UserProfile[]): LeaderboardEntry[] {
   const ranked = allUsers.map((u) => {
-    const xp = calculateUserXP(u);
+    const xp = u.xp ?? 0;
     const swaps = u.successfulExchanges || 0;
-    const streak = Math.max(3, (swaps * 2) + 1);
+    const streak = u.loginStreak || 1;
     const badgesCount = u.badges?.length || 0;
 
     return {

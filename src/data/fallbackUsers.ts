@@ -30,6 +30,9 @@ export const fallbackUsers: UserProfile[] = [
       { id: 'b2', name: 'Verified Instructor', icon: '⚡', description: 'Passed peer review', dateEarned: '2026-01-15' }
     ],
     credits: 100,
+    xp: 4700,
+    loginStreak: 5,
+    longestStreak: 7,
     hasSeenOnboarding: true,
     lastActive: new Date(Date.now() - 5 * 60 * 1000).toISOString()
   },
@@ -61,6 +64,9 @@ export const fallbackUsers: UserProfile[] = [
       { id: 'b3', name: 'Polyglot Guru', icon: '🌍', description: 'Taught 20+ language classes', dateEarned: '2026-01-05' }
     ],
     credits: 100,
+    xp: 7150,
+    loginStreak: 12,
+    longestStreak: 14,
     hasSeenOnboarding: true,
     lastActive: new Date(Date.now() - 35 * 60 * 1000).toISOString()
   },
@@ -89,6 +95,9 @@ export const fallbackUsers: UserProfile[] = [
     timeZone: 'PST',
     badges: [],
     credits: 100,
+    xp: 3650,
+    loginStreak: 3,
+    longestStreak: 5,
     hasSeenOnboarding: true,
     lastActive: new Date(Date.now() - 3 * 3600 * 1000).toISOString()
   },
@@ -117,6 +126,9 @@ export const fallbackUsers: UserProfile[] = [
     timeZone: 'EST',
     badges: [],
     credits: 100,
+    xp: 3300,
+    loginStreak: 2,
+    longestStreak: 4,
     hasSeenOnboarding: true,
     lastActive: new Date(Date.now() - 26 * 3600 * 1000).toISOString()
   }

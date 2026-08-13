@@ -37,6 +37,9 @@ export interface UserProfile {
   reviewsCount: number;
   successfulExchanges: number;
   credits: number;
+  xp: number;
+  loginStreak: number;
+  longestStreak: number;
   timeZone: string;
   badges: Badge[];
   hasSeenOnboarding?: boolean;
@@ -75,6 +78,7 @@ export interface Booking {
   learnerName: string;
   skillName: string;
   category: string;
+  skillLevel?: string;
   learningOption: LearningOption;
   date: string; // YYYY-MM-DD
   timeSlot: 'Morning' | 'Afternoon' | 'Evening';

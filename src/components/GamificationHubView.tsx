@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, Challenge, Certificate, LeaderboardEntry, Badge, Booking } from '../types';
 import { 
@@ -12,6 +12,7 @@ import {
   getSampleCertificates, buildGlobalLeaderboard, ALL_BADGES_CATALOG, triggerCelebrationConfetti 
 } from '../lib/gamification';
 import { CertificateModal } from './CertificateModal';
+import { supabase } from '../lib/supabase';
 
 interface GamificationHubViewProps {
   currentUser: UserProfile;
@@ -34,8 +35,35 @@ export function GamificationHubView({
   const [selectedCert, setSelectedCert] = useState<Certificate | null>(null);
 
   // User XP & Level
-  const userXp = useMemo(() => calculateUserXP(currentUser), [currentUser]);
+  const userXp = currentUser.xp ?? 0;
   const userLevelInfo = useMemo(() => calculateUserLevel(userXp), [userXp]);
+
+  // XP Transaction History
+  const [xpTransactions, setXpTransactions] = useState<any[]>([]);
+  const [isLoadingTx, setIsLoadingTx] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const fetchXpTransactions = async () => {
+      setIsLoadingTx(true);
+      try {
+        const { data, error } = await supabase
+          .from('xp_transactions')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        if (!error && data) {
+          setXpTransactions(data);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch xp transactions:', err);
+      } finally {
+        setIsLoadingTx(false);
+      }
+    };
+    fetchXpTransactions();
+  }, [currentUser?.id]);
 
   // Certificates
   const userCertificates = useMemo(() => getSampleCertificates(currentUser, bookings), [currentUser, bookings]);
@@ -101,7 +129,7 @@ export function GamificationHubView({
               </div>
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/15">
                 <Flame className="w-4 h-4 text-orange-400 fill-orange-400" />
-                <span className="text-xs text-slate-200">Active Streak: <strong className="text-white font-extrabold">7 Days 🔥</strong></span>
+                <span className="text-xs text-slate-200">Active Streak: <strong className="text-white font-extrabold">{currentUser.loginStreak ?? 1} Days 🔥</strong></span>
               </div>
             </div>
           </div>
@@ -163,6 +191,61 @@ export function GamificationHubView({
       {activeTab === 'overview' && (
         <div className="space-y-8">
           
+          {/* 📊 Streak & Activity Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-5 flex items-center gap-4 bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-200 shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-md shrink-0">
+                <Flame className="w-6 h-6 fill-white" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase block tracking-wider">Current Streak</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-black text-slate-900">{currentUser.loginStreak ?? 1}</span>
+                  <span className="text-xs font-extrabold text-orange-600">Days 🔥</span>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 flex items-center gap-4 bg-gradient-to-br from-indigo-50 to-purple-50/50 border-indigo-200 shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-md shrink-0">
+                <Trophy className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase block tracking-wider">Longest Streak</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-black text-slate-900">{currentUser.longestStreak ?? currentUser.loginStreak ?? 1}</span>
+                  <span className="text-xs font-extrabold text-indigo-600">Days</span>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 flex items-center gap-4 bg-gradient-to-br from-emerald-50 to-teal-50/50 border-emerald-200 shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-white shadow-md shrink-0">
+                <Zap className="w-6 h-6 fill-white" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase block tracking-wider">Total XP</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-black text-slate-900">{currentUser.xp ?? 0}</span>
+                  <span className="text-xs font-extrabold text-emerald-600">XP</span>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 flex items-center gap-4 bg-gradient-to-br from-sky-50 to-blue-50/50 border-sky-200 shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-500 flex items-center justify-center text-white shadow-md shrink-0">
+                <Award className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase block tracking-wider">Global Rank</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-black text-slate-900">#{currentUserRank}</span>
+                  <span className="text-xs font-extrabold text-sky-600">Leaderboard</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+
           {/* Goal Progress Rings Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
@@ -272,6 +355,61 @@ export function GamificationHubView({
                 </MotionCard>
               ))}
             </div>
+          </section>
+
+          {/* ⚡ XP Transaction History */}
+          <section className="space-y-4 pt-4 border-t border-slate-200">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-indigo-600" />
+                Recent XP Activity History
+              </h2>
+              <span className="text-xs text-slate-500 font-medium">Last 20 transactions</span>
+            </div>
+
+            <Card className="p-6">
+              {isLoadingTx ? (
+                <div className="py-8 text-center text-slate-400 text-sm flex items-center justify-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
+                  Loading XP history...
+                </div>
+              ) : xpTransactions.length === 0 ? (
+                <EmptyState
+                  icon={Zap}
+                  title="No XP Transactions Yet"
+                  description="Complete daily logins, skill bookings, and quests to earn XP points!"
+                />
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {xpTransactions.map((tx) => (
+                    <div key={tx.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center font-bold text-sm shrink-0">
+                          ⚡
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">{tx.reason || 'XP Reward'}</p>
+                          <span className="text-[11px] text-slate-400">
+                            {new Date(tx.created_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-black text-emerald-600">
+                          +{tx.amount} XP
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
           </section>
 
         </div>

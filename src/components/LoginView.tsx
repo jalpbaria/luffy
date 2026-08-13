@@ -253,7 +253,10 @@ export default function LoginView({ onLogin, onRegister, allUsers, accountDelete
           { name: wantedName.trim(), category: wantedCategory, level: wantedLevel }
         ],
         timeZone: regTimeZone,
-        credits: 100
+        credits: 100,
+        xp: 500,
+        loginStreak: 1,
+        longestStreak: 1
       };
 
       // 2. Save profile details in standard DB

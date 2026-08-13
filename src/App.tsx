@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Compass, LayoutDashboard, MessageSquare, Brain, User, 
@@ -312,6 +312,66 @@ export default function App() {
     updateLastActive();
     const interval = setInterval(updateLastActive, 60000);
     return () => clearInterval(interval);
+  }, [currentUser?.id]);
+
+  // Record daily login RPC call once per session when currentUser is loaded
+  const hasRecordedDailyLoginRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    if (hasRecordedDailyLoginRef.current === currentUser.id) return;
+
+    const recordDailyLogin = async () => {
+      try {
+        hasRecordedDailyLoginRef.current = currentUser.id;
+        const { data, error } = await supabase.rpc('record_daily_login');
+        if (error) {
+          console.warn('record_daily_login RPC call error:', error.message);
+          return;
+        }
+
+        if (data && data.awarded) {
+          const xpGained = data.xp_gained || 50;
+          const streakCount = data.streak || 1;
+
+          triggerRewardToast(
+            'Daily Login Reward!',
+            `+${xpGained} XP — Daily login!`,
+            xpGained,
+            '⚡'
+          );
+
+          if (data.streak_bonus) {
+            setTimeout(() => {
+              triggerCelebrationConfetti();
+              triggerRewardToast(
+                'Streak Bonus Unlocked!',
+                `🔥 ${streakCount}-day streak bonus!`,
+                100,
+                '🔥'
+              );
+            }, 600);
+          }
+
+          // Fetch updated profile to refresh currentUser state with new XP/Streak
+          const { data: profileRow } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+
+          if (profileRow) {
+            const freshUser = mapSupabaseToProfile(profileRow);
+            setCurrentUser(freshUser);
+            setAllUsers(prev => prev.map(u => u.id === currentUser.id ? freshUser : u));
+          }
+        }
+      } catch (err) {
+        console.warn('Error recording daily login:', err);
+      }
+    };
+
+    recordDailyLogin();
   }, [currentUser?.id]);
 
   // Set up Supabase Realtime subscription for notifications when currentUser changes
@@ -1074,6 +1134,11 @@ export default function App() {
     const teacherUser = swapRole === 'teach' ? currentUser : targetSwapper;
     const learnerUser = swapRole === 'teach' ? targetSwapper : currentUser;
 
+    const teacherOffered = teacherUser.skillsOffered?.find(
+      s => s.name.toLowerCase().trim() === skill.name.toLowerCase().trim()
+    );
+    const resolvedSkillLevel = teacherOffered?.level || skill.level || 'Intermediate';
+
     const bookingPayload: Booking = {
       id: `booking-${Date.now()}`,
       teacherId: teacherUser.id,
@@ -1082,6 +1147,7 @@ export default function App() {
       learnerName: learnerUser.name,
       skillName: skill.name,
       category: skill.category,
+      skillLevel: resolvedSkillLevel,
       learningOption: learningOption as any,
       date,
       timeSlot,
