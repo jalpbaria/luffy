@@ -222,6 +222,84 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
   const [forwardSearchQuery, setForwardSearchQuery] = useState('');
   const [isSendingForward, setIsSendingForward] = useState(false);
 
+  // Hidden Chats States (Delete Chat functionality)
+  const [hiddenChats, setHiddenChats] = useState<Record<string, string>>(() => {
+    try {
+      const local = localStorage.getItem(`chat_hidden_${currentUser.id}`);
+      return local ? JSON.parse(local) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [deleteChatModalContact, setDeleteChatModalContact] = useState<UserProfile | null>(null);
+
+  // Load hidden chats from Supabase
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const loadHiddenChats = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('hidden_chats')
+          .select('contact_id, hidden_at')
+          .eq('user_id', currentUser.id);
+
+        if (data && !error && data.length > 0) {
+          const map: Record<string, string> = {};
+          data.forEach((row: any) => {
+            if (row.contact_id && row.hidden_at) {
+              map[row.contact_id] = row.hidden_at;
+            }
+          });
+          setHiddenChats((prev) => {
+            const merged = { ...prev, ...map };
+            try {
+              localStorage.setItem(`chat_hidden_${currentUser.id}`, JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        }
+      } catch (e) {
+        // Fallback to localStorage state if hidden_chats table is not created in DB yet
+      }
+    };
+    loadHiddenChats();
+  }, [currentUser?.id]);
+
+  const handleDeleteChat = async (contactId: string) => {
+    const now = new Date().toISOString();
+
+    // 1. Update local state
+    setHiddenChats((prev) => {
+      const updated = { ...prev, [contactId]: now };
+      try {
+        localStorage.setItem(`chat_hidden_${currentUser.id}`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    // 2. Clear active contact if currently selected
+    if (activeContactId === contactId) {
+      setActiveContactId(null);
+    }
+
+    // 3. Close modal
+    setDeleteChatModalContact(null);
+
+    // 4. Save to Supabase hidden_chats table
+    try {
+      await supabase.from('hidden_chats').upsert(
+        {
+          user_id: currentUser.id,
+          contact_id: contactId,
+          hidden_at: now,
+        },
+        { onConflict: 'user_id,contact_id' }
+      );
+    } catch (err) {
+      console.error('Error saving hidden chat to Supabase:', err);
+    }
+  };
+
   const handleExecuteForward = async () => {
     if (!forwardModalMsg || selectedForwardContactIds.length === 0) return;
 
@@ -1021,15 +1099,24 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
 
 
   const sortedContacts = React.useMemo(() => {
-    return [...contacts].sort((a, b) => {
-      const timeA = latestMessageTimes[a.id] ? new Date(latestMessageTimes[a.id]).getTime() : 0;
-      const timeB = latestMessageTimes[b.id] ? new Date(latestMessageTimes[b.id]).getTime() : 0;
-      if (timeA !== timeB) {
-        return timeB - timeA;
-      }
-      return a.name.localeCompare(b.name);
-    });
-  }, [contacts, latestMessageTimes]);
+    return [...contacts]
+      .filter((c) => {
+        if (c.id === currentUser.id) return false;
+        const hiddenAt = hiddenChats[c.id];
+        if (!hiddenAt) return true;
+        const lastMsgTime = latestMessageTimes[c.id];
+        if (!lastMsgTime) return false;
+        return new Date(lastMsgTime).getTime() > new Date(hiddenAt).getTime();
+      })
+      .sort((a, b) => {
+        const timeA = latestMessageTimes[a.id] ? new Date(latestMessageTimes[a.id]).getTime() : 0;
+        const timeB = latestMessageTimes[b.id] ? new Date(latestMessageTimes[b.id]).getTime() : 0;
+        if (timeA !== timeB) {
+          return timeB - timeA;
+        }
+        return a.name.localeCompare(b.name);
+      });
+  }, [contacts, latestMessageTimes, hiddenChats, currentUser.id]);
 
   return (
     <div id="chat-view-root" className="bg-zinc-900/90 rounded-[28px] border border-zinc-800 shadow-2xl overflow-hidden flex flex-col md:flex-row h-[calc(100vh-140px)] min-h-[500px] max-h-[680px] md:h-[620px] text-xs text-zinc-300">
@@ -1060,7 +1147,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                   onClick={() => {
                     setActiveContactId(contact.id);
                   }}
-                  className={`p-3.5 flex items-center gap-3 cursor-pointer transition ${
+                  className={`group relative p-3.5 flex items-center gap-3 cursor-pointer transition ${
                     activeContactId === contact.id ? 'bg-indigo-500/10 border-l-4 border-indigo-500' : 'hover:bg-zinc-800/60'
                   }`}
                 >
@@ -1080,6 +1167,17 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                           </span>
                         )}
                         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isContactOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} title={isContactOnline ? 'Online' : 'Offline'}></span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteChatModalContact(contact);
+                          }}
+                          className="p-1 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-all cursor-pointer opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 shrink-0 ml-0.5"
+                          title={`Delete chat with ${contact.name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                     <p className="text-[10px] text-zinc-400 truncate mt-0.5">
@@ -1982,6 +2080,52 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                       )}
                     </button>
                   </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Delete Chat Confirmation Modal */}
+        <AnimatePresence>
+          {deleteChatModalContact && (
+            <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 max-w-sm w-full shadow-2xl"
+              >
+                <div className="flex items-center gap-3 text-rose-400 mb-3">
+                  <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                    <Trash2 className="w-5 h-5 text-rose-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-white">Delete Chat</h3>
+                    <p className="text-[11px] text-zinc-400">Clear chat from direct contacts</p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-zinc-300 leading-relaxed mb-4">
+                  Delete this chat with <span className="font-bold text-white">{deleteChatModalContact.name}</span>? This will hide the conversation from your chat list until a new message is sent.
+                </p>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteChatModalContact(null)}
+                    className="px-3.5 py-1.5 text-xs text-zinc-400 hover:text-white transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteChat(deleteChatModalContact.id)}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl text-xs shadow-lg shadow-rose-600/20 transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Chat</span>
+                  </button>
                 </div>
               </motion.div>
             </div>
