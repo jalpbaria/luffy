@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useRef } from 'react';
+import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react';
 import { 
   LogIn, UserPlus, Eye, EyeOff, Sparkles, Mail, Lock, User, 
   BookOpen, ChevronRight, Check, AlertCircle, Languages,
@@ -301,12 +301,34 @@ export default function LoginView({ onLogin, onRegister, allUsers, accountDelete
     },
   ];
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end end']
+  });
+
+  const headingY = useTransform(scrollYProgress, [0, 1], prefersReducedMotion ? [0, 0] : [0, -18]);
+  const cardsY = useTransform(scrollYProgress, [0, 1], prefersReducedMotion ? [0, 0] : [0, -8]);
+  const glowY = useTransform(scrollYProgress, [0, 1], prefersReducedMotion ? [0, 0] : [0, -28]);
+
   return (
-    <div id="login-view-root" className="min-h-screen bg-slate-50/60 flex items-center justify-center p-4 sm:p-6 lg:p-10 relative overflow-hidden font-sans">
+    <div 
+      ref={containerRef}
+      id="login-view-root" 
+      className="min-h-screen bg-slate-50/60 flex items-center justify-center p-4 sm:p-6 lg:p-10 relative overflow-hidden font-sans"
+    >
       
-      {/* Background Ambient Glow Spheres */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Background Ambient Glow Spheres (subtle differential parallax) */}
+      <motion.div 
+        style={{ y: glowY }}
+        className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" 
+      />
+      <motion.div 
+        style={{ y: glowY }}
+        className="absolute -bottom-32 -right-32 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" 
+      />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Split-Screen Container */}
@@ -319,8 +341,8 @@ export default function LoginView({ onLogin, onRegister, allUsers, accountDelete
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className="lg:col-span-6 space-y-8 pr-0 lg:pr-4"
         >
-          {/* Brand Header Badge */}
-          <div className="space-y-4">
+          {/* Brand Header Badge with Subtle Parallax */}
+          <motion.div style={{ y: headingY }} className="space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200/90 rounded-full shadow-2xs">
               <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
               <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700">SkillSwap Barter Network</span>
@@ -336,10 +358,10 @@ export default function LoginView({ onLogin, onRegister, allUsers, accountDelete
             <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-lg font-normal">
               Connect with real peers to barter expertise 1-on-1. Teach what you excel at, learn what you're passionate about — completely currency-free.
             </p>
-          </div>
+          </motion.div>
 
-          {/* Icon Benefit Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {/* Icon Benefit Cards Grid with Subtle Parallax */}
+          <motion.div style={{ y: cardsY }} className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {platformBenefits.map((benefit, idx) => (
               <motion.div
                 key={idx}
@@ -362,7 +384,7 @@ export default function LoginView({ onLogin, onRegister, allUsers, accountDelete
                 </p>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
 
           {/* Social Proof / Trust Banner */}
           <div className="pt-2 flex items-center gap-3 text-xs text-slate-500 font-medium">

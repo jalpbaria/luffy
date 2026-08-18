@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion } from 'motion/react';
 import { 
   Search, SlidersHorizontal, Star, Award, GraduationCap, 
   MapPin, Clock, Languages, Globe, Calendar, Check, MessageSquare,
@@ -310,18 +310,29 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
     }, 2000);
   };
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end end']
+  });
+
+  const headerY = useTransform(scrollYProgress, [0, 1], prefersReducedMotion ? [0, 0] : [0, -12]);
+  const filtersY = useTransform(scrollYProgress, [0, 1], prefersReducedMotion ? [0, 0] : [0, -6]);
+
   return (
-    <div id="explore-view-root" className="space-y-6">
-      {/* Title section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div ref={containerRef} id="explore-view-root" className="space-y-6">
+      {/* Title section with subtle scroll parallax */}
+      <motion.div style={{ y: headerY }} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white">Discover Skill Swappers</h1>
           <p className="text-zinc-400 mt-1 text-sm">Find your perfect skill-sharing partner. Filter by language, level, and availability.</p>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Search and Filters bar */}
-      <div className="bg-zinc-900/90 rounded-[24px] border border-zinc-800 shadow-xl p-5 space-y-4 backdrop-blur-md">
+      {/* Search and Filters bar with subtle scroll elevation */}
+      <motion.div style={{ y: filtersY }} className="bg-zinc-900/90 rounded-[24px] border border-zinc-800 shadow-xl p-5 space-y-4 backdrop-blur-md">
         {/* Match Fit Filter Mode Tabs */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-4">
           <div className="flex items-center gap-1.5 bg-zinc-950/80 p-1.5 rounded-2xl border border-zinc-800/80">
@@ -493,7 +504,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
 
       {/* Grid of Users */}
       {isLoading ? (
@@ -515,7 +526,16 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
           }}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="relative"
+        >
+          {/* Subtle Ambient Section Glow Transition */}
+          <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-3/4 h-24 bg-gradient-to-b from-indigo-500/5 via-emerald-500/5 to-transparent rounded-full blur-2xl -z-10 pointer-events-none" />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredUsers.map((user) => {
             const matchInfo = matchMap.get(user.id);
             const isPerfect = matchInfo?.isPerfectMatch;
@@ -654,14 +674,16 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                   <span className="text-zinc-400">
                     <span className="font-bold text-white">{user.successfulExchanges}</span> successful swaps
                   </span>
-                  <span className="text-indigo-400 font-semibold group flex items-center gap-1 cursor-pointer">
-                    View Profile <ChevronRight className="w-4 h-4 transition group-hover:translate-x-0.5" />
+                  <span className="text-indigo-400 font-semibold group flex items-center gap-1 cursor-pointer link-sweep">
+                    <span>View Profile</span>
+                    <ChevronRight className="w-4 h-4 icon-shift-right" />
                   </span>
                 </div>
               </motion.div>
             );
           })}
-        </div>
+          </div>
+        </motion.div>
       )}
 
       {/* Teacher Profile Detail Overlay */}

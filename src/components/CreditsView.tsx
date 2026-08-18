@@ -4,6 +4,7 @@ import { UserProfile } from '../types';
 import { Coins, TrendingUp, TrendingDown, RefreshCw, ArrowUpRight, ArrowDownLeft, Clock, Zap, ShieldCheck, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { EmptyState } from './ui';
+import { AnimatedCounter } from './motion/AnimatedCounter';
 
 export interface CreditTransaction {
   id: string;
@@ -138,7 +139,7 @@ export function CreditsView({ currentUser, onRefreshProfile }: CreditsViewProps)
 
           <div className="my-6">
             <div className="text-4xl sm:text-5xl font-black text-white tracking-tight flex items-baseline gap-2">
-              <span>{liveCredits}</span>
+              <AnimatedCounter value={liveCredits} />
               <span className="text-base font-bold text-amber-400">Credits</span>
             </div>
             <p className="text-zinc-400 text-xs mt-2 flex items-center gap-1">
@@ -170,7 +171,7 @@ export function CreditsView({ currentUser, onRefreshProfile }: CreditsViewProps)
 
           <div className="my-6">
             <div className="text-3xl sm:text-4xl font-black text-emerald-400 tracking-tight">
-              +{totalEarned}
+              <AnimatedCounter value={totalEarned} prefix="+" />
             </div>
             <p className="text-zinc-400 text-xs mt-2">
               Earned from completed teaching sessions
@@ -200,7 +201,7 @@ export function CreditsView({ currentUser, onRefreshProfile }: CreditsViewProps)
 
           <div className="my-6">
             <div className="text-3xl sm:text-4xl font-black text-rose-400 tracking-tight">
-              -{totalSpent}
+              <AnimatedCounter value={totalSpent} prefix="-" />
             </div>
             <p className="text-zinc-400 text-xs mt-2">
               Spent on completed learning sessions

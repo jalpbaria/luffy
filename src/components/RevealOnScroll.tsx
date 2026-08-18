@@ -4,7 +4,7 @@ import { motion, HTMLMotionProps } from 'motion/react';
 export interface RevealOnScrollProps extends Omit<HTMLMotionProps<'div'>, 'children'> {
   children: React.ReactNode;
   /** Slide direction for entrance animation */
-  direction?: 'up' | 'down' | 'left' | 'right' | 'none';
+  direction?: 'up' | 'down' | 'left' | 'right';
   /** Delay before animation starts in seconds */
   delay?: number;
   /** Duration of animation in seconds */
@@ -37,7 +37,6 @@ export const RevealOnScroll: React.FC<RevealOnScrollProps> = ({
         return { x: distance, y: 0 };
       case 'right':
         return { x: -distance, y: 0 };
-      case 'none':
       default:
         return { x: 0, y: 0 };
     }

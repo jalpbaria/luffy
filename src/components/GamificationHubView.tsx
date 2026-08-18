@@ -6,7 +6,7 @@ import {
   Sparkles, Medal, ChevronRight, Download, Share2, Compass, Play, RefreshCw, Check
 } from 'lucide-react';
 import { ProgressRing } from './ui/ProgressRing';
-import { Button, Card, Badge as UiBadge, Avatar, ProgressBar, MotionCard, EmptyState } from './ui';
+import { Button, Card, Badge as UiBadge, Avatar, ProgressBar, MotionCard, EmptyState, AnimatedCounter } from './ui';
 import { 
   calculateUserXP, calculateUserLevel, initialDailyChallenges, initialWeeklyChallenges, 
   getSampleCertificates, buildGlobalLeaderboard, ALL_BADGES_CATALOG, triggerCelebrationConfetti 
@@ -147,7 +147,9 @@ export function GamificationHubView({
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-2xl font-black text-amber-300">{userXp}</span>
+                <span className="text-2xl font-black text-amber-300">
+                  <AnimatedCounter value={userXp} />
+                </span>
                 <span className="text-[10px] text-slate-300 font-bold uppercase block">Total XP</span>
               </div>
             </div>
@@ -155,7 +157,9 @@ export function GamificationHubView({
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs font-bold text-slate-300">
                 <span>XP Progress to Level {userLevelInfo.level + 1}</span>
-                <span>{userLevelInfo.currentLevelXp} / {userLevelInfo.nextLevelXp} XP</span>
+                <span>
+                  <AnimatedCounter value={userLevelInfo.currentLevelXp} /> / {userLevelInfo.nextLevelXp} XP
+                </span>
               </div>
               <ProgressBar value={userLevelInfo.progressPercent} color="amber" showPercentage={false} />
             </div>

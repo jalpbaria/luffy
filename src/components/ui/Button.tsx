@@ -78,10 +78,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <motion.button
         ref={ref}
         disabled={disabled || isLoading}
-        whileHover={disabled || isLoading ? undefined : { y: -1.5, scale: 1.01 }}
+        whileHover={disabled || isLoading ? undefined : { y: -1, scale: 1.02, filter: 'brightness(1.05)' }}
         whileTap={disabled || isLoading ? undefined : { scale: 0.97, y: 0 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-        className={`inline-flex items-center justify-center transition-all cursor-pointer select-none tracking-tight ${
+        transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+        className={`group inline-flex items-center justify-center transition-all cursor-pointer select-none tracking-tight ${
           fullWidth ? 'w-full' : ''
         } ${sizeClasses} ${variantClasses} ${
           disabled || isLoading ? 'opacity-60 pointer-events-none' : ''
@@ -91,10 +91,18 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {isLoading ? (
           <Loader2 className="w-4 h-4 animate-spin shrink-0" />
         ) : (
-          leftIcon
+          leftIcon && (
+            <span className="inline-flex shrink-0 transition-transform duration-200 ease-out group-hover:-translate-x-0.5">
+              {leftIcon}
+            </span>
+          )
         )}
         <span>{children}</span>
-        {!isLoading && rightIcon}
+        {!isLoading && rightIcon && (
+          <span className="inline-flex shrink-0 transition-transform duration-200 ease-out group-hover:translate-x-1">
+            {rightIcon}
+          </span>
+        )}
       </motion.button>
     );
   }

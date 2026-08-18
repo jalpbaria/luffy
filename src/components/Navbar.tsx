@@ -26,6 +26,7 @@ import {
 import { UserProfile, AppNotification, Booking } from '../types';
 import { Avatar } from './ui/Avatar';
 import { Badge } from './ui/Badge';
+import { AnimatedCounter } from './motion/AnimatedCounter';
 import { supabase, mapSupabaseToBooking } from '../lib/supabase';
 
 export type NavTabId = 'dashboard' | 'explore' | 'chat' | 'study-hub' | 'skill-path' | 'gamification' | 'credits' | 'profile';
@@ -170,7 +171,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative px-3.5 py-1.5 rounded-xl flex items-center gap-2 text-xs font-bold transition-all cursor-pointer border-0 ${
+                  className={`group relative px-3.5 py-1.5 rounded-xl flex items-center gap-2 text-xs font-bold transition-all cursor-pointer border-0 ${
                     isActive ? 'text-indigo-600' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
                   }`}
                 >
@@ -178,11 +179,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <motion.div
                       layoutId="activeNavTab"
                       className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/80"
-                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                     />
                   )}
+                  {/* Animated hover underline that expands from center */}
+                  {!isActive && (
+                    <span className="absolute bottom-1 left-3 right-3 h-[2px] bg-indigo-500/60 rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-250 ease-out origin-center pointer-events-none" />
+                  )}
                   <span className="relative z-10 flex items-center gap-2">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-600' : 'text-slate-500'}`} />
+                    <Icon className={`w-4 h-4 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-indigo-600' : 'text-slate-500'}`} />
                     <span>{tab.label}</span>
                   </span>
                 </button>
@@ -200,7 +205,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="View Credits Wallet"
             >
               <Coins className="w-4 h-4 text-amber-500" />
-              <span>{currentUser.credits ?? 100}</span>
+              <span>
+                <AnimatedCounter value={currentUser.credits ?? 100} />
+              </span>
             </button>
 
             {/* Quick Search Button */}
@@ -554,7 +561,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-xl min-w-[50px] transition-all cursor-pointer border-0 bg-transparent relative ${
+              className={`group flex flex-col items-center justify-center py-1.5 px-2 rounded-xl min-w-[50px] transition-all cursor-pointer border-0 bg-transparent relative ${
                 isActive ? 'text-indigo-600 font-extrabold' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -562,10 +569,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <motion.div
                   layoutId="mobileActiveTab"
                   className="absolute inset-0 bg-indigo-50 rounded-xl"
-                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                 />
               )}
-              <Icon className="w-5 h-5 relative z-10" />
+              {/* Mobile underline indicator on hover */}
+              {!isActive && (
+                <span className="absolute bottom-1 left-2 right-2 h-[2px] bg-indigo-500/50 rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-250 ease-out origin-center pointer-events-none" />
+              )}
+              <Icon className="w-5 h-5 relative z-10 transition-transform duration-200 group-hover:scale-110" />
               <span className="text-[10px] tracking-tight mt-0.5 relative z-10">{tab.label}</span>
             </button>
           );

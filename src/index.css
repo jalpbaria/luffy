@@ -199,3 +199,69 @@ body {
 .pulse-glow-cyan {
   box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
 }
+
+/* Micro-Interactions: Links, Action Icons & Interactive Elements */
+.link-sweep {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.link-sweep::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: currentColor;
+  border-radius: 9999px;
+  transform: scaleX(0);
+  transform-origin: bottom left;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.link-sweep:hover::after {
+  transform: scaleX(1);
+}
+
+/* Action Icon Micro-shifts */
+.icon-shift-right {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.group:hover .icon-shift-right,
+button:hover .icon-shift-right,
+a:hover .icon-shift-right {
+  transform: translateX(3px);
+}
+
+.icon-shift-up-right {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.group:hover .icon-shift-up-right,
+button:hover .icon-shift-up-right,
+a:hover .icon-shift-up-right {
+  transform: translate(2px, -2px);
+}
+
+.icon-shift-down {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.group:hover .icon-shift-down,
+button:hover .icon-shift-down,
+a:hover .icon-shift-down {
+  transform: translateY(2px);
+}
+
+.icon-shift-left {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.group:hover .icon-shift-left,
+button:hover .icon-shift-left,
+a:hover .icon-shift-left {
+  transform: translateX(-3px);
+}
+

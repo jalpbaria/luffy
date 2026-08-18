@@ -11,7 +11,7 @@ import { calculateUserXP } from '../lib/gamification';
 import { getSessionGateStatus, computeStartTime } from '../lib/liveSessions';
 import { computeAllUserMatches } from '../lib/matchUtils';
 import { VerifiedSkillBadge } from './VerifiedSkillBadge';
-import { Button, Card, Badge, Avatar, ProgressBar, StatCard, MotionCard, EmptyState, AmbientOrb, TiltCard, RevealOnScroll } from './ui';
+import { Button, Card, Badge, Avatar, ProgressBar, StatCard, MotionCard, EmptyState, AmbientOrb, TiltCard, RevealOnScroll, AnimatedCounter, RevealText, FadeUp, MagneticButton, PinnedHorizontalScroll } from './ui';
 import { supabase, mapSupabaseToBooking } from '../lib/supabase';
 
 function formatRelativeTime(dateStr?: string): string {
@@ -428,6 +428,53 @@ export default function DashboardView({
     return 'Good Evening';
   }, []);
 
+  // 7-day recent credit earnings computation
+  const [recentCreditsTrend, setRecentCreditsTrend] = useState<{
+    text: string;
+    type: 'positive' | 'negative' | 'neutral';
+  }>({ text: 'No recent activity', type: 'neutral' });
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchRecentCredits() {
+      if (!currentUser?.id) return;
+      try {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const sevenDaysAgoIso = sevenDaysAgo.toISOString();
+
+        const { data, error } = await supabase
+          .from('credit_transactions')
+          .select('amount, created_at')
+          .eq('user_id', currentUser.id)
+          .gte('created_at', sevenDaysAgoIso);
+
+        if (error) {
+          console.warn('Could not fetch recent credit transactions:', error);
+          return;
+        }
+
+        if (isMounted && data) {
+          const sum = data.reduce((acc, row) => acc + (Number(row.amount) || 0), 0);
+          if (sum > 0) {
+            setRecentCreditsTrend({ text: `+${sum} earned recently`, type: 'positive' });
+          } else if (sum < 0) {
+            setRecentCreditsTrend({ text: `${sum} spent recently`, type: 'negative' });
+          } else {
+            setRecentCreditsTrend({ text: 'No recent activity', type: 'neutral' });
+          }
+        }
+      } catch (err) {
+        console.warn('Error computing recent credit trend:', err);
+      }
+    }
+
+    fetchRecentCredits();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id, currentUser?.credits]);
+
   // XP & Gamification Metrics
   const xpPoints = useMemo(() => {
     return calculateUserXP(currentUser);
@@ -443,7 +490,7 @@ export default function DashboardView({
 
   // Compute Skill Matches
   const allUserMatches = useMemo(() => computeAllUserMatches(currentUser, allUsers), [currentUser, allUsers]);
-  const recommendedPartners = useMemo(() => allUserMatches.slice(0, 4), [allUserMatches]);
+  const recommendedPartners = useMemo(() => allUserMatches.slice(0, 8), [allUserMatches]);
 
   // Review Modal State
   const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
@@ -480,37 +527,46 @@ export default function DashboardView({
   const summaryCards = useMemo(() => [
     {
       title: 'Credits Balance',
-      value: `${currentUser.credits ?? 0} Credits`,
+      numericValue: currentUser.credits ?? 0,
+      suffix: ' Credits',
       subtitle: 'Available for peer barter',
       icon: <Coins className="w-5 h-5" />,
-      trend: { value: '+2 earned recently', isPositive: true },
+      trend: {
+        value: recentCreditsTrend.text,
+        isPositive: recentCreditsTrend.type === 'positive',
+        type: recentCreditsTrend.type,
+      },
     },
     {
       title: 'Active Swaps',
-      value: `${activeSwapsCount} Sessions`,
+      numericValue: activeSwapsCount,
+      suffix: ' Sessions',
       subtitle: 'In exchange pipeline',
       icon: <Users className="w-5 h-5" />,
     },
     {
       title: 'Skills Offered',
-      value: `${currentUser.skillsOffered?.length || 0} Skills`,
+      numericValue: currentUser.skillsOffered?.length || 0,
+      suffix: ' Skills',
       subtitle: currentUser.skillsOffered?.map(s => s.name).slice(0, 2).join(', ') || 'Ready to teach',
       icon: <GraduationCap className="w-5 h-5" />,
     },
     {
       title: 'Total XP Points',
-      value: `${xpPoints} XP`,
+      numericValue: xpPoints,
+      suffix: ' XP',
       subtitle: `Level ${userLevel} Voyager`,
       icon: <Zap className="w-5 h-5" />,
-      trend: { value: '+240 XP this week', isPositive: true },
+      trend: { value: '+240 XP this week', isPositive: true, type: 'positive' as const },
     },
     {
       title: 'Learning Streak',
-      value: `${currentUser.loginStreak ?? 7} Days 🔥`,
+      numericValue: currentUser.loginStreak ?? 7,
+      suffix: ' Days 🔥',
       subtitle: 'Personal record!',
       icon: <Flame className="w-5 h-5" />,
     },
-  ], [currentUser.credits, currentUser.skillsOffered, currentUser.loginStreak, activeSwapsCount, xpPoints, userLevel]);
+  ], [currentUser.credits, currentUser.skillsOffered, currentUser.loginStreak, activeSwapsCount, xpPoints, userLevel, recentCreditsTrend]);
 
   const submitReview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -691,42 +747,55 @@ export default function DashboardView({
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
           <div className="lg:col-span-7 space-y-5 relative">
-            {/* 🌟 Glowing Ambient Orb positioned behind the welcome header */}
-            <AmbientOrb tone="brass" size="xl" className="-top-20 -left-20 opacity-80" />
+            {/* 🌟 Background AmbientOrb begins ambient motion immediately on mount */}
+            <AmbientOrb tone="brass" size="xl" cursorReactive className="-top-20 -left-20 opacity-80" />
 
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-xs font-extrabold text-indigo-200">
               <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-300 animate-pulse" />
               <span>SkillSwap 2026 Peer Academy</span>
             </div>
 
-            <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
-                👋 {greetingTime}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-cyan-300">{currentUser.name}</span>
-              </h1>
+            {/* 0–700ms: Primary heading word-by-word reveal */}
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+              <RevealText delay={0} staggerDelay={0.05}>
+                👋 {greetingTime},{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-cyan-300">
+                  {currentUser.name}
+                </span>
+              </RevealText>
+            </h1>
+
+            {/* 200–900ms: Supporting subtext slide and fade */}
+            <FadeUp delay={0.22} duration={0.45} className="space-y-2">
               <p className="text-base sm:text-lg font-bold text-slate-200 leading-snug">
                 Accelerate your growth through peer barter exchanges today.
               </p>
               <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-xl">
                 Swap your domain mastery for new skills. No cash required — purely collaborative peer learning powered by AI.
               </p>
-            </div>
+            </FadeUp>
 
+            {/* 400–1100ms: CTA buttons wrapped in MagneticButton */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <button
-                onClick={() => onNavigateToExplore?.()}
-                className="px-5 py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 hover:opacity-95 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-indigo-500/25 transition-all transform active:scale-95 flex items-center gap-2 cursor-pointer"
-              >
-                <Compass className="w-4 h-4" />
-                <span>Find Skill Partner</span>
-              </button>
+              <MagneticButton delay={0.42} duration={0.45}>
+                <button
+                  onClick={() => onNavigateToExplore?.()}
+                  className="px-5 py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 hover:opacity-95 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-indigo-500/25 transition-all transform active:scale-95 flex items-center gap-2 cursor-pointer"
+                >
+                  <Compass className="w-4 h-4" />
+                  <span>Find Skill Partner</span>
+                </button>
+              </MagneticButton>
 
-              <button
-                onClick={() => onNavigateToExplore?.()}
-                className="px-5 py-3 bg-white/10 hover:bg-white/20 text-white font-extrabold text-xs sm:text-sm rounded-2xl border border-white/20 transition-all transform active:scale-95 flex items-center gap-2 cursor-pointer"
-              >
-                <GraduationCap className="w-4 h-4 text-emerald-400" />
-                <span>Teach a Skill</span>
-              </button>
+              <MagneticButton delay={0.5} duration={0.45}>
+                <button
+                  onClick={() => onNavigateToExplore?.()}
+                  className="px-5 py-3 bg-white/10 hover:bg-white/20 text-white font-extrabold text-xs sm:text-sm rounded-2xl border border-white/20 transition-all transform active:scale-95 flex items-center gap-2 cursor-pointer"
+                >
+                  <GraduationCap className="w-4 h-4 text-emerald-400" />
+                  <span>Teach a Skill</span>
+                </button>
+              </MagneticButton>
             </div>
           </div>
 
@@ -742,7 +811,9 @@ export default function DashboardView({
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-2xl font-black text-amber-300">{xpPoints}</span>
+                <span className="text-2xl font-black text-amber-300">
+                  <AnimatedCounter value={xpPoints} />
+                </span>
                 <span className="text-[10px] text-slate-300 font-bold uppercase block tracking-wider">Total XP</span>
               </div>
             </div>
@@ -784,431 +855,468 @@ export default function DashboardView({
       </div>
 
       {/* 📊 SECTION 1: STATISTICS & SUMMARY CARDS */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-indigo-600" />
-            Performance & Growth Metrics
-          </h2>
-          <span className="text-xs text-slate-500 font-bold">Updated live</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          {summaryCards.map((card, index) => (
-            <RevealOnScroll key={card.title} delay={index * 0.1} className="h-full">
-              <TiltCard
-                glow={index % 2 === 0 ? 'brass' : 'sage'}
-                className="h-full flex flex-col justify-between bg-navy text-parchment border border-brass/30 rounded-3xl p-5 sm:p-6 shadow-sm overflow-hidden"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                      {card.title}
-                    </span>
-                    <div
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
-                        index % 2 === 0
-                          ? 'bg-brass/20 text-brass-light border-brass/40 shadow-xs'
-                          : 'bg-sage/20 text-sage-light border-sage/40 shadow-xs'
-                      }`}
-                    >
-                      {card.icon}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-2xl sm:text-3xl font-black text-parchment tracking-tight">
-                      {card.value}
-                    </div>
-                    <div className="text-xs text-slate-300 font-medium mt-1">
-                      {card.subtitle}
-                    </div>
-                  </div>
-                </div>
-
-                {card.trend && (
-                  <div className="pt-3 mt-3 border-t border-white/10 flex items-center gap-1.5 text-xs text-emerald-400 font-bold">
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    <span>{card.trend.value}</span>
-                  </div>
-                )}
-              </TiltCard>
-            </RevealOnScroll>
-          ))}
-        </div>
-      </section>
-
-      {/* 📚 SECTION 2 & 3: CONTINUE LEARNING & AI MENTOR PANEL */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* SECTION 2: CONTINUE LEARNING (7 Cols) */}
-        <div className="lg:col-span-7 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-              <Play className="w-5 h-5 text-indigo-600 fill-indigo-600" />
-              Continue Learning
-            </h2>
-            <span className="text-xs font-bold text-indigo-600">{progress.length} active courses</span>
-          </div>
-
-          {progress.length === 0 ? (
-            <EmptyState
-              preset="courses"
-              title="Start Your First Barter Learning Track"
-              description="No active skill tracks in progress. Connect with peer swappers to unlock customized learning roadmaps."
-              actionText="Explore Skill Partners"
-              onAction={() => onNavigateToExplore?.()}
-            />
-          ) : (
-            <div className="space-y-4">
-              {progress.map((prog, idx) => (
-                <MotionCard key={`${prog.userId}-${prog.skillName}-${idx}`} className="space-y-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-extrabold">
-                        <BookOpen className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-extrabold text-slate-900 text-base">{prog.skillName}</h3>
-                        <span className="text-xs text-slate-500">
-                          {prog.lessonsCompleted} of {prog.lessonsTotal} modules completed
-                        </span>
-                      </div>
-                    </div>
-                    <Badge variant="primary">{prog.completionPercentage}% Done</Badge>
-                  </div>
-
-                  <ProgressBar value={prog.completionPercentage} color="indigo" showPercentage={false} />
-
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-                    <span className="text-slate-500 font-medium flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" /> Est. ~25 mins left
-                    </span>
-                    <button
-                      onClick={() => onNavigateToExplore?.()}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span>Resume Lesson</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </MotionCard>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* SECTION 3: AI MENTOR CARD (5 Cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-              <Bot className="w-5 h-5 text-purple-600" />
-              AI Mentor Proactive Insights
-            </h2>
-            <Badge variant="secondary" icon={<Sparkles className="w-3 h-3 text-purple-600" />}>
-              Active Guidance
-            </Badge>
-          </div>
-
-          <div className="bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900 text-white rounded-[28px] p-6 border border-purple-500/30 shadow-xl space-y-5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/20 rounded-full blur-2xl pointer-events-none" />
-
-            <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-              <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-300">
-                <Bot className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-white text-sm">Personalized AI Recommendation</h3>
-                <p className="text-[11px] text-purple-300">Based on your teaching profile & goals</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10 text-xs space-y-1">
-                <p className="font-bold text-amber-300 flex items-center gap-1.5">
-                  <Lightbulb className="w-4 h-4 text-amber-400 fill-amber-300" />
-                  Daily Tip
-                </p>
-                <p className="text-slate-200 leading-relaxed">
-                  "You're only 20 minutes away from completing your next skill milestone in React 19. Scheduling a peer review now gives +50 bonus XP!"
-                </p>
-              </div>
-
-              <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10 text-xs space-y-1">
-                <p className="font-bold text-cyan-300 flex items-center gap-1.5">
-                  <Users className="w-4 h-4" />
-                  Suggested Partner Match
-                </p>
-                <p className="text-slate-200 leading-relaxed">
-                  3 peer swappers are currently looking for your taught skill <span className="font-extrabold text-white">"{currentUser.skillsOffered?.[0]?.name || 'TypeScript'}"</span>.
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => onNavigateToExplore?.()}
-              className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>View AI Suggested Partners</span>
-              <ArrowUpRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      {/* 🤝 SECTION 4: RECOMMENDED SKILL PARTNERS */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-              <Users className="w-5 h-5 text-indigo-600" />
-              Recommended Skill Partners
-            </h2>
-            <p className="text-slate-500 text-xs">High affinity peer swappers tailored to your wanted skills</p>
-          </div>
-          <button
-            onClick={() => onNavigateToExplore?.()}
-            className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
-          >
-            <span>See All Swappers</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {recommendedPartners.map(({ user, isPerfectMatch }) => (
-            <MotionCard key={user.id} className="space-y-4 flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <Avatar src={user.avatar} name={user.name} size="lg" isOnline={true} />
-                  {isPerfectMatch && (
-                    <Badge variant="success" icon={<Sparkles className="w-3 h-3" />}>
-                      Perfect Match
-                    </Badge>
-                  )}
-                </div>
-
-                <div>
-                  <h3 className="font-extrabold text-slate-900 text-base">{user.name}</h3>
-                  <div className="flex items-center gap-1.5 text-xs text-amber-500 font-bold mt-0.5">
-                    <Star className="w-3.5 h-3.5 fill-amber-400" />
-                    <span>{user.rating?.toFixed(1) || '4.9'}</span>
-                    <span className="text-slate-400 font-normal">({user.successfulExchanges || 12} swaps)</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-xs pt-1 border-t border-slate-100">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Teaches</span>
-                    <p className="font-bold text-slate-800 truncate">
-                      {user.skillsOffered?.map(s => s.name).join(', ') || 'Web Dev'}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Wants to Learn</span>
-                    <p className="font-bold text-indigo-600 truncate">
-                      {user.skillsWanted?.map(s => s.name).join(', ') || 'UI Design'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => onNavigateToExplore?.()}
-                className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs rounded-xl border border-indigo-200/80 transition cursor-pointer"
-              >
-                Exchange Skill
-              </button>
-            </MotionCard>
-          ))}
-        </div>
-      </section>
-
-      {/* 📅 SECTION 5: UPCOMING SESSIONS & TIMELINE */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-indigo-600" />
-            Upcoming Classrooms & Timeline
-          </h2>
-          <span className="text-xs text-slate-500 font-bold">{userBookings.length} scheduled sessions</span>
-        </div>
-
-        <Card>
-          {userBookings.length === 0 ? (
-            <EmptyState
-              preset="bookings"
-              title="Your Timeline is Wide Open"
-              description="No upcoming sessions scheduled. Discover skill partners and book 1-on-1 barter classrooms!"
-              actionText="Book a Session"
-              onAction={() => onNavigateToExplore?.()}
-            />
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {userBookings.map((booking) => (
-                <div key={booking.id} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-extrabold shrink-0">
-                      <Video className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-extrabold text-slate-900 text-sm sm:text-base">{booking.skillName}</h4>
-                      <p className="text-slate-500 text-xs mt-0.5">
-                        With <span className="font-bold text-slate-800">{booking.teacherName}</span> • Option: <span className="text-indigo-600 font-bold">{booking.learningOption}</span>
-                      </p>
-                      <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 font-medium">
-                        <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-slate-400" /> {booking.date}</span>
-                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-slate-400" /> {booking.timeSlot}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
-                    {booking.isNoShow ? (
-                      <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-300 rounded-full text-xs font-bold flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                        No-Show Flagged
-                      </span>
-                    ) : booking.status === 'completed' ? (
-                      <span className="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        Completed
-                      </span>
-                    ) : booking.status === 'cancelled' ? (
-                      <span className="px-3 py-1 bg-rose-50 text-rose-800 border border-rose-200 rounded-full text-xs font-bold flex items-center gap-1">
-                        <X className="w-3.5 h-3.5 text-rose-500" />
-                        Cancelled {booking.isLateCancellation ? '(Late)' : ''}
-                      </span>
-                    ) : null}
-
-                    {(booking.status === 'confirmed' || booking.status === 'rescheduled') && (
-                      <SessionJoinGateButton booking={booking} onStartLiveSession={onStartLiveSession} />
-                    )}
-                    {booking.status === 'pending' && (
-                      <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-xs font-bold">
-                        Pending Confirmation
-                      </span>
-                    )}
-
-                    {booking.status !== 'cancelled' && booking.status !== 'completed' && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRescheduleBookingModal(booking);
-                            setRescheduleDate(booking.date || new Date().toISOString().split('T')[0]);
-                            setRescheduleSlot(booking.timeSlot || 'Afternoon');
-                          }}
-                          className="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold text-xs rounded-xl border border-slate-200 transition cursor-pointer flex items-center gap-1.5"
-                        >
-                          <Calendar className="w-3.5 h-3.5 text-indigo-600" />
-                          <span>Propose New Time</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setCancelBookingModal(booking)}
-                          className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 font-bold text-xs rounded-xl border border-slate-200 transition cursor-pointer flex items-center gap-1.5"
-                        >
-                          <X className="w-3.5 h-3.5 text-rose-500" />
-                          <span>Cancel</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      </section>
-
-      {/* 🌐 SECTION 6 & 7: COMMUNITY FEED & TRENDING SKILLS */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* SECTION 6: COMMUNITY ACTIVITY FEED (7 Cols) */}
-        <div className="lg:col-span-7 space-y-4">
+      <RevealOnScroll direction="up" distance={20} duration={0.5} className="space-y-4">
+        <section className="space-y-4 relative">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
               <Activity className="w-5 h-5 text-indigo-600" />
-              Live Peer Activity Feed
+              Performance & Growth Metrics
             </h2>
-            <span className="text-xs text-slate-500 font-bold">Global Swapper Highlights</span>
+            <span className="text-xs text-slate-500 font-bold">Updated live</span>
           </div>
 
-          {communityActivities.length === 0 ? (
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-10 text-center flex flex-col items-center justify-center space-y-3.5 shadow-xs">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-xl shadow-inner">
-                📚
-              </div>
-              <div className="space-y-1 max-w-sm mx-auto">
-                <h3 className="font-extrabold text-slate-900 text-base">No community activity yet.</h3>
-                <p className="text-slate-500 text-xs leading-relaxed">
-                  Be the first member to exchange a skill and inspire others.
-                </p>
-              </div>
-              <Button
-                variant="gradient"
-                size="sm"
-                onClick={() => onNavigateToExplore?.()}
-                leftIcon={<Compass className="w-4 h-4" />}
-              >
-                Find Skill Partner
-              </Button>
-            </div>
-          ) : (
-            <Card className="space-y-4">
-              {communityActivities.map((act) => (
-                <div key={act.id} className="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-0 last:pb-0">
-                  <Avatar src={act.avatar} name={act.user} size="sm" />
-                  <div className="flex-1 text-xs">
-                    <p className="text-slate-800 font-medium">
-                      <span className="font-extrabold text-slate-900">{act.user}</span> {act.action} <span className="font-bold text-indigo-600">{act.topic}</span>
-                    </p>
-                    <span className="text-[10px] text-slate-400 font-medium">{act.time}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {summaryCards.map((card, index) => (
+              <RevealOnScroll key={card.title} delay={index * 0.08} className="h-full">
+                <TiltCard
+                  glow={index % 2 === 0 ? 'brass' : 'sage'}
+                  className="h-full flex flex-col justify-between bg-navy text-parchment border border-brass/30 rounded-3xl p-5 sm:p-6 shadow-sm overflow-hidden"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                        {card.title}
+                      </span>
+                      <div
+                        className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
+                          index % 2 === 0
+                            ? 'bg-brass/20 text-brass-light border-brass/40 shadow-xs'
+                            : 'bg-sage/20 text-sage-light border-sage/40 shadow-xs'
+                        }`}
+                      >
+                        {card.icon}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-2xl sm:text-3xl font-black text-parchment tracking-tight">
+                        {card.numericValue !== undefined ? (
+                          <AnimatedCounter value={card.numericValue} suffix={card.suffix} />
+                        ) : (
+                          card.title
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-300 font-medium mt-1">
+                        {card.subtitle}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </Card>
-          )}
-        </div>
 
-        {/* SECTION 7: TRENDING SKILLS UNIVERSE (5 Cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-              <Flame className="w-5 h-5 text-orange-500" />
-              Trending Skills Universe
-            </h2>
-            <button onClick={() => onNavigateToExplore?.()} className="text-xs font-bold text-indigo-600 hover:underline">
-              View All
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {trendingSkills.map((sk, idx) => (
-              <button
-                key={idx}
-                onClick={() => onNavigateToExplore?.()}
-                className={`p-4 rounded-2xl bg-gradient-to-br ${sk.gradient} text-white text-left space-y-2 shadow-md transition transform hover:-translate-y-1 cursor-pointer border-0`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xl">{sk.icon}</span>
-                  <span className="text-[9px] font-extrabold bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    {sk.category}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-xs sm:text-sm leading-tight text-white">{sk.name}</h3>
-                  <p className="text-[10px] text-white/80 mt-1">{sk.learners}</p>
-                </div>
-              </button>
+                  {card.trend && (
+                    <div
+                      className={`pt-3 mt-3 border-t border-white/10 flex items-center gap-1.5 text-xs font-bold ${
+                        card.trend.type === 'positive'
+                          ? 'text-emerald-400'
+                          : card.trend.type === 'negative'
+                          ? 'text-rose-400'
+                          : 'text-slate-400'
+                      }`}
+                    >
+                      {card.trend.type === 'positive' ? (
+                        <TrendingUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <Activity className="w-3.5 h-3.5" />
+                      )}
+                      <span>{card.trend.value}</span>
+                    </div>
+                  )}
+                </TiltCard>
+              </RevealOnScroll>
             ))}
           </div>
-        </div>
+        </section>
+      </RevealOnScroll>
 
-      </div>
+      {/* 📚 SECTION 2 & 3: CONTINUE LEARNING & AI MENTOR PANEL */}
+      <RevealOnScroll direction="up" distance={24} duration={0.55} className="relative">
+        {/* Soft background ambient tone transition (sage/indigo tone) */}
+        <div className="absolute -inset-x-4 -inset-y-4 bg-gradient-to-b from-indigo-50/40 via-transparent to-slate-50/20 rounded-[36px] -z-10 pointer-events-none" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* SECTION 2: CONTINUE LEARNING (7 Cols) */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <Play className="w-5 h-5 text-indigo-600 fill-indigo-600" />
+                Continue Learning
+              </h2>
+              <span className="text-xs font-bold text-indigo-600">{progress.length} active courses</span>
+            </div>
+
+            {progress.length === 0 ? (
+              <EmptyState
+                preset="courses"
+                title="Start Your First Barter Learning Track"
+                description="No active skill tracks in progress. Connect with peer swappers to unlock customized learning roadmaps."
+                actionText="Explore Skill Partners"
+                onAction={() => onNavigateToExplore?.()}
+              />
+            ) : (
+              <div className="space-y-4">
+                {progress.map((prog, idx) => (
+                  <MotionCard key={`${prog.userId}-${prog.skillName}-${idx}`} className="space-y-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-extrabold">
+                          <BookOpen className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-extrabold text-slate-900 text-base">{prog.skillName}</h3>
+                          <span className="text-xs text-slate-500">
+                            {prog.lessonsCompleted} of {prog.lessonsTotal} modules completed
+                          </span>
+                        </div>
+                      </div>
+                      <Badge variant="primary">{prog.completionPercentage}% Done</Badge>
+                    </div>
+
+                    <ProgressBar value={prog.completionPercentage} color="indigo" showPercentage={false} />
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                      <span className="text-slate-500 font-medium flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" /> Est. ~25 mins left
+                      </span>
+                      <button
+                        onClick={() => onNavigateToExplore?.()}
+                        className="group px-4 py-2 bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-200 shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <span>Resume Lesson</span>
+                        <ArrowRight className="w-3.5 h-3.5 icon-shift-right" />
+                      </button>
+                    </div>
+                  </MotionCard>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 3: AI MENTOR CARD (5 Cols) */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <Bot className="w-5 h-5 text-purple-600" />
+                AI Mentor Proactive Insights
+              </h2>
+              <Badge variant="secondary" icon={<Sparkles className="w-3 h-3 text-purple-600" />}>
+                Active Guidance
+              </Badge>
+            </div>
+
+            <div className="bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900 text-white rounded-[28px] p-6 border border-purple-500/30 shadow-xl space-y-5 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/20 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-300">
+                  <Bot className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-white text-sm">Personalized AI Recommendation</h3>
+                  <p className="text-[11px] text-purple-300">Based on your teaching profile & goals</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10 text-xs space-y-1">
+                  <p className="font-bold text-amber-300 flex items-center gap-1.5">
+                    <Lightbulb className="w-4 h-4 text-amber-400 fill-amber-300" />
+                    Daily Tip
+                  </p>
+                  <p className="text-slate-200 leading-relaxed">
+                    "You're only 20 minutes away from completing your next skill milestone in React 19. Scheduling a peer review now gives +50 bonus XP!"
+                  </p>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10 text-xs space-y-1">
+                  <p className="font-bold text-cyan-300 flex items-center gap-1.5">
+                    <Users className="w-4 h-4" />
+                    Suggested Partner Match
+                  </p>
+                  <p className="text-slate-200 leading-relaxed">
+                    3 peer swappers are currently looking for your taught skill <span className="font-extrabold text-white">"{currentUser.skillsOffered?.[0]?.name || 'TypeScript'}"</span>.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => onNavigateToExplore?.()}
+                className="group w-full py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 hover:scale-[1.02] active:scale-[0.98] text-white font-extrabold text-xs rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>View AI Suggested Partners</span>
+                <ArrowUpRight className="w-4 h-4 icon-shift-up-right" />
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </RevealOnScroll>
+
+      {/* 🤝 SECTION 4: PINNED HORIZONTAL SCROLL - RECOMMENDED SKILL PARTNERS */}
+      <RevealOnScroll direction="up" distance={24} duration={0.55} className="relative">
+        {/* Soft background ambient tone transition (brass/warm tone) */}
+        <div className="absolute -inset-x-4 -inset-y-4 bg-gradient-to-b from-amber-500/[0.03] via-transparent to-transparent rounded-[36px] -z-10 pointer-events-none" />
+
+        <PinnedHorizontalScroll
+          scrollDistanceMultiplier={2.4}
+          header={
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-indigo-600" />
+                  Recommended Skill Partners
+                </h2>
+                <p className="text-slate-500 text-xs">High affinity peer swappers tailored to your wanted skills</p>
+              </div>
+              <button
+                onClick={() => onNavigateToExplore?.()}
+                className="group text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer link-sweep"
+              >
+                <span>See All Swappers</span>
+                <ChevronRight className="w-4 h-4 icon-shift-right" />
+              </button>
+            </div>
+          }
+        >
+          {recommendedPartners.map(({ user, isPerfectMatch }) => (
+            <div key={user.id} className="w-[300px] sm:w-[340px] shrink-0 flex flex-col">
+              <MotionCard className="space-y-4 flex flex-col justify-between h-full bg-white border border-slate-200/90 rounded-3xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <Avatar src={user.avatar} name={user.name} size="lg" isOnline={true} />
+                    {isPerfectMatch && (
+                      <Badge variant="success" icon={<Sparkles className="w-3 h-3" />}>
+                        Perfect Match
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-base">{user.name}</h3>
+                    <div className="flex items-center gap-1.5 text-xs text-amber-500 font-bold mt-0.5">
+                      <Star className="w-3.5 h-3.5 fill-amber-400" />
+                      <span>{user.rating?.toFixed(1) || '4.9'}</span>
+                      <span className="text-slate-400 font-normal">({user.successfulExchanges || 12} swaps)</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-xs pt-1 border-t border-slate-100">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Teaches</span>
+                      <p className="font-bold text-slate-800 truncate">
+                        {user.skillsOffered?.map(s => s.name).join(', ') || 'Web Dev'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Wants to Learn</span>
+                      <p className="font-bold text-indigo-600 truncate">
+                        {user.skillsWanted?.map(s => s.name).join(', ') || 'UI Design'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => onNavigateToExplore?.()}
+                  className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs rounded-xl border border-indigo-200/80 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer mt-2"
+                >
+                  Exchange Skill
+                </button>
+              </MotionCard>
+            </div>
+          ))}
+        </PinnedHorizontalScroll>
+      </RevealOnScroll>
+
+      {/* 📅 SECTION 5: UPCOMING SESSIONS & TIMELINE */}
+      <RevealOnScroll direction="up" distance={24} duration={0.55}>
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-indigo-600" />
+              Upcoming Classrooms & Timeline
+            </h2>
+            <span className="text-xs text-slate-500 font-bold">{userBookings.length} scheduled sessions</span>
+          </div>
+
+          <Card>
+            {userBookings.length === 0 ? (
+              <EmptyState
+                preset="bookings"
+                title="Your Timeline is Wide Open"
+                description="No upcoming sessions scheduled. Discover skill partners and book 1-on-1 barter classrooms!"
+                actionText="Book a Session"
+                onAction={() => onNavigateToExplore?.()}
+              />
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {userBookings.map((booking) => (
+                  <div key={booking.id} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-extrabold shrink-0">
+                        <Video className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-slate-900 text-sm sm:text-base">{booking.skillName}</h4>
+                        <p className="text-slate-500 text-xs mt-0.5">
+                          With <span className="font-bold text-slate-800">{booking.teacherName}</span> • Option: <span className="text-indigo-600 font-bold">{booking.learningOption}</span>
+                        </p>
+                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 font-medium">
+                          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-slate-400" /> {booking.date}</span>
+                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-slate-400" /> {booking.timeSlot}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
+                      {booking.isNoShow ? (
+                        <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-300 rounded-full text-xs font-bold flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                          No-Show Flagged
+                        </span>
+                      ) : booking.status === 'completed' ? (
+                        <span className="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          Completed
+                        </span>
+                      ) : booking.status === 'cancelled' ? (
+                        <span className="px-3 py-1 bg-rose-50 text-rose-800 border border-rose-200 rounded-full text-xs font-bold flex items-center gap-1">
+                          <X className="w-3.5 h-3.5 text-rose-500" />
+                          Cancelled {booking.isLateCancellation ? '(Late)' : ''}
+                        </span>
+                      ) : null}
+
+                      {(booking.status === 'confirmed' || booking.status === 'rescheduled') && (
+                        <SessionJoinGateButton booking={booking} onStartLiveSession={onStartLiveSession} />
+                      )}
+                      {booking.status === 'pending' && (
+                        <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-xs font-bold">
+                          Pending Confirmation
+                        </span>
+                      )}
+
+                      {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRescheduleBookingModal(booking);
+                              setRescheduleDate(booking.date || new Date().toISOString().split('T')[0]);
+                              setRescheduleSlot(booking.timeSlot || 'Afternoon');
+                            }}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold text-xs rounded-xl border border-slate-200 transition cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Propose New Time</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setCancelBookingModal(booking)}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 font-bold text-xs rounded-xl border border-slate-200 transition cursor-pointer flex items-center gap-1.5"
+                          >
+                            <X className="w-3.5 h-3.5 text-rose-500" />
+                            <span>Cancel</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </section>
+      </RevealOnScroll>
+
+      {/* 🌐 SECTION 6 & 7: COMMUNITY FEED & TRENDING SKILLS */}
+      <RevealOnScroll direction="up" distance={24} duration={0.55}>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* SECTION 6: COMMUNITY ACTIVITY FEED (7 Cols) */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-indigo-600" />
+                Live Peer Activity Feed
+              </h2>
+              <span className="text-xs text-slate-500 font-bold">Global Swapper Highlights</span>
+            </div>
+
+            {communityActivities.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-10 text-center flex flex-col items-center justify-center space-y-3.5 shadow-xs">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-xl shadow-inner">
+                  📚
+                </div>
+                <div className="space-y-1 max-w-sm mx-auto">
+                  <h3 className="font-extrabold text-slate-900 text-base">No community activity yet.</h3>
+                  <p className="text-slate-500 text-xs leading-relaxed">
+                    Be the first member to exchange a skill and inspire others.
+                  </p>
+                </div>
+                <Button
+                  variant="gradient"
+                  size="sm"
+                  onClick={() => onNavigateToExplore?.()}
+                  leftIcon={<Compass className="w-4 h-4" />}
+                >
+                  Find Skill Partner
+                </Button>
+              </div>
+            ) : (
+              <Card className="space-y-4">
+                {communityActivities.map((act) => (
+                  <div key={act.id} className="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-0 last:pb-0">
+                    <Avatar src={act.avatar} name={act.user} size="sm" />
+                    <div className="flex-1 text-xs">
+                      <p className="text-slate-800 font-medium">
+                        <span className="font-extrabold text-slate-900">{act.user}</span> {act.action} <span className="font-bold text-indigo-600">{act.topic}</span>
+                      </p>
+                      <span className="text-[10px] text-slate-400 font-medium">{act.time}</span>
+                    </div>
+                  </div>
+                ))}
+              </Card>
+            )}
+          </div>
+
+          {/* SECTION 7: TRENDING SKILLS UNIVERSE (5 Cols) */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <Flame className="w-5 h-5 text-orange-500" />
+                Trending Skills Universe
+              </h2>
+              <button onClick={() => onNavigateToExplore?.()} className="group text-xs font-bold text-indigo-600 hover:text-indigo-800 link-sweep cursor-pointer">
+                <span>View All</span>
+                <ChevronRight className="w-3.5 h-3.5 icon-shift-right inline-block" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {trendingSkills.map((sk, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => onNavigateToExplore?.()}
+                  className={`p-4 rounded-2xl bg-gradient-to-br ${sk.gradient} text-white text-left space-y-2 shadow-md transition transform hover:-translate-y-1 cursor-pointer border-0`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xl">{sk.icon}</span>
+                    <span className="text-[9px] font-extrabold bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      {sk.category}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-xs sm:text-sm leading-tight text-white">{sk.name}</h3>
+                    <p className="text-[10px] text-white/80 mt-1">{sk.learners}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </RevealOnScroll>
+
 
       {/* Review & Ratings Modal Form */}
       <AnimatePresence>

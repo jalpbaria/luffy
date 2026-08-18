@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { UserProfile } from '../types';
 import { triggerCelebrationConfetti } from '../lib/gamification';
@@ -87,17 +88,34 @@ export default function SkillPathView({ currentUser }: { currentUser: UserProfil
   const totalSteps = path?.steps?.length || 0;
   const progressPercent = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 0;
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end end']
+  });
+
+  const bannerTextY = useTransform(scrollYProgress, [0, 1], prefersReducedMotion ? [0, 0] : [0, -14]);
+  const bannerGlowY = useTransform(scrollYProgress, [0, 1], prefersReducedMotion ? [0, 0] : [0, -24]);
+
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-12">
+    <div ref={containerRef} className="max-w-5xl mx-auto space-y-8 pb-12">
       {/* Option 2 Interactive Grid Academy Banner */}
       <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-zinc-950 via-zinc-900 to-indigo-950/80 border border-zinc-800 text-white p-6 sm:p-8 shadow-2xl">
         {/* Decorative Grid Mesh */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <motion.div 
+          style={{ y: bannerGlowY }}
+          className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" 
+        />
+        <motion.div 
+          style={{ y: bannerGlowY }}
+          className="absolute bottom-0 left-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" 
+        />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
+          <motion.div style={{ y: bannerTextY }} className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold tracking-wide uppercase">
               <LayoutGrid className="w-3.5 h-3.5 text-emerald-400" />
               <span>AI Learning Agent • Skill Matrix</span>
@@ -109,7 +127,7 @@ export default function SkillPathView({ currentUser }: { currentUser: UserProfil
             <p className="text-sm text-zinc-400 leading-relaxed">
               An interactive learning matrix powered by Groq LLM and Tavily web research to take you step-by-step from beginner to industry-certified expertise.
             </p>
-          </div>
+          </motion.div>
 
           {path && (
             <div className="bg-zinc-900/90 backdrop-blur-xl rounded-2xl p-4 border border-zinc-800 text-center min-w-[200px] shadow-xl">
