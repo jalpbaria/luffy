@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { motion, useMotionValue, useTransform, useSpring, HTMLMotionProps } from 'framer-motion';
+import { motion, useMotionValue, useTransform, useSpring, HTMLMotionProps } from 'motion/react';
 
 export interface TiltCardProps extends Omit<HTMLMotionProps<'div'>, 'children'> {
   children: React.ReactNode;

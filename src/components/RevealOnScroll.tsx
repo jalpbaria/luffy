@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, HTMLMotionProps } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'motion/react';
 
 export interface RevealOnScrollProps extends Omit<HTMLMotionProps<'div'>, 'children'> {
   children: React.ReactNode;
