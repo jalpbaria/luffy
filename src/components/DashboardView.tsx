@@ -4,14 +4,14 @@ import {
   Award, Calendar, Clock, Star, MessageSquare, CheckCircle, AlertCircle, Trash2, 
   RefreshCw, Check, X, ShieldAlert, BookOpen, ThumbsUp, Trophy, ChevronRight, UserMinus, Plus, Video, Sparkles,
   Compass, Users, Target, Flame, Zap, GraduationCap, ArrowUpRight, Lightbulb, CheckCheck, TrendingUp,
-  Play, Bot, Heart, Share2, Activity, ShieldCheck, ArrowRight, AlertTriangle, CheckCircle2
+  Play, Bot, Heart, Share2, Activity, ShieldCheck, ArrowRight, AlertTriangle, CheckCircle2, Coins
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review } from '../types';
 import { calculateUserXP } from '../lib/gamification';
 import { getSessionGateStatus, computeStartTime } from '../lib/liveSessions';
 import { computeAllUserMatches } from '../lib/matchUtils';
 import { VerifiedSkillBadge } from './VerifiedSkillBadge';
-import { Button, Card, Badge, Avatar, ProgressBar, StatCard, MotionCard, EmptyState } from './ui';
+import { Button, Card, Badge, Avatar, ProgressBar, StatCard, MotionCard, EmptyState, AmbientOrb, TiltCard, RevealOnScroll } from './ui';
 import { supabase, mapSupabaseToBooking } from '../lib/supabase';
 
 function formatRelativeTime(dateStr?: string): string {
@@ -476,6 +476,42 @@ export default function DashboardView({
   const userBookings = bookings.filter(b => (b.learnerId === currentUser.id || b.teacherId === currentUser.id) && isBookingVisible(b));
   const activeSwapsCount = userBookings.filter(b => b.status === 'confirmed' || b.status === 'pending' || b.status === 'rescheduled').length;
 
+  // Summary Metrics including Credits Balance, Active Swaps, and Skills Offered
+  const summaryCards = useMemo(() => [
+    {
+      title: 'Credits Balance',
+      value: `${currentUser.credits ?? 0} Credits`,
+      subtitle: 'Available for peer barter',
+      icon: <Coins className="w-5 h-5" />,
+      trend: { value: '+2 earned recently', isPositive: true },
+    },
+    {
+      title: 'Active Swaps',
+      value: `${activeSwapsCount} Sessions`,
+      subtitle: 'In exchange pipeline',
+      icon: <Users className="w-5 h-5" />,
+    },
+    {
+      title: 'Skills Offered',
+      value: `${currentUser.skillsOffered?.length || 0} Skills`,
+      subtitle: currentUser.skillsOffered?.map(s => s.name).slice(0, 2).join(', ') || 'Ready to teach',
+      icon: <GraduationCap className="w-5 h-5" />,
+    },
+    {
+      title: 'Total XP Points',
+      value: `${xpPoints} XP`,
+      subtitle: `Level ${userLevel} Voyager`,
+      icon: <Zap className="w-5 h-5" />,
+      trend: { value: '+240 XP this week', isPositive: true },
+    },
+    {
+      title: 'Learning Streak',
+      value: `${currentUser.loginStreak ?? 7} Days 🔥`,
+      subtitle: 'Personal record!',
+      icon: <Flame className="w-5 h-5" />,
+    },
+  ], [currentUser.credits, currentUser.skillsOffered, currentUser.loginStreak, activeSwapsCount, xpPoints, userLevel]);
+
   const submitReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewBooking) return;
@@ -654,7 +690,10 @@ export default function DashboardView({
         <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-          <div className="lg:col-span-7 space-y-5">
+          <div className="lg:col-span-7 space-y-5 relative">
+            {/* 🌟 Glowing Ambient Orb positioned behind the welcome header */}
+            <AmbientOrb tone="brass" size="xl" className="-top-20 -left-20 opacity-80" />
+
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-xs font-extrabold text-indigo-200">
               <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-300 animate-pulse" />
               <span>SkillSwap 2026 Peer Academy</span>
@@ -744,7 +783,7 @@ export default function DashboardView({
         </div>
       </div>
 
-      {/* 📊 SECTION 1: STATISTICS CARDS */}
+      {/* 📊 SECTION 1: STATISTICS & SUMMARY CARDS */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
@@ -754,44 +793,48 @@ export default function DashboardView({
           <span className="text-xs text-slate-500 font-bold">Updated live</span>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <StatCard
-            title="Total XP Points"
-            value={`${xpPoints} XP`}
-            subtitle="Top 8% this week"
-            icon={<Zap className="w-5 h-5" />}
-            color="amber"
-            trend={{ value: '+240 XP', isPositive: true }}
-          />
-          <StatCard
-            title="Current Level"
-            value={`Level ${userLevel}`}
-            subtitle="Explorer Tier"
-            icon={<Trophy className="w-5 h-5" />}
-            color="indigo"
-          />
-          <StatCard
-            title="Active Swaps"
-            value={activeSwapsCount}
-            subtitle="Sessions in pipeline"
-            icon={<Users className="w-5 h-5" />}
-            color="purple"
-          />
-          <StatCard
-            title="Hours Learned"
-            value={`${hoursLearned.toFixed(1)} hrs`}
-            subtitle="Total exchange time"
-            icon={<Clock className="w-5 h-5" />}
-            color="cyan"
-            trend={{ value: '+1.5h today', isPositive: true }}
-          />
-          <StatCard
-            title="Learning Streak"
-            value="7 Days 🔥"
-            subtitle="Personal record!"
-            icon={<Flame className="w-5 h-5" />}
-            color="emerald"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {summaryCards.map((card, index) => (
+            <RevealOnScroll key={card.title} delay={index * 0.1} className="h-full">
+              <TiltCard
+                glow={index % 2 === 0 ? 'brass' : 'sage'}
+                className="h-full flex flex-col justify-between bg-navy text-parchment border border-brass/30 rounded-3xl p-5 sm:p-6 shadow-sm overflow-hidden"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                      {card.title}
+                    </span>
+                    <div
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
+                        index % 2 === 0
+                          ? 'bg-brass/20 text-brass-light border-brass/40 shadow-xs'
+                          : 'bg-sage/20 text-sage-light border-sage/40 shadow-xs'
+                      }`}
+                    >
+                      {card.icon}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-2xl sm:text-3xl font-black text-parchment tracking-tight">
+                      {card.value}
+                    </div>
+                    <div className="text-xs text-slate-300 font-medium mt-1">
+                      {card.subtitle}
+                    </div>
+                  </div>
+                </div>
+
+                {card.trend && (
+                  <div className="pt-3 mt-3 border-t border-white/10 flex items-center gap-1.5 text-xs text-emerald-400 font-bold">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>{card.trend.value}</span>
+                  </div>
+                )}
+              </TiltCard>
+            </RevealOnScroll>
+          ))}
         </div>
       </section>
 
