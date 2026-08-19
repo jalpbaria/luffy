@@ -164,7 +164,7 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({
                 />
                 <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full bg-black/80 border border-white/15 text-[10px] font-bold text-amber-400 flex items-center gap-1 shadow-md">
                   <Star className="w-3 h-3 fill-amber-400" />
-                  <span>{user.rating.toFixed(1)}</span>
+                  <span>{(user.rating ?? 5.0).toFixed(1)}</span>
                 </div>
               </div>
 
@@ -175,7 +175,7 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({
                     {user.name}
                   </h1>
                   <span className="px-2.5 py-0.5 rounded-lg bg-surface-interactive text-text-sub border border-white/10 text-xs font-semibold">
-                    {user.skillLevel}
+                    {user.skillLevel ?? 'Beginner'}
                   </span>
                 </div>
 
@@ -410,7 +410,7 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({
                       Student Reviews ({userReviews.length})
                     </h3>
                     <span className="text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-lg">
-                      ★ {user.rating.toFixed(1)} Overall
+                      ★ {(user.rating ?? 5.0).toFixed(1)} Overall
                     </span>
                   </div>
 

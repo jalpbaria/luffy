@@ -213,7 +213,9 @@ export default function ExploreView({
   const matchMap = useMemo(() => {
     const map = new Map<string, ReturnType<typeof calculateMatch>>();
     userMatches.forEach(m => {
-      map.set(m.otherUser.id, m);
+      if (m?.user?.id) {
+        map.set(m.user.id, m);
+      }
     });
     return map;
   }, [userMatches]);
@@ -689,7 +691,7 @@ export default function ExploreView({
                       
                       <div className="absolute top-2.5 right-2.5 z-10 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-semibold text-amber-400 flex items-center gap-1 border border-white/10">
                         <Star className="w-3 h-3 fill-amber-400" />
-                        <span>{user.rating.toFixed(1)}</span>
+                        <span>{(user.rating ?? 5.0).toFixed(1)}</span>
                       </div>
 
                       <div className="absolute -bottom-5 left-4">
@@ -838,15 +840,15 @@ export default function ExploreView({
                           {user.name}
                         </h3>
                         <span className="px-2 py-0.5 bg-surface-raised text-text-sub rounded-md text-[10px] font-medium shrink-0 border border-white/5">
-                          {user.skillLevel}
+                          {user.skillLevel ?? 'Beginner'}
                         </span>
                       </div>
                       
                       {/* Rating */}
                       <div className="flex items-center gap-1 text-xs text-amber-400 font-semibold">
                         <Star className="w-3.5 h-3.5 fill-current" />
-                        <span>{user.rating.toFixed(1)}</span>
-                        <span className="text-text-muted font-normal">({user.reviewsCount} reviews)</span>
+                        <span>{(user.rating ?? 5.0).toFixed(1)}</span>
+                        <span className="text-text-muted font-normal">({user.reviewsCount ?? 0} reviews)</span>
                       </div>
 
                       {/* Timezone / Availability */}
