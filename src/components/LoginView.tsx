@@ -301,7 +301,7 @@ export default function LoginView({ onLogin, onRegister, allUsers, accountDelete
     <div 
       ref={containerRef}
       id="login-view-root" 
-      className="min-h-screen bg-surface-base flex items-center justify-center p-4 sm:p-6 lg:p-10 relative overflow-hidden font-sans text-text-sub"
+      className="w-full min-h-screen bg-transparent flex items-center justify-center p-4 sm:p-6 lg:p-10 relative overflow-hidden font-sans text-text-sub"
     >
       
       {/* Background Ambient Violet Atmosphere */}

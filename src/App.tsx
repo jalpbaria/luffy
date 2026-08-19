@@ -1654,10 +1654,10 @@ export default function App() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-700 antialiased justify-between">
-        <CustomCursor tone="brass" />
+      <AmbientBackground className="min-h-screen flex flex-col font-sans text-slate-100 antialiased justify-between selection:bg-violet-500/30 selection:text-violet-200">
+        <CustomCursor tone="violet" />
         <InitialAppLoader />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center w-full">
           <LoginView 
             onLogin={handleLogin} 
             onRegister={handleRegister} 
@@ -1665,12 +1665,12 @@ export default function App() {
             accountDeletedNotice={accountDeletedNotice}
           />
         </div>
-        <footer className="bg-white border-t border-slate-200 py-4 text-center text-[10px] text-slate-400 font-medium">
+        <footer className="bg-surface-base/80 border-t border-white/5 py-4 text-center text-[11px] text-text-dim font-medium backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <p>© 2026 Skill Swap Platform. Built for mutual skill barters. No money required.</p>
           </div>
         </footer>
-      </div>
+      </AmbientBackground>
     );
   }
 
