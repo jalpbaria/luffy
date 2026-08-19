@@ -14,7 +14,7 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`min-h-screen bg-[#090A0F] text-slate-100 relative selection:bg-violet-500/30 selection:text-violet-200 ${className}`}>
+    <div className={`min-h-screen bg-bg-base text-text-main relative selection:bg-violet-500/30 selection:text-violet-200 ${className}`}>
       {/* Background Gradient Mesh with Slow/Imperceptible Atmospheric Light */}
       <GradientMesh />
 

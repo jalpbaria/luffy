@@ -154,8 +154,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <>
       {/* Top Floating Global Navigation */}
-      <header className="sticky top-0 z-40 px-3 sm:px-6 pt-3.5 pb-2 transition-all">
-        <div className="max-w-7xl mx-auto bg-[#0E0F17]/85 backdrop-blur-xl border border-white/[0.08] rounded-[22px] px-3.5 sm:px-5 py-2.5 shadow-[0_16px_36px_rgba(0,0,0,0.6)] flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-40 px-3 sm:px-6 pt-3 pb-2 transition-all">
+        <div className="max-w-[1440px] mx-auto bg-surface-base/95 backdrop-blur-xl border border-surface-border rounded-2xl px-3.5 sm:px-5 py-2.5 shadow-[0_12px_30px_rgba(0,0,0,0.45)] flex items-center justify-between gap-3">
           
           {/* Brand Logo */}
           <button
