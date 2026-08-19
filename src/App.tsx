@@ -24,6 +24,7 @@ import { GamificationOverlay } from './components/GamificationCelebration';
 import { triggerCelebrationConfetti } from './lib/gamification';
 import { GamificationToast, Badge as GamificationBadge } from './types';
 import { Navbar } from './components/Navbar';
+import { CustomCursor, InitialAppLoader } from './components/motion';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification, mapNotificationToSupabase, mapSupabaseToReview, mapReviewToSupabase } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
 import { fallbackUsers } from './data/fallbackUsers';
@@ -1650,6 +1651,8 @@ export default function App() {
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-700 antialiased justify-between">
+        <CustomCursor tone="brass" />
+        <InitialAppLoader />
         <div className="flex-1 flex items-center justify-center">
           <LoginView 
             onLogin={handleLogin} 
@@ -1669,6 +1672,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans antialiased selection:bg-indigo-500/20 selection:text-indigo-900">
+      <CustomCursor tone="brass" />
+      <InitialAppLoader />
       
       {/* Redesigned Floating Glass Navigation */}
       <Navbar
