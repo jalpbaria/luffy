@@ -154,11 +154,74 @@ export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLo
 
   return (
     <div id="profile-view-root" className="max-w-4xl mx-auto space-y-8 text-xs text-text-sub pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
-        <div>
-          <span className="text-[11px] font-bold text-violet-400 uppercase tracking-widest block mb-1">Account & Preferences</span>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white font-display">Manage Swap Profile</h1>
-          <p className="text-text-sub mt-1 text-xs sm:text-sm">Refine your profile to get discovered and get more matching swap requests.</p>
+      {/* 🚀 Profile Identity Hero */}
+      <div className="relative rounded-3xl bg-surface-raised border border-white/10 text-white p-6 sm:p-10 shadow-2xl overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-fuchsia-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 relative z-10">
+          <div className="relative group">
+            <img 
+              src={avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'} 
+              alt={name} 
+              referrerPolicy="no-referrer"
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover border-2 border-violet-500/40 shadow-xl"
+            />
+            <div className="absolute -bottom-2 -right-2 p-1.5 bg-violet-600 border-2 border-surface-base rounded-xl text-white shadow-md">
+              <Award className="w-4 h-4" />
+            </div>
+          </div>
+
+          <div className="space-y-2 flex-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-lavender-300">
+              <User className="w-3.5 h-3.5 text-violet-400" />
+              <span>SkillSwap Identity</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight font-display">
+                {name || 'Swapper Profile'}
+              </h1>
+              <span className="px-2.5 py-0.5 bg-violet-500/20 text-lavender-300 border border-violet-500/30 rounded-full text-xs font-bold">
+                {skillLevel}
+              </span>
+            </div>
+
+            <p className="text-text-sub text-xs sm:text-sm max-w-2xl leading-relaxed">
+              {bio || 'Passionate skill exchanger building collaborative mastery.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Key Stats Bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-6 mt-6 border-t border-white/10 relative z-10">
+          <div className="p-3 bg-surface-base/80 rounded-2xl border border-white/5 text-center">
+            <span className="text-[10px] text-text-dim uppercase font-bold block">Exchanges</span>
+            <span className="text-lg font-black text-white">{currentUser.successfulExchanges ?? 0}</span>
+          </div>
+
+          <div className="p-3 bg-surface-base/80 rounded-2xl border border-white/5 text-center">
+            <span className="text-[10px] text-text-dim uppercase font-bold block">Rating</span>
+            <span className="text-lg font-black text-amber-300 flex items-center justify-center gap-1">
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+              {currentUser.rating?.toFixed(1) || '5.0'}
+            </span>
+          </div>
+
+          <div className="p-3 bg-surface-base/80 rounded-2xl border border-white/5 text-center">
+            <span className="text-[10px] text-text-dim uppercase font-bold block">Hours</span>
+            <span className="text-lg font-black text-violet-300">~{((currentUser.successfulExchanges ?? 0) * 1.5).toFixed(0)}h</span>
+          </div>
+
+          <div className="p-3 bg-surface-base/80 rounded-2xl border border-white/5 text-center">
+            <span className="text-[10px] text-text-dim uppercase font-bold block">Streak</span>
+            <span className="text-lg font-black text-orange-400">{currentUser.loginStreak ?? 1}d 🔥</span>
+          </div>
+
+          <div className="p-3 bg-surface-base/80 rounded-2xl border border-white/5 text-center col-span-2 sm:col-span-1">
+            <span className="text-[10px] text-text-dim uppercase font-bold block">Credits</span>
+            <span className="text-lg font-black text-emerald-400">{currentUser.credits ?? 100}</span>
+          </div>
         </div>
       </div>
 

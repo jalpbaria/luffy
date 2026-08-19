@@ -1119,21 +1119,21 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
   }, [contacts, latestMessageTimes, hiddenChats, currentUser.id]);
 
   return (
-    <div id="chat-view-root" className="bg-zinc-900/90 rounded-[28px] border border-zinc-800 shadow-2xl overflow-hidden flex flex-col md:flex-row h-[calc(100vh-140px)] min-h-[500px] max-h-[680px] md:h-[620px] text-xs text-zinc-300">
+    <div id="chat-view-root" className="bg-surface-base rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col md:flex-row h-[calc(100vh-140px)] min-h-[500px] max-h-[680px] md:h-[620px] text-xs text-text-sub">
       
       {/* Sidebar Contacts List */}
-      <div className={`w-full md:w-64 border-b md:border-b-0 md:border-r border-zinc-800 flex flex-col bg-zinc-950/80 shrink-0 h-full ${activeContactId ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-4 border-b border-zinc-800">
+      <div className={`w-full md:w-64 border-b md:border-b-0 md:border-r border-white/5 flex flex-col bg-surface-raised/80 shrink-0 h-full ${activeContactId ? 'hidden md:flex' : 'flex'}`}>
+        <div className="p-4 border-b border-white/5 bg-surface-base">
           <h3 className="font-bold text-white text-sm">Direct Contacts</h3>
-          <p className="text-zinc-400 text-[10px] mt-0.5">Click a contact to exchange messages</p>
+          <p className="text-text-dim text-[10px] mt-0.5">Click a contact to exchange messages</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-zinc-800/60">
+        <div className="flex-1 overflow-y-auto divide-y divide-white/5">
           {sortedContacts.length === 0 ? (
-            <div className="p-6 text-center text-zinc-500">
-              <p className="text-xs font-semibold text-zinc-400">No contacts yet</p>
-              <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">
-                Book a skill swap or click <span className="font-semibold text-zinc-300">"Chat First"</span> on a profile in Explore to start messaging.
+            <div className="p-6 text-center text-text-dim">
+              <p className="text-xs font-semibold text-text-muted">No contacts yet</p>
+              <p className="text-[11px] text-text-dim mt-1 leading-relaxed">
+                Book a skill swap or click <span className="font-semibold text-white">"Chat First"</span> on a profile in Explore to start messaging.
               </p>
             </div>
           ) : (
@@ -1148,41 +1148,41 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                     setActiveContactId(contact.id);
                   }}
                   className={`group relative p-3.5 flex items-center gap-3 cursor-pointer transition ${
-                    activeContactId === contact.id ? 'bg-indigo-500/10 border-l-4 border-indigo-500' : 'hover:bg-zinc-800/60'
+                    activeContactId === contact.id ? 'bg-violet-600/15 border-l-4 border-violet-500' : 'hover:bg-surface-interactive'
                   }`}
                 >
                   <img 
                     src={contact.avatar} 
                     alt={contact.name} 
                     referrerPolicy="no-referrer"
-                    className="w-10 h-10 rounded-full object-cover border border-zinc-700 shrink-0"
+                    className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0"
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-1">
                       <span className="font-bold text-white truncate">{contact.name}</span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {unreadCount > 0 && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-extrabold bg-indigo-500 text-white rounded-full min-w-[18px] text-center leading-none shadow-sm shadow-indigo-500/30">
+                          <span className="px-1.5 py-0.5 text-[10px] font-extrabold bg-violet-600 text-white rounded-full min-w-[18px] text-center leading-none shadow-sm shadow-violet-600/30">
                             {unreadCount > 99 ? '99+' : unreadCount}
                           </span>
                         )}
-                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isContactOnline ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} title={isContactOnline ? 'Online' : 'Offline'}></span>
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isContactOnline ? 'bg-emerald-400 animate-pulse' : 'bg-white/20'}`} title={isContactOnline ? 'Online' : 'Offline'}></span>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setDeleteChatModalContact(contact);
                           }}
-                          className="p-1 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-all cursor-pointer opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 shrink-0 ml-0.5"
+                          className="p-1 text-text-dim hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-all cursor-pointer opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 shrink-0 ml-0.5"
                           title={`Delete chat with ${contact.name}`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
-                    <p className="text-[10px] text-zinc-400 truncate mt-0.5">
+                    <p className="text-[10px] text-text-dim truncate mt-0.5">
                       {isContactTyping ? (
-                        <span className="text-indigo-400 font-semibold animate-pulse">typing...</span>
+                        <span className="text-violet-400 font-semibold animate-pulse">typing...</span>
                       ) : isContactOnline ? (
                         contact.skillsOffered[0]?.name || 'Explorer'
                       ) : (
@@ -1198,15 +1198,15 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
       </div>
 
       {/* Primary Conversation Screen */}
-      <div className={`flex-1 flex flex-col bg-zinc-900/90 relative h-full min-h-0 ${!activeContactId ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`flex-1 flex flex-col bg-surface-base relative h-full min-h-0 ${!activeContactId ? 'hidden md:flex' : 'flex'}`}>
         {activeContact ? (
           <>
             {/* Conversation Header */}
-            <div className="p-3 sm:p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950/80 shrink-0">
+            <div className="p-3 sm:p-4 border-b border-white/5 flex items-center justify-between bg-surface-raised shrink-0">
               <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <button
                   onClick={() => setActiveContactId(null)}
-                  className="md:hidden p-1.5 -ml-1 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition shrink-0 cursor-pointer border-0 bg-transparent flex items-center justify-center min-w-[36px] min-h-[36px]"
+                  className="md:hidden p-1.5 -ml-1 text-text-dim hover:text-white hover:bg-surface-interactive rounded-lg transition shrink-0 cursor-pointer border-0 bg-transparent flex items-center justify-center min-w-[36px] min-h-[36px]"
                   title="Back to swappers list"
                 >
                   <ArrowLeft className="w-5 h-5" />
@@ -1216,7 +1216,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                   src={activeContact.avatar} 
                   alt={activeContact.name} 
                   referrerPolicy="no-referrer"
-                  className="w-9 h-9 rounded-full object-cover border border-zinc-700 shrink-0"
+                  className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0"
                 />
                 <div className="min-w-0">
                   <h4 className="font-bold text-white text-xs sm:text-sm truncate">{activeContact.name}</h4>
@@ -1226,8 +1226,8 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
 
                     if (isContactTyping) {
                       return (
-                        <p className="text-[10px] text-indigo-400 font-semibold animate-pulse flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping shrink-0" />
+                        <p className="text-[10px] text-violet-400 font-semibold animate-pulse flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-ping shrink-0" />
                           {activeContact.name} is typing...
                         </p>
                       );
@@ -1240,8 +1240,8 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                       );
                     }
                     return (
-                      <p className="text-[10px] text-zinc-400 font-medium flex items-center gap-1">
-                        <Circle className="w-1.5 h-1.5 fill-current text-zinc-500 shrink-0" /> {formatLastSeen(activeContact.lastActive)}
+                      <p className="text-[10px] text-text-dim font-medium flex items-center gap-1">
+                        <Circle className="w-1.5 h-1.5 fill-current text-text-muted shrink-0" /> {formatLastSeen(activeContact.lastActive)}
                       </p>
                     );
                   })()}
@@ -1264,8 +1264,8 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                   }}
                   className={`p-2 rounded-xl transition cursor-pointer flex items-center justify-center border-0 min-w-[36px] min-h-[36px] ${
                     isSearchOpen 
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' 
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                      ? 'bg-violet-600 text-white shadow-md shadow-violet-600/20' 
+                      : 'text-text-dim hover:text-white hover:bg-surface-interactive'
                   }`}
                   title={isSearchOpen ? "Close search" : "Search in conversation"}
                 >
@@ -1273,6 +1273,46 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                 </button>
               </div>
             </div>
+
+            {/* Linked Upcoming / Active Exchange Session Banner */}
+            {(() => {
+              const linkedBooking = bookings?.find(b => 
+                (b.status === 'confirmed' || b.status === 'rescheduled' || b.status === 'pending') &&
+                ((b.teacherId === currentUser.id && b.learnerId === activeContact.id) ||
+                 (b.learnerId === currentUser.id && b.teacherId === activeContact.id))
+              );
+
+              if (!linkedBooking) return null;
+
+              const isTeaching = linkedBooking.teacherId === currentUser.id;
+
+              return (
+                <div className="px-4 py-2.5 bg-violet-950/40 border-b border-violet-500/20 flex items-center justify-between gap-3 text-xs shrink-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-lavender-300 block truncate">
+                        {isTeaching ? `Teaching ${linkedBooking.skillName}` : `Learning ${linkedBooking.skillName}`}
+                      </span>
+                      <span className="text-white font-medium truncate block text-[11px]">
+                        📅 {linkedBooking.date} • ⏰ {linkedBooking.timeSlot}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                      linkedBooking.status === 'confirmed'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : linkedBooking.status === 'rescheduled'
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                        : 'bg-violet-500/20 text-lavender-200 border-violet-500/30'
+                    }`}>
+                      {linkedBooking.status === 'confirmed' ? 'Confirmed Session' : linkedBooking.status}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Search Bar Overlay */}
             <AnimatePresence>
@@ -1402,7 +1442,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                     <React.Fragment key={m.id}>
                       {showDateSeparator && (
                         <div className="flex items-center justify-center my-3.5">
-                          <div className="px-3 py-1 bg-zinc-800/90 border border-zinc-700/60 rounded-full text-[10px] font-semibold text-zinc-400 shadow-sm select-none">
+                          <div className="px-3 py-1 bg-surface-raised border border-white/10 rounded-full text-[10px] font-semibold text-text-dim shadow-sm select-none">
                             {formatDateSeparator(m.timestamp)}
                           </div>
                         </div>
@@ -1421,13 +1461,13 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                                 : ''
                           } ${
                             isCurrentUser 
-                              ? `bg-gradient-to-r from-indigo-600 to-purple-600 text-white ${isLastInGroup ? 'rounded-br-none' : ''}` 
-                              : `bg-zinc-800/90 border border-zinc-700/60 text-zinc-100 ${isLastInGroup ? 'rounded-bl-none' : ''}`
+                              ? `bg-violet-600 text-white shadow-md shadow-violet-600/20 ${isLastInGroup ? 'rounded-br-none' : ''}` 
+                              : `bg-surface-raised border border-white/10 text-text-sub ${isLastInGroup ? 'rounded-bl-none' : ''}`
                           }`}>
                             
                             {m.deletedForEveryone ? (
-                              <div className="flex items-center gap-1.5 py-0.5 my-0.5 text-zinc-300 opacity-90 select-none">
-                                <Ban className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                              <div className="flex items-center gap-1.5 py-0.5 my-0.5 text-text-dim opacity-90 select-none">
+                                <Ban className="w-3.5 h-3.5 text-text-muted shrink-0" />
                                 <span className="italic text-xs font-normal">This message was deleted</span>
                               </div>
                             ) : (
@@ -1435,7 +1475,7 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                                 {/* Forwarded Header Indicator */}
                                 {m.isForwarded && (
                                   <div className={`flex items-center gap-1 mb-1.5 text-[10px] italic font-semibold select-none ${
-                                    isCurrentUser ? 'text-indigo-200' : 'text-zinc-400'
+                                    isCurrentUser ? 'text-violet-200' : 'text-text-dim'
                                   }`}>
                                     <Forward className="w-3 h-3 text-current shrink-0" />
                                     <span>Forwarded</span>
@@ -1458,11 +1498,11 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                                       }}
                                       className={`mb-2 p-2 rounded-lg text-[11px] border-l-2 cursor-pointer transition select-none ${
                                         isCurrentUser
-                                          ? 'bg-black/30 border-indigo-300 text-indigo-100 hover:bg-black/40'
-                                          : 'bg-zinc-900/90 border-indigo-500 text-zinc-300 hover:bg-zinc-900'
+                                          ? 'bg-black/30 border-lavender-300 text-lavender-100 hover:bg-black/40'
+                                          : 'bg-surface-base border-violet-500 text-text-sub hover:bg-surface-base/80'
                                       }`}
                                     >
-                                      <div className="font-bold text-[10px] text-indigo-400 mb-0.5">
+                                      <div className="font-bold text-[10px] text-violet-400 mb-0.5">
                                         {repliedMsg
                                           ? (repliedMsg.senderId === currentUser.id ? 'You' : activeContact?.name || 'User')
                                           : 'Original message'}
@@ -1707,29 +1747,29 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
 
               {/* Upload Progress Banner */}
               {isUploadingFile && (
-                <div className="px-3.5 py-2 bg-indigo-950/80 border-b border-indigo-800/60 text-indigo-300 text-[11px] flex items-center gap-2 animate-fade-in">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-indigo-400" />
+                <div className="px-3.5 py-2 bg-violet-950/80 border-b border-violet-800/60 text-lavender-300 text-[11px] flex items-center gap-2 animate-fade-in">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-violet-400" />
                   <span className="font-medium">{uploadProgressText || 'Uploading attachment to storage...'}</span>
                 </div>
               )}
 
               {/* Reply Preview Bar */}
               {replyingTo && (
-                <div className="px-3.5 py-2 bg-zinc-900/90 border-b border-zinc-800 flex items-center justify-between gap-2 animate-fade-in">
-                  <div className="flex items-center gap-2 min-w-0 border-l-2 border-indigo-500 pl-2">
-                    <CornerUpLeft className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <div className="px-3.5 py-2 bg-surface-base border-b border-white/5 flex items-center justify-between gap-2 animate-fade-in">
+                  <div className="flex items-center gap-2 min-w-0 border-l-2 border-violet-500 pl-2">
+                    <CornerUpLeft className="w-3.5 h-3.5 text-violet-400 shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-indigo-400 leading-tight">
+                      <p className="text-[10px] font-bold text-violet-400 leading-tight">
                         Replying to {replyingTo.senderId === currentUser.id ? 'yourself' : activeContact?.name || 'User'}
                       </p>
-                      <p className="text-[11px] text-zinc-300 truncate max-w-sm sm:max-w-md leading-tight mt-0.5">
+                      <p className="text-[11px] text-text-sub truncate max-w-sm sm:max-w-md leading-tight mt-0.5">
                         {replyingTo.text || (replyingTo.fileName ? `📎 ${replyingTo.fileName}` : 'Attachment')}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setReplyingTo(null)}
-                    className="p-1 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition shrink-0 cursor-pointer"
+                    className="p-1 text-text-dim hover:text-white hover:bg-surface-interactive rounded-lg transition shrink-0 cursor-pointer"
                     title="Cancel reply"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -1737,9 +1777,9 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                 </div>
               )}
 
-              <div className="p-2.5 sm:p-3 flex items-center gap-2">
+              <div className="p-2.5 sm:p-3 flex items-center gap-2 bg-surface-raised">
                 {isRecordingAudio ? (
-                  <div className="flex-1 flex items-center justify-between gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 animate-fade-in">
+                  <div className="flex-1 flex items-center justify-between gap-3 bg-surface-base border border-white/10 rounded-2xl px-3 py-1.5 animate-fade-in">
                     <button
                       type="button"
                       onClick={cancelAudioRecording}
@@ -1750,18 +1790,18 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                       <span className="hidden sm:inline">Cancel</span>
                     </button>
 
-                    <div className="flex items-center gap-2 px-3 py-1 bg-zinc-950 rounded-full border border-rose-900/40">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-black/60 rounded-full border border-rose-900/40">
                       <span className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
                       <span className="text-xs font-mono font-bold text-rose-400">
                         {Math.floor(recordingDuration / 60)}:{recordingDuration % 60 < 10 ? '0' : ''}{recordingDuration % 60}
                       </span>
-                      <span className="text-[10px] text-zinc-500 font-mono">/ 2:00</span>
+                      <span className="text-[10px] text-text-dim font-mono">/ 2:00</span>
                     </div>
 
                     <button
                       type="button"
                       onClick={stopAndSendAudioRecording}
-                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-md transition cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-md transition cursor-pointer flex items-center gap-1.5 text-xs font-bold"
                       title="Send voice note"
                     >
                       <Send className="w-3.5 h-3.5" />
@@ -1782,13 +1822,13 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                       disabled={isUploadingFile}
                       className={`p-2 rounded-xl transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center border-0 bg-transparent ${
                         isUploadingFile 
-                          ? 'opacity-50 cursor-not-allowed text-zinc-600' 
-                          : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                          ? 'opacity-50 cursor-not-allowed text-text-muted' 
+                          : 'text-text-dim hover:text-white hover:bg-surface-interactive'
                       }`}
                       title="Attach file or image (Max 10MB)"
                     >
                       {isUploadingFile ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                        <Loader2 className="w-4 h-4 animate-spin text-violet-400" />
                       ) : (
                         <Paperclip className="w-4 h-4" />
                       )}
@@ -1800,14 +1840,14 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                       value={inputText}
                       onChange={(e) => handleInputChange(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputText)}
-                      className="flex-1 min-w-0 bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-zinc-600"
+                      className="flex-1 min-w-0 bg-surface-base border border-white/10 text-white rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-violet-500 placeholder:text-text-dim"
                     />
 
                     <button
                       type="button"
                       onClick={startAudioRecording}
                       disabled={isUploadingFile}
-                      className="p-2 text-zinc-400 hover:text-indigo-400 hover:bg-zinc-800 rounded-xl transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center border-0 bg-transparent"
+                      className="p-2 text-text-dim hover:text-violet-400 hover:bg-surface-interactive rounded-xl transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center border-0 bg-transparent"
                       title="Record voice note"
                     >
                       <Mic className="w-4 h-4" />
@@ -1817,8 +1857,8 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
                       type="button"
                       onClick={() => handleSendMessage(inputText)}
                       disabled={isUploadingFile || !inputText.trim()}
-                      className={`p-2.5 sm:p-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center border-0 ${
-                        isUploadingFile || !inputText.trim() ? 'opacity-50 cursor-not-allowed' : ''
+                      className={`p-2.5 sm:p-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-lg shadow-violet-600/20 transition shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center border-0 ${
+                        isUploadingFile || !inputText.trim() ? 'opacity-40 cursor-not-allowed' : ''
                       }`}
                       title="Send message"
                     >
