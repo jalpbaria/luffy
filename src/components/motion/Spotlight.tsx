@@ -48,6 +48,7 @@ export const Spotlight: React.FC<SpotlightProps> = ({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (prefersReducedMotion || !containerRef.current) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches) return;
     const { left, top } = containerRef.current.getBoundingClientRect();
     mouseX.set(e.clientX - left);
     mouseY.set(e.clientY - top);

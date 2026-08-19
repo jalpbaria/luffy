@@ -59,6 +59,7 @@ export const MagneticButton: React.FC<MagneticButtonProps> = ({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (prefersReducedMotion || !buttonRef.current) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches) return;
 
     const { left, top, width, height } = buttonRef.current.getBoundingClientRect();
     const centerX = left + width / 2;

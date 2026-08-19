@@ -696,6 +696,8 @@ export default function ExploreView({
                         <img
                           src={user.avatar}
                           alt={user.name}
+                          loading="lazy"
+                          decoding="async"
                           referrerPolicy="no-referrer"
                           className="w-14 h-14 rounded-2xl object-cover border-2 border-surface-base shadow-xl bg-surface-raised"
                         />
@@ -823,6 +825,8 @@ export default function ExploreView({
                     <img 
                       src={user.avatar} 
                       alt={user.name} 
+                      loading="lazy"
+                      decoding="async"
                       referrerPolicy="no-referrer"
                       className={`w-14 h-14 rounded-2xl object-cover border-2 flex-shrink-0 bg-surface-raised ${
                         isPerfect ? 'border-emerald-400' : 'border-white/10'
