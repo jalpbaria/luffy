@@ -1812,6 +1812,9 @@ export default function App() {
             {activeTab === 'study-hub' && (
               <StudyHubView 
                 currentUser={currentUser}
+                onNavigateToExplore={(skillQuery) => {
+                  setActiveTab('explore');
+                }}
               />
             )}
 
