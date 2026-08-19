@@ -40,18 +40,19 @@ export const Avatar: React.FC<AvatarProps> = ({
   return (
     <div className={`relative inline-block shrink-0 ${className}`}>
       <div
-        className={`${sizeClasses} rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-500 p-0.5 shadow-sm`}
+        className={`${sizeClasses} rounded-full overflow-hidden bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700 p-0.5 shadow-sm`}
       >
-        <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
+        <div className="w-full h-full rounded-full bg-[#12131A] flex items-center justify-center overflow-hidden">
           {src && !hasError ? (
             <img
               src={src}
               alt={name}
               onError={() => setHasError(true)}
               className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
             />
           ) : (
-            <span className="font-extrabold text-white tracking-wider">
+            <span className="font-bold text-white tracking-wider">
               {getInitials(name)}
             </span>
           )}
@@ -60,12 +61,12 @@ export const Avatar: React.FC<AvatarProps> = ({
 
       {/* Online Status Dot */}
       {isOnline && (
-        <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-xs" />
+        <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#090A0F] rounded-full shadow-xs" />
       )}
 
       {/* Optional XP Level Badge */}
       {xpLevel !== undefined && (
-        <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-extrabold text-[9px] rounded-full border border-white shadow-xs">
+        <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-extrabold text-[9px] rounded-full border border-white/20 shadow-xs">
           Lvl {xpLevel}
         </span>
       )}
@@ -90,10 +91,10 @@ export const AvatarGroup: React.FC<AvatarGroupProps> = ({
   return (
     <div className="flex items-center -space-x-2 overflow-hidden">
       {visibleAvatars.map((av, idx) => (
-        <Avatar key={idx} src={av.src} name={av.name} size={size} className="ring-2 ring-white rounded-full" />
+        <Avatar key={idx} src={av.src} name={av.name} size={size} className="ring-2 ring-[#090A0F] rounded-full" />
       ))}
       {remainingCount > 0 && (
-        <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border-2 border-white flex items-center justify-center shadow-2xs">
+        <div className="w-8 h-8 rounded-full bg-[#181924] text-slate-300 text-xs font-bold border-2 border-[#090A0F] flex items-center justify-center shadow-xs">
           +{remainingCount}
         </div>
       )}

@@ -7,7 +7,7 @@ export interface ProgressBarProps {
   max?: number;
   label?: string;
   showPercentage?: boolean;
-  color?: 'indigo' | 'purple' | 'cyan' | 'emerald' | 'amber';
+  color?: 'indigo' | 'purple' | 'cyan' | 'emerald' | 'amber' | 'violet';
   height?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -17,18 +17,19 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   max = 100,
   label,
   showPercentage = true,
-  color = 'indigo',
+  color = 'violet',
   height = 'md',
   className = '',
 }) => {
   const percentage = Math.min(100, Math.max(0, Math.round((value / max) * 100)));
 
   const colorClasses = {
-    indigo: 'bg-gradient-to-r from-indigo-500 to-indigo-600',
-    purple: 'bg-gradient-to-r from-purple-500 to-purple-600',
-    cyan: 'bg-gradient-to-r from-cyan-400 to-teal-500',
-    emerald: 'bg-gradient-to-r from-emerald-400 to-emerald-600',
-    amber: 'bg-gradient-to-r from-amber-400 to-orange-500',
+    violet: 'bg-gradient-to-r from-violet-500 to-purple-600 shadow-[0_0_12px_rgba(139,92,246,0.4)]',
+    indigo: 'bg-gradient-to-r from-indigo-500 to-violet-600 shadow-[0_0_12px_rgba(99,102,241,0.4)]',
+    purple: 'bg-gradient-to-r from-purple-500 to-violet-600 shadow-[0_0_12px_rgba(168,85,247,0.4)]',
+    cyan: 'bg-gradient-to-r from-cyan-400 to-teal-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]',
+    emerald: 'bg-gradient-to-r from-emerald-400 to-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.4)]',
+    amber: 'bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_0_12px_rgba(245,158,11,0.4)]',
   }[color];
 
   const heightClasses = {
@@ -40,12 +41,12 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   return (
     <div className={`space-y-1.5 w-full ${className}`}>
       {(label || showPercentage) && (
-        <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+        <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
           {label && <span>{label}</span>}
-          {showPercentage && <span className="text-slate-500 font-mono">{percentage}%</span>}
+          {showPercentage && <span className="text-slate-400 font-mono">{percentage}%</span>}
         </div>
       )}
-      <div className={`w-full bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/80 ${heightClasses}`}>
+      <div className={`w-full bg-[#12131A] rounded-full overflow-hidden p-0.5 border border-white/[0.08] ${heightClasses}`}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
@@ -73,28 +74,28 @@ export const XPProgress: React.FC<XPProgressProps> = ({
   const percentage = Math.min(100, Math.round((currentXP / nextLevelXP) * 100));
 
   return (
-    <div className={`bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-2 ${className}`}>
+    <div className={`dark-surface p-4 space-y-2.5 ${className}`}>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-500">
-            <Zap className="w-4 h-4 fill-amber-400 text-amber-500" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-amber-950/60 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <Zap className="w-4 h-4 fill-amber-400 text-amber-400" />
           </div>
           <div>
-            <span className="text-xs font-extrabold text-slate-900 block">Level {level} Explorer</span>
-            <span className="text-[11px] text-slate-500">{currentXP} / {nextLevelXP} XP</span>
+            <span className="text-xs font-bold text-white block">Level {level} Explorer</span>
+            <span className="text-[11px] text-slate-400 font-medium">{currentXP} / {nextLevelXP} XP</span>
           </div>
         </div>
-        <span className="text-xs font-extrabold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200/80">
+        <span className="text-xs font-bold text-amber-300 bg-amber-950/60 px-2.5 py-0.5 rounded-full border border-amber-500/25">
           {percentage}% to Lvl {level + 1}
         </span>
       </div>
 
-      <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200">
+      <div className="w-full bg-[#0E0F17] rounded-full h-2.5 overflow-hidden p-0.5 border border-white/[0.08]">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="h-full rounded-full bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 shadow-xs"
+          className="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.3)]"
         />
       </div>
     </div>
@@ -114,7 +115,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   value,
   size = 64,
   strokeWidth = 6,
-  color = '#6366F1',
+  color = '#8B5CF6',
   label,
   className = '',
 }) => {
@@ -129,7 +130,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#E2E8F0"
+          stroke="rgba(255, 255, 255, 0.08)"
           strokeWidth={strokeWidth}
           fill="transparent"
         />
@@ -148,8 +149,8 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="text-xs font-extrabold text-slate-900">{Math.round(value)}%</span>
-        {label && <span className="text-[9px] text-slate-500 font-medium">{label}</span>}
+        <span className="text-xs font-bold text-white">{Math.round(value)}%</span>
+        {label && <span className="text-[9px] text-slate-400 font-medium">{label}</span>}
       </div>
     </div>
   );

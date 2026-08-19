@@ -25,6 +25,7 @@ import { triggerCelebrationConfetti } from './lib/gamification';
 import { GamificationToast, Badge as GamificationBadge } from './types';
 import { Navbar } from './components/Navbar';
 import { CustomCursor, InitialAppLoader } from './components/motion';
+import { AmbientBackground } from './components/layout';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification, mapNotificationToSupabase, mapSupabaseToReview, mapReviewToSupabase } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
 import { fallbackUsers } from './data/fallbackUsers';
@@ -1638,11 +1639,14 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 gap-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent shadow-sm"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-4 text-white">
+        <InitialAppLoader />
+        <div className="relative flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
+        </div>
         <div className="text-center space-y-1">
-          <h2 className="font-sans font-medium text-slate-800 tracking-tight text-lg">Loading Skill Swap Platform...</h2>
-          <p className="text-slate-500 text-xs">Preparing swapper index and scheduling calendars.</p>
+          <h2 className="font-sans font-medium text-white tracking-tight text-base">Loading SkillSwap Platform...</h2>
+          <p className="text-text-muted text-xs">Synchronizing swapper index and availability calendars</p>
         </div>
       </div>
     );
@@ -1671,8 +1675,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans antialiased selection:bg-indigo-500/20 selection:text-indigo-900">
-      <CustomCursor tone="brass" />
+    <AmbientBackground className="flex flex-col min-h-screen text-slate-100 font-sans antialiased selection:bg-violet-500/30 selection:text-violet-200">
+      <CustomCursor tone="violet" />
       <InitialAppLoader />
       
       {/* Redesigned Floating Glass Navigation */}
@@ -1691,18 +1695,18 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-4 sm:py-8 relative z-10">
         {userLoadError && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-700 rounded-lg text-sm flex items-center justify-between">
+          <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl text-sm flex items-center justify-between">
             <span>{userLoadError}</span>
-            <button onClick={() => window.location.reload()} className="px-3 py-1 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700">Refresh Page</button>
+            <button onClick={() => window.location.reload()} className="px-3 py-1 bg-rose-600 text-white rounded text-xs font-semibold hover:bg-rose-700">Refresh Page</button>
           </div>
         )}
 
         {syncError && (
-          <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 text-amber-700 rounded-lg text-sm flex items-center justify-between">
+          <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-xl text-sm flex items-center justify-between">
             <span>{syncError}</span>
-            <button onClick={() => setSyncError(null)} className="text-xs text-amber-700 underline font-semibold">Dismiss</button>
+            <button onClick={() => setSyncError(null)} className="text-xs text-amber-300 underline font-semibold">Dismiss</button>
           </div>
         )}
 
@@ -1729,6 +1733,7 @@ export default function App() {
                 onStartLiveSession={handleStartLiveSession}
                 onNavigateToExplore={() => setActiveTab('explore')}
                 onNavigateToGamification={() => setActiveTab('gamification')}
+                onNavigateToSkillPath={() => setActiveTab('skill-path')}
                 allReviews={allReviews}
               />
             )}
@@ -1811,7 +1816,12 @@ export default function App() {
             )}
 
             {activeTab === 'skill-path' && (
-              <SkillPathView currentUser={currentUser} />
+              <SkillPathView 
+                currentUser={currentUser} 
+                onNavigateToExplore={(skillQuery) => {
+                  setActiveTab('explore');
+                }}
+              />
             )}
 
             {activeTab === 'gamification' && (
@@ -1979,6 +1989,6 @@ export default function App() {
         />
       )}
 
-    </div>
+    </AmbientBackground>
   );
 }

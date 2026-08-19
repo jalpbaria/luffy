@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
+import { motionTokens } from '../motion/tokens';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -53,37 +54,37 @@ export const Modal: React.FC<ModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md"
           />
 
           {/* Modal Panel */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            initial={{ opacity: 0, scale: 0.95, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-            className={`relative w-full ${maxWidthClasses} bg-white rounded-[28px] border border-slate-200/90 shadow-2xl overflow-hidden z-10 my-auto`}
+            exit={{ opacity: 0, scale: 0.95, y: 12 }}
+            transition={motionTokens.spring.medium}
+            className={`relative w-full ${maxWidthClasses} bg-[#12131A] rounded-[24px] border border-white/[0.1] shadow-2xl shadow-black/80 overflow-hidden z-10 my-auto text-slate-100`}
           >
             {/* Header */}
             {(title || subtitle) && (
-              <div className="p-6 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
+              <div className="p-6 pb-4 border-b border-white/[0.06] flex items-start justify-between gap-4 bg-[#181924]/60">
                 <div>
                   {typeof title === 'string' ? (
-                    <h3 className="font-extrabold text-slate-900 text-lg tracking-tight">
+                    <h3 className="font-bold text-white text-lg tracking-tight">
                       {title}
                     </h3>
                   ) : (
                     title
                   )}
                   {subtitle && (
-                    <p className="text-slate-500 text-xs mt-1 leading-relaxed">
+                    <p className="text-slate-400 text-xs mt-1 leading-relaxed">
                       {subtitle}
                     </p>
                   )}
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition cursor-pointer border-0 bg-transparent shrink-0"
+                  className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/[0.08] transition cursor-pointer border-0 bg-transparent shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -93,7 +94,7 @@ export const Modal: React.FC<ModalProps> = ({
             {!title && !subtitle && (
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition cursor-pointer border-0 bg-transparent z-20"
+                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/[0.08] transition cursor-pointer border-0 bg-transparent z-20"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -104,7 +105,7 @@ export const Modal: React.FC<ModalProps> = ({
 
             {/* Footer */}
             {footer && (
-              <div className="p-4 sm:p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+              <div className="p-4 sm:p-6 bg-[#0E0F17]/80 border-t border-white/[0.06] flex items-center justify-end gap-3">
                 {footer}
               </div>
             )}

@@ -62,10 +62,10 @@ export const InitialAppLoader: React.FC<InitialAppLoaderProps> = ({ onComplete }
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 0.75, scale: 1.15 }}
+              animate={{ opacity: 0.8, scale: 1.15 }}
               transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
             >
-              <AmbientOrb tone="indigo" size="lg" className="opacity-80" />
+              <AmbientOrb tone="violet" size="lg" className="opacity-80" />
             </motion.div>
           </div>
 
@@ -77,7 +77,7 @@ export const InitialAppLoader: React.FC<InitialAppLoaderProps> = ({ onComplete }
             className="relative z-10 flex flex-col items-center gap-3.5"
           >
             <div className="relative">
-              <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-2xl shadow-indigo-500/40 border border-white/20">
+              <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-violet-700 via-violet-600 to-purple-600 flex items-center justify-center text-white shadow-2xl shadow-violet-500/40 border border-white/20">
                 <ArrowLeftRight className="w-6 h-6" />
               </div>
               <motion.div
@@ -95,7 +95,7 @@ export const InitialAppLoader: React.FC<InitialAppLoaderProps> = ({ onComplete }
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.35 }}
-                className="text-base font-black tracking-tight text-white block"
+                className="text-base font-bold tracking-tight text-white block"
               >
                 SkillSwap
               </motion.span>
@@ -116,7 +116,7 @@ export const InitialAppLoader: React.FC<InitialAppLoaderProps> = ({ onComplete }
               initial={{ scaleX: 0, originX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400"
+              className="w-full h-full bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-400"
             />
           </div>
         </motion.div>

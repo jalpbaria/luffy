@@ -1,18 +1,60 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Award, Calendar, Clock, Star, MessageSquare, CheckCircle, AlertCircle, Trash2, 
-  RefreshCw, Check, X, ShieldAlert, BookOpen, ThumbsUp, Trophy, ChevronRight, UserMinus, Plus, Video, Sparkles,
-  Compass, Users, Target, Flame, Zap, GraduationCap, ArrowUpRight, Lightbulb, CheckCheck, TrendingUp,
-  Play, Bot, Heart, Share2, Activity, ShieldCheck, ArrowRight, AlertTriangle, CheckCircle2, Coins
+import {
+  Calendar,
+  Clock,
+  Star,
+  Check,
+  X,
+  BookOpen,
+  Trophy,
+  Video,
+  Sparkles,
+  Compass,
+  Users,
+  Flame,
+  Zap,
+  GraduationCap,
+  ArrowRight,
+  Lightbulb,
+  TrendingUp,
+  Play,
+  Bot,
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
+  Coins,
+  ArrowUpRight,
+  ShieldAlert,
+  ChevronRight,
+  MessageSquare,
+  AlertCircle,
+  CheckCircle,
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review } from '../types';
 import { calculateUserXP } from '../lib/gamification';
 import { getSessionGateStatus, computeStartTime } from '../lib/liveSessions';
 import { computeAllUserMatches } from '../lib/matchUtils';
-import { VerifiedSkillBadge } from './VerifiedSkillBadge';
-import { Button, Card, Badge, Avatar, ProgressBar, StatCard, MotionCard, EmptyState, AmbientOrb, TiltCard, RevealOnScroll, AnimatedCounter, RevealText, FadeUp, MagneticButton, PinnedHorizontalScroll } from './ui';
+import {
+  Button,
+  Card,
+  SurfaceCard,
+  EditorialCard,
+  Badge,
+  Avatar,
+  ProgressBar,
+  EmptyState,
+  AmbientOrb,
+  RevealText,
+  FadeUp,
+  MagneticButton,
+  PinnedHorizontalScroll,
+  Spotlight,
+  AnimatedCounter,
+  HoverCard,
+} from './ui';
 import { supabase, mapSupabaseToBooking } from '../lib/supabase';
+import { motionTokens } from './motion/tokens';
 
 function formatRelativeTime(dateStr?: string): string {
   if (!dateStr) return 'recently';
@@ -28,20 +70,25 @@ function formatRelativeTime(dateStr?: string): string {
   return `${days}d ago`;
 }
 
-export function NextSessionHeroCard({
+/* ==========================================================================
+   Next Exchange Hero Component
+   ========================================================================== */
+export function NextExchangeSection({
   booking,
   currentUser,
   allUsers,
   onStartLiveSession,
   onCancelBooking,
-  onRescheduleBooking
+  onRescheduleBooking,
+  onNavigateToExplore,
 }: {
-  booking: Booking;
+  booking: Booking | null;
   currentUser: UserProfile;
   allUsers: UserProfile[];
   onStartLiveSession?: (booking: Booking) => void;
   onCancelBooking?: (booking: Booking) => void;
   onRescheduleBooking?: (booking: Booking) => void;
+  onNavigateToExplore?: () => void;
 }) {
   const [now, setNow] = useState(Date.now());
 
@@ -50,24 +97,61 @@ export function NextSessionHeroCard({
     return () => clearInterval(timer);
   }, []);
 
+  if (!booking) {
+    return (
+      <SurfaceCard className="p-6 sm:p-8 relative overflow-hidden group">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2 max-w-xl">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-violet-400/60" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                Next Scheduled Exchange
+              </span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+              No live classroom scheduled for today
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Your calendar is clear. Connect with a mentor or peer swapper to schedule your next 1-on-1 exchange session.
+            </p>
+          </div>
+
+          <Button
+            variant="primary"
+            size="md"
+            onClick={onNavigateToExplore}
+            leftIcon={<Compass className="w-4 h-4" />}
+          >
+            Find Exchange Partner
+          </Button>
+        </div>
+      </SurfaceCard>
+    );
+  }
+
   const gate = getSessionGateStatus(booking);
   const startTimeIso = computeStartTime(booking.date, booking.timeSlot, booking.scheduledTime);
   const startTimeMs = new Date(startTimeIso).getTime();
   const diffMs = startTimeMs - now;
+  const isLive = gate.status === 'joinable';
 
-  // Participant 1: Teacher
+  // Teacher & Learner details
   const teacherUser = allUsers.find((u) => u.id === booking.teacherId);
   const teacherAvatar = teacherUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
   const teacherName = booking.teacherName;
 
-  // Participant 2: Learner
   const learnerUser = allUsers.find((u) => u.id === booking.learnerId);
   const learnerAvatar = learnerUser?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150';
   const learnerName = booking.learnerName;
 
-  // Live countdown string
+  const isCurrentUserTeacher = booking.teacherId === currentUser.id;
+  const partnerName = isCurrentUserTeacher ? learnerName : teacherName;
+  const partnerAvatar = isCurrentUserTeacher ? learnerAvatar : teacherAvatar;
+  const roleLabel = isCurrentUserTeacher ? 'Teaching' : 'Learning from';
+
+  // Live countdown formatting
   let countdownDisplay = '';
-  if (gate.status === 'joinable') {
+  if (isLive) {
     countdownDisplay = 'LIVE NOW • ROOM OPEN';
   } else if (diffMs > 0) {
     const totalSecs = Math.floor(diffMs / 1000);
@@ -76,261 +160,182 @@ export function NextSessionHeroCard({
     const secs = totalSecs % 60;
     countdownDisplay = `${hrs.toString().padStart(2, '0')}h : ${mins.toString().padStart(2, '0')}m : ${secs.toString().padStart(2, '0')}s`;
   } else {
-    countdownDisplay = 'SESSION STARTING NOW';
+    countdownDisplay = 'SESSION IN PROGRESS';
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="relative rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white p-6 sm:p-8 border-2 border-indigo-500/40 shadow-2xl overflow-hidden group"
+    <div
+      className={`relative rounded-3xl p-6 sm:p-8 transition-all duration-500 overflow-hidden border ${
+        isLive
+          ? 'bg-gradient-to-br from-[#131E1E] via-[#0E151A] to-[#090A0F] border-emerald-500/50 shadow-[0_0_50px_rgba(16,185,129,0.25)]'
+          : 'bg-[#12131A] border-white/[0.1] shadow-[0_16px_40px_rgba(0,0,0,0.6)]'
+      }`}
     >
-      {/* Decorative backdrop glow */}
-      <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-500/30 transition-all duration-700" />
-      <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/15 rounded-full blur-2xl pointer-events-none" />
+      {/* Dynamic atmospheric radiance */}
+      {isLive ? (
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
+      ) : (
+        <div className="absolute top-0 right-0 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+      )}
 
       <div className="relative z-10 space-y-6">
-        
-        {/* Top bar: Badge & Live Countdown */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-indigo-800/60">
+        {/* Top Meta Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
           <div className="flex items-center gap-2.5">
             <span className="relative flex h-3 w-3">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${gate.status === 'joinable' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${gate.status === 'joinable' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+              <span
+                className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                  isLive ? 'bg-emerald-400' : 'bg-amber-400'
+                }`}
+              />
+              <span
+                className={`relative inline-flex rounded-full h-3 w-3 ${
+                  isLive ? 'bg-emerald-500' : 'bg-amber-500'
+                }`}
+              />
             </span>
-            <span className="text-xs font-black uppercase tracking-wider text-indigo-200">
-              Next Live Session • Starts Within 24 Hours
+            <span
+              className={`text-xs font-bold uppercase tracking-wider ${
+                isLive ? 'text-emerald-300' : 'text-slate-300'
+              }`}
+            >
+              {isLive ? 'Classroom Ready • Active Live Session' : 'Next Scheduled Exchange'}
             </span>
           </div>
 
-          <div className="flex items-center gap-2 bg-indigo-900/80 px-4 py-1.5 rounded-full border border-indigo-700/60 shadow-inner">
-            <Clock className="w-4 h-4 text-amber-300 animate-pulse" />
-            <span className="text-xs font-mono font-black text-amber-300 tracking-wider">
-              {countdownDisplay}
-            </span>
+          <div
+            className={`flex items-center gap-2 px-3.5 py-1 rounded-full border text-xs font-mono font-bold tracking-wider ${
+              isLive
+                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+                : 'bg-[#181924] text-amber-300 border-white/[0.08]'
+            }`}
+          >
+            <Clock className={`w-3.5 h-3.5 ${isLive ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
+            <span>{countdownDisplay}</span>
           </div>
         </div>
 
-        {/* Content Grid */}
+        {/* Core Session Details Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           
-          {/* Skill & Session Metadata */}
+          {/* Skill Title & Meta */}
           <div className="lg:col-span-7 space-y-3">
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-indigo-500/25 border border-indigo-400/30 text-indigo-200 rounded-full text-[11px] font-bold">
-                {booking.category || 'Peer Classroom'}
+              <span className="px-3 py-1 bg-violet-950/70 border border-violet-500/30 text-violet-300 rounded-full text-[11px] font-bold">
+                {booking.category || 'Skill Barter'}
               </span>
-              <span className="px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 rounded-full text-[11px] font-bold">
-                {booking.learningOption}
+              <span className="px-3 py-1 bg-white/[0.06] border border-white/[0.08] text-slate-300 rounded-full text-[11px] font-semibold">
+                {booking.learningOption || '1-on-1 Session'}
               </span>
             </div>
 
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-snug">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
               {booking.skillName}
             </h2>
 
-            <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-300 pt-1">
+            <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-400 pt-1">
               <div className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-indigo-400" />
+                <Calendar className="w-4 h-4 text-violet-400" />
                 <span>{gate.formattedDate}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-indigo-400" />
+                <Clock className="w-4 h-4 text-violet-400" />
                 <span>{gate.formattedTime} ({booking.timeSlot})</span>
               </div>
             </div>
           </div>
 
-          {/* Participants Side */}
-          <div className="lg:col-span-5 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 space-y-3">
-            <p className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-200">
-              Session Participants
-            </p>
-
-            <div className="grid grid-cols-2 gap-3">
-              {/* Teacher */}
-              <div className="bg-slate-900/80 p-2.5 rounded-xl border border-white/10 flex items-center gap-2.5">
-                <div className="relative shrink-0">
-                  <img
-                    src={teacherAvatar}
-                    alt={teacherName}
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500"
-                  />
-                  {booking.teacherId === currentUser.id && (
-                    <span className="absolute -bottom-1 -right-1 bg-indigo-600 text-white text-[9px] font-black px-1 rounded-full">
-                      YOU
-                    </span>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] font-extrabold text-indigo-400 block uppercase">
-                    Instructor
-                  </span>
-                  <p className="text-xs font-bold text-white truncate">{teacherName}</p>
-                </div>
+          {/* Overlapping Avatar & Partner Display */}
+          <div className="lg:col-span-5 bg-[#181924]/90 backdrop-blur-md border border-white/[0.08] rounded-2xl p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex -space-x-3 shrink-0">
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-11 h-11 rounded-full object-cover ring-2 ring-[#12131A]"
+                />
+                <img
+                  src={partnerAvatar}
+                  alt={partnerName}
+                  className="w-11 h-11 rounded-full object-cover ring-2 ring-violet-500"
+                />
               </div>
-
-              {/* Learner */}
-              <div className="bg-slate-900/80 p-2.5 rounded-xl border border-white/10 flex items-center gap-2.5">
-                <div className="relative shrink-0">
-                  <img
-                    src={learnerAvatar}
-                    alt={learnerName}
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-500"
-                  />
-                  {booking.learnerId === currentUser.id && (
-                    <span className="absolute -bottom-1 -right-1 bg-emerald-600 text-white text-[9px] font-black px-1 rounded-full">
-                      YOU
-                    </span>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] font-extrabold text-emerald-400 block uppercase">
-                    Student
-                  </span>
-                  <p className="text-xs font-bold text-white truncate">{learnerName}</p>
-                </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wider block">
+                  {roleLabel}
+                </span>
+                <p className="text-sm font-bold text-white truncate">{partnerName}</p>
+                <p className="text-[11px] text-slate-400 truncate">Peer Swapper</p>
               </div>
+            </div>
+
+            <div className="shrink-0 text-right">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-300 border border-emerald-500/30">
+                <CheckCircle2 className="w-3 h-3" /> Confirmed
+              </span>
             </div>
           </div>
 
         </div>
 
-        {/* Action CTA Bar */}
-        <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-indigo-800/40">
-          <p className="text-xs text-indigo-200/90 font-medium text-center sm:text-left">
-            {gate.status === 'joinable' 
-              ? '🟢 The classroom is live! Test your camera and audio in the green room before entering.'
-              : '🕒 Join window opens 10 minutes prior to session start time.'}
+        {/* Action Controls */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/[0.08]">
+          <p className="text-xs text-slate-400 font-medium text-center sm:text-left">
+            {isLive
+              ? '🟢 Classroom is live! Click below to enter camera & audio room.'
+              : '🕒 Live classroom unlocks 10 minutes prior to scheduled start.'}
           </p>
 
           <div className="w-full sm:w-auto shrink-0 flex flex-wrap items-center gap-2.5">
             <button
               type="button"
               onClick={() => onRescheduleBooking?.(booking)}
-              className="px-3.5 py-2.5 bg-indigo-900/60 hover:bg-indigo-800/80 text-indigo-200 font-bold text-xs rounded-xl border border-indigo-700/60 flex items-center justify-center gap-1.5 transition cursor-pointer"
+              className="px-3.5 py-2 bg-[#181924] hover:bg-[#202230] text-slate-300 hover:text-white font-semibold text-xs rounded-xl border border-white/[0.08] flex items-center justify-center gap-1.5 transition cursor-pointer"
             >
-              <Calendar className="w-3.5 h-3.5 text-indigo-300" />
+              <Calendar className="w-3.5 h-3.5 text-violet-400" />
               <span>Propose New Time</span>
             </button>
 
             <button
               type="button"
               onClick={() => onCancelBooking?.(booking)}
-              className="px-3.5 py-2.5 bg-rose-950/60 hover:bg-rose-900/80 text-rose-200 font-bold text-xs rounded-xl border border-rose-800/60 flex items-center justify-center gap-1.5 transition cursor-pointer"
+              className="px-3.5 py-2 bg-[#181924] hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 font-semibold text-xs rounded-xl border border-white/[0.08] flex items-center justify-center gap-1.5 transition cursor-pointer"
             >
               <X className="w-3.5 h-3.5 text-rose-400" />
-              <span>Cancel Session</span>
+              <span>Cancel</span>
             </button>
 
-            {gate.status === 'joinable' ? (
-              <button
-                type="button"
+            {isLive ? (
+              <Button
+                variant="primary"
+                size="md"
                 onClick={() => onStartLiveSession?.(booking)}
-                className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs rounded-xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 transition-all transform active:scale-95 cursor-pointer animate-pulse border border-emerald-400/40"
+                leftIcon={<Video className="w-4 h-4 animate-pulse" />}
+                className="bg-emerald-600 hover:bg-emerald-500 shadow-[0_0_24px_rgba(16,185,129,0.4)]"
               >
-                <Video className="w-4 h-4 fill-current" />
-                <span>Join Live Classroom</span>
-              </button>
+                Enter Live Classroom
+              </Button>
             ) : (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="md"
                 onClick={() => onStartLiveSession?.(booking)}
-                className="px-4 py-2.5 bg-indigo-900/80 hover:bg-indigo-800 text-white font-bold text-xs rounded-xl border border-indigo-600/60 flex items-center justify-center gap-1.5 transition cursor-pointer"
+                leftIcon={<Video className="w-4 h-4 text-violet-400" />}
               >
-                <Clock className="w-3.5 h-3.5 text-amber-300" />
-                <span>Pre-Check Camera Room</span>
-              </button>
+                Pre-Check Camera Room
+              </Button>
             )}
           </div>
         </div>
 
       </div>
-    </motion.div>
-  );
-}
-
-export function SessionJoinGateButton({
-  booking,
-  onStartLiveSession
-}: {
-  booking: Booking;
-  onStartLiveSession?: (booking: Booking) => void;
-}) {
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const gate = getSessionGateStatus(booking);
-
-  if (gate.status === 'joinable') {
-    return (
-      <div className="flex flex-col items-end gap-1">
-        <button
-          onClick={() => onStartLiveSession?.(booking)}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-all shadow-md shadow-emerald-500/20 flex items-center gap-2 cursor-pointer text-xs"
-        >
-          <Video className="w-4 h-4 animate-pulse" /> Join Live Classroom
-        </button>
-        <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" /> Classroom Open Now
-        </span>
-      </div>
-    );
-  }
-
-  if (gate.status === 'too_early') {
-    const totalSecs = Math.max(0, Math.floor((gate.windowStart.getTime() - now) / 1000));
-    const mins = Math.floor(totalSecs / 60);
-    const hrs = Math.floor(mins / 60);
-    const remMins = mins % 60;
-    const remSecs = totalSecs % 60;
-
-    let countdownStr = '';
-    if (hrs > 0) {
-      countdownStr = `Opens in ${hrs}h ${remMins}m`;
-    } else if (mins > 0) {
-      countdownStr = `Opens in ${mins}m ${remSecs}s`;
-    } else {
-      countdownStr = `Opens in ${remSecs}s`;
-    }
-
-    return (
-      <div className="flex flex-col items-end gap-1">
-        <button
-          disabled
-          onClick={() => alert(`This session starts at ${gate.formattedTime}. You can join 10 minutes before.`)}
-          title={`This session starts at ${gate.formattedTime}. You can join 10 minutes before.`}
-          className="px-3.5 py-1.5 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl font-medium transition flex items-center gap-1.5 cursor-not-allowed text-xs"
-        >
-          <Video className="w-3.5 h-3.5" /> Join Live Classroom
-        </button>
-        <div className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80 font-semibold flex items-center gap-1">
-          <Clock className="w-3 h-3 text-amber-500" /> Starts at {gate.formattedTime} • {countdownStr}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-end gap-1">
-      <button
-        disabled
-        title="This session's scheduled time has passed."
-        className="px-3.5 py-1.5 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl font-medium transition flex items-center gap-1.5 cursor-not-allowed text-xs"
-      >
-        <Video className="w-3.5 h-3.5" /> Session Window Expired
-      </button>
-      <span className="text-[10px] text-slate-400 font-medium">
-        Scheduled time has passed
-      </span>
     </div>
   );
 }
 
+/* ==========================================================================
+   Dashboard View Main Component
+   ========================================================================== */
 interface DashboardViewProps {
   currentUser: UserProfile;
   bookings: Booking[];
@@ -344,6 +349,7 @@ interface DashboardViewProps {
   onStartLiveSession?: (booking: Booking) => void;
   onNavigateToExplore?: () => void;
   onNavigateToGamification?: () => void;
+  onNavigateToSkillPath?: () => void;
   allReviews?: Review[];
 }
 
@@ -360,9 +366,10 @@ export default function DashboardView({
   onStartLiveSession,
   onNavigateToExplore,
   onNavigateToGamification,
-  allReviews = []
+  onNavigateToSkillPath,
+  allReviews = [],
 }: DashboardViewProps) {
-  // Modals for Cancellation and Reschedule flows
+  // Modals for Cancellation, Rescheduling, and Reviews
   const [cancelBookingModal, setCancelBookingModal] = useState<Booking | null>(null);
   const [cancelReasonPreset, setCancelReasonPreset] = useState<string>('');
   const [cancelReasonCustom, setCancelReasonCustom] = useState<string>('');
@@ -373,330 +380,54 @@ export default function DashboardView({
   const [rescheduleSlot, setRescheduleSlot] = useState<'Morning' | 'Afternoon' | 'Evening'>('Afternoon');
   const [rescheduleNote, setRescheduleNote] = useState('');
 
-  const handleCancelSubmit = () => {
-    if (!cancelBookingModal) return;
+  const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
 
-    const reasonCombined = [cancelReasonPreset, cancelReasonCustom].filter(Boolean).join(' - ') || 'No reason specified';
+  // Active secondary tab for progressive disclosure
+  const [secondaryTab, setSecondaryTab] = useState<'pipeline' | 'tracks' | 'community'>('pipeline');
 
-    const startTimeIso = computeStartTime(
-      cancelBookingModal.date,
-      cancelBookingModal.timeSlot,
-      cancelBookingModal.scheduledTime
-    );
-    const startTimeMs = new Date(startTimeIso).getTime();
-    const diffMs = startTimeMs - Date.now();
-    const isLateCancellation = diffMs <= 30 * 60 * 1000;
-
-    onUpdateBookingStatus(cancelBookingModal.id, 'cancelled', currentUser.id, {
-      cancellationReason: reasonCombined,
-      isLateCancellation
-    });
-
-    setCancelBookingModal(null);
-    setCancelReasonPreset('');
-    setCancelReasonCustom('');
-  };
-
-  const handleRescheduleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!rescheduleBookingModal || !rescheduleDate) return;
-
-    let scheduledTime: string | undefined = undefined;
-    if (rescheduleDate && rescheduleTime) {
-      const d = new Date(`${rescheduleDate}T${rescheduleTime}:00`);
-      if (!isNaN(d.getTime())) scheduledTime = d.toISOString();
-    }
-
-    onUpdateBookingStatus(rescheduleBookingModal.id, 'rescheduled', currentUser.id, {
-      date: rescheduleDate,
-      timeSlot: rescheduleSlot,
-      scheduledTime,
-      notes: rescheduleNote || undefined
-    });
-
-    setRescheduleBookingModal(null);
-    setRescheduleDate('');
-    setRescheduleTime('14:00');
-    setRescheduleNote('');
-  };
-
-  // Time Greeting
+  // Time-aware greeting
   const greetingTime = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
   }, []);
 
-  // 7-day recent credit earnings computation
-  const [recentCreditsTrend, setRecentCreditsTrend] = useState<{
-    text: string;
-    type: 'positive' | 'negative' | 'neutral';
-  }>({ text: 'No recent activity', type: 'neutral' });
+  // Gamification Metrics
+  const xpPoints = useMemo(() => calculateUserXP(currentUser), [currentUser]);
+  const userLevel = useMemo(() => Math.max(1, Math.floor(xpPoints / 400) + 1), [xpPoints]);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchRecentCredits() {
-      if (!currentUser?.id) return;
-      try {
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const sevenDaysAgoIso = sevenDaysAgo.toISOString();
-
-        const { data, error } = await supabase
-          .from('credit_transactions')
-          .select('amount, created_at')
-          .eq('user_id', currentUser.id)
-          .gte('created_at', sevenDaysAgoIso);
-
-        if (error) {
-          console.warn('Could not fetch recent credit transactions:', error);
-          return;
-        }
-
-        if (isMounted && data) {
-          const sum = data.reduce((acc, row) => acc + (Number(row.amount) || 0), 0);
-          if (sum > 0) {
-            setRecentCreditsTrend({ text: `+${sum} earned recently`, type: 'positive' });
-          } else if (sum < 0) {
-            setRecentCreditsTrend({ text: `${sum} spent recently`, type: 'negative' });
-          } else {
-            setRecentCreditsTrend({ text: 'No recent activity', type: 'neutral' });
-          }
-        }
-      } catch (err) {
-        console.warn('Error computing recent credit trend:', err);
-      }
-    }
-
-    fetchRecentCredits();
-    return () => {
-      isMounted = false;
-    };
-  }, [currentUser?.id, currentUser?.credits]);
-
-  // XP & Gamification Metrics
-  const xpPoints = useMemo(() => {
-    return calculateUserXP(currentUser);
-  }, [currentUser]);
-
-  const userLevel = useMemo(() => {
-    return Math.max(1, Math.floor(xpPoints / 400) + 1);
-  }, [xpPoints]);
-
-  const hoursLearned = useMemo(() => {
-    return (currentUser.successfulExchanges || 0) * 2.5 + (progress.length * 1.5) + 4;
-  }, [currentUser, progress]);
-
-  // Compute Skill Matches
+  // Matches for "People worth learning from"
   const allUserMatches = useMemo(() => computeAllUserMatches(currentUser, allUsers), [currentUser, allUsers]);
   const recommendedPartners = useMemo(() => allUserMatches.slice(0, 8), [allUserMatches]);
 
-  // Review Modal State
-  const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewTeaching, setReviewTeaching] = useState(5);
-  const [reviewComm, setReviewComm] = useState(5);
-  const [reviewHelp, setReviewHelp] = useState(5);
-  const [reviewPunct, setReviewPunct] = useState(5);
-  const [reviewComment, setReviewComment] = useState('');
-
-  // Live timer for booking visibility
+  // Live timer for bookings visibility
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 10000);
     return () => clearInterval(timer);
   }, []);
 
-  const isBookingVisible = (b: Booking) => {
+  const userBookings = useMemo(() => {
     const TEN_MINUTES_MS = 10 * 60 * 1000;
-    if (b.status === 'completed' || b.status === 'cancelled') {
-      const timeStr = b.completedAt || b.cancelledAt || b.createdAt;
-      if (!timeStr) return true;
-      const t = new Date(timeStr).getTime();
-      if (isNaN(t)) return true;
-      return (now - t) <= TEN_MINUTES_MS;
-    }
-    return true;
-  };
+    return bookings.filter((b) => {
+      const isParticipant = b.learnerId === currentUser.id || b.teacherId === currentUser.id;
+      if (!isParticipant) return false;
 
-  const userBookings = bookings.filter(b => (b.learnerId === currentUser.id || b.teacherId === currentUser.id) && isBookingVisible(b));
-  const activeSwapsCount = userBookings.filter(b => b.status === 'confirmed' || b.status === 'pending' || b.status === 'rescheduled').length;
-
-  // Summary Metrics including Credits Balance, Active Swaps, and Skills Offered
-  const summaryCards = useMemo(() => [
-    {
-      title: 'Credits Balance',
-      numericValue: currentUser.credits ?? 0,
-      suffix: ' Credits',
-      subtitle: 'Available for peer barter',
-      icon: <Coins className="w-5 h-5" />,
-      trend: {
-        value: recentCreditsTrend.text,
-        isPositive: recentCreditsTrend.type === 'positive',
-        type: recentCreditsTrend.type,
-      },
-    },
-    {
-      title: 'Active Swaps',
-      numericValue: activeSwapsCount,
-      suffix: ' Sessions',
-      subtitle: 'In exchange pipeline',
-      icon: <Users className="w-5 h-5" />,
-    },
-    {
-      title: 'Skills Offered',
-      numericValue: currentUser.skillsOffered?.length || 0,
-      suffix: ' Skills',
-      subtitle: currentUser.skillsOffered?.map(s => s.name).slice(0, 2).join(', ') || 'Ready to teach',
-      icon: <GraduationCap className="w-5 h-5" />,
-    },
-    {
-      title: 'Total XP Points',
-      numericValue: xpPoints,
-      suffix: ' XP',
-      subtitle: `Level ${userLevel} Voyager`,
-      icon: <Zap className="w-5 h-5" />,
-      trend: { value: '+240 XP this week', isPositive: true, type: 'positive' as const },
-    },
-    {
-      title: 'Learning Streak',
-      numericValue: currentUser.loginStreak ?? 7,
-      suffix: ' Days 🔥',
-      subtitle: 'Personal record!',
-      icon: <Flame className="w-5 h-5" />,
-    },
-  ], [currentUser.credits, currentUser.skillsOffered, currentUser.loginStreak, activeSwapsCount, xpPoints, userLevel, recentCreditsTrend]);
-
-  const submitReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reviewBooking) return;
-
-    onLeaveReview({
-      bookingId: reviewBooking.id,
-      teacherId: reviewBooking.teacherId,
-      learnerId: currentUser.id,
-      learnerName: currentUser.name,
-      skillName: reviewBooking.skillName,
-      rating: reviewRating,
-      teachingQuality: reviewTeaching,
-      communication: reviewComm,
-      helpfulness: reviewHelp,
-      punctuality: reviewPunct,
-      comment: reviewComment
-    });
-
-    setReviewBooking(null);
-    setReviewComment('');
-    setReviewRating(5);
-  };
-
-  // Static Sample Trending Skills Universe
-  const trendingSkills = [
-    { name: 'React 19 & Next.js', learners: '1,420 learners', category: 'Web Dev', gradient: 'from-indigo-500 to-purple-600', icon: '⚡' },
-    { name: 'AI Prompt Engineering', learners: '2,890 learners', category: 'Artificial Intelligence', gradient: 'from-cyan-500 to-blue-600', icon: '🤖' },
-    { name: 'Conversational Spanish', learners: '980 learners', category: 'Languages', gradient: 'from-amber-500 to-orange-600', icon: '💬' },
-    { name: 'Figma System Design', learners: '1,150 learners', category: 'UI/UX Design', gradient: 'from-emerald-500 to-teal-600', icon: '🎨' },
-  ];
-
-  // Dynamic Community Feed items from real registered database records
-  const [dbBookings, setDbBookings] = useState<Booking[]>([]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchGlobalBookings = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('bookings')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(25);
-        if (!error && data && Array.isArray(data) && isMounted) {
-          setDbBookings(data.map(mapSupabaseToBooking));
-        }
-      } catch {
-        // network / offline fallback
+      if (b.status === 'completed' || b.status === 'cancelled') {
+        const timeStr = b.completedAt || b.cancelledAt || b.createdAt;
+        if (!timeStr) return true;
+        const t = new Date(timeStr).getTime();
+        if (isNaN(t)) return true;
+        return now - t <= TEN_MINUTES_MS;
       }
-    };
-    fetchGlobalBookings();
-    return () => { isMounted = false; };
-  }, []);
-
-  const communityActivities = useMemo(() => {
-    const items: Array<{ id: string; user: string; action: string; topic: string; time: string; avatar?: string; timestamp: number }> = [];
-
-    // Deduplicate bookings from props and fetched DB
-    const allBookingsMap = new Map<string, Booking>();
-    [...bookings, ...dbBookings].forEach(b => {
-      if (b && b.id) allBookingsMap.set(b.id, b);
+      return true;
     });
+  }, [bookings, currentUser.id, now]);
 
-    allBookingsMap.forEach(b => {
-      const learner = allUsers.find(u => u.id === b.learnerId) || allUsers.find(u => u.name === b.learnerName);
-      const userName = learner?.name || b.learnerName || 'A member';
-      const userAvatar = learner?.avatar;
-
-      if (b.status === 'completed') {
-        items.push({
-          id: `act-b-comp-${b.id}`,
-          user: userName,
-          action: 'completed a session in',
-          topic: b.skillName,
-          time: formatRelativeTime(b.completedAt || b.createdAt),
-          avatar: userAvatar,
-          timestamp: new Date(b.completedAt || b.createdAt).getTime() || 0
-        });
-      } else if (b.status === 'confirmed' || b.status === 'pending' || b.status === 'rescheduled') {
-        items.push({
-          id: `act-b-book-${b.id}`,
-          user: userName,
-          action: 'booked a skill exchange for',
-          topic: b.skillName,
-          time: formatRelativeTime(b.createdAt),
-          avatar: userAvatar,
-          timestamp: new Date(b.createdAt).getTime() || 0
-        });
-      }
-    });
-
-    // Add real reviews
-    allReviews.forEach(r => {
-      const learner = allUsers.find(u => u.id === r.learnerId) || allUsers.find(u => u.name === r.learnerName);
-      const userName = learner?.name || r.learnerName || 'A member';
-      const userAvatar = learner?.avatar;
-
-      items.push({
-        id: `act-rev-${r.id}`,
-        user: userName,
-        action: `left a ${r.rating}★ review for`,
-        topic: r.skillName,
-        time: formatRelativeTime(r.createdAt),
-        avatar: userAvatar,
-        timestamp: new Date(r.createdAt).getTime() || 0
-      });
-    });
-
-    // Add real badges earned from real profiles in allUsers
-    allUsers.forEach(u => {
-      if (u.badges && Array.isArray(u.badges)) {
-        u.badges.forEach(badge => {
-          items.push({
-            id: `act-badge-${u.id}-${badge.id}`,
-            user: u.name,
-            action: 'earned the badge',
-            topic: `${badge.name} ${badge.icon || '🏅'}`,
-            time: formatRelativeTime(badge.dateEarned),
-            avatar: u.avatar,
-            timestamp: badge.dateEarned ? new Date(badge.dateEarned).getTime() : 0
-          });
-        });
-      }
-    });
-
-    items.sort((a, b) => b.timestamp - a.timestamp);
-    return items.slice(0, 10);
-  }, [bookings, dbBookings, allReviews, allUsers]);
-
+  // Find next upcoming session in next 24h
   const nextUpcomingSession = useMemo(() => {
     const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
     const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -721,12 +452,195 @@ export default function DashboardView({
     return userUpcoming[0] || null;
   }, [userBookings, now]);
 
+  // Handlers for cancel / reschedule / review
+  const handleCancelSubmit = () => {
+    if (!cancelBookingModal) return;
+    const reasonCombined = [cancelReasonPreset, cancelReasonCustom].filter(Boolean).join(' - ') || 'No reason specified';
+
+    const startTimeIso = computeStartTime(
+      cancelBookingModal.date,
+      cancelBookingModal.timeSlot,
+      cancelBookingModal.scheduledTime
+    );
+    const startTimeMs = new Date(startTimeIso).getTime();
+    const diffMs = startTimeMs - Date.now();
+    const isLateCancellation = diffMs <= 30 * 60 * 1000;
+
+    onUpdateBookingStatus(cancelBookingModal.id, 'cancelled', currentUser.id, {
+      cancellationReason: reasonCombined,
+      isLateCancellation,
+    });
+
+    setCancelBookingModal(null);
+    setCancelReasonPreset('');
+    setCancelReasonCustom('');
+  };
+
+  const handleRescheduleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!rescheduleBookingModal || !rescheduleDate) return;
+
+    let scheduledTime: string | undefined = undefined;
+    if (rescheduleDate && rescheduleTime) {
+      const d = new Date(`${rescheduleDate}T${rescheduleTime}:00`);
+      if (!isNaN(d.getTime())) scheduledTime = d.toISOString();
+    }
+
+    onUpdateBookingStatus(rescheduleBookingModal.id, 'rescheduled', currentUser.id, {
+      date: rescheduleDate,
+      timeSlot: rescheduleSlot,
+      scheduledTime,
+      notes: rescheduleNote || undefined,
+    });
+
+    setRescheduleBookingModal(null);
+    setRescheduleDate('');
+    setRescheduleTime('14:00');
+    setRescheduleNote('');
+  };
+
+  const submitReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewBooking) return;
+
+    onLeaveReview({
+      bookingId: reviewBooking.id,
+      teacherId: reviewBooking.teacherId,
+      learnerId: currentUser.id,
+      learnerName: currentUser.name,
+      skillName: reviewBooking.skillName,
+      rating: reviewRating,
+      teachingQuality: reviewRating,
+      communication: reviewRating,
+      helpfulness: reviewRating,
+      punctuality: reviewRating,
+      comment: reviewComment,
+    });
+
+    setReviewBooking(null);
+    setReviewComment('');
+    setReviewRating(5);
+  };
+
   return (
-    <div id="dashboard-view-root" className="space-y-10 pb-12">
+    <div id="dashboard-view-root" className="space-y-12 pb-16">
       
-      {/* 🌟 Next Upcoming Live Session Hero Card (Within 24 Hours) */}
-      {nextUpcomingSession && (
-        <NextSessionHeroCard
+      {/* ====================================================================
+          1. LARGE EDITORIAL HERO SECTION
+          ==================================================================== */}
+      <section className="relative rounded-[32px] bg-[#12131A] border border-white/[0.08] p-8 sm:p-12 lg:p-14 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.7)]">
+        {/* Ambient violet glow backdrop */}
+        <AmbientOrb tone="violet" size="xl" cursorReactive className="-top-24 -left-24 opacity-70" />
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          
+          {/* Main Editorial Text */}
+          <div className="lg:col-span-8 space-y-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/[0.06] border border-white/[0.1] rounded-full text-xs font-semibold text-violet-300">
+              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+              <span>SkillSwap 2026 • Peer Barter Academy</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-[1.12]">
+              <RevealText delay={0.05} staggerDelay={0.03}>
+                Exchange what you know.
+              </RevealText>
+              <br className="hidden sm:inline" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-purple-200 to-indigo-300">
+                Learn what you don't.
+              </span>
+            </h1>
+
+            <FadeUp delay={0.2} duration={0.45}>
+              <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-2xl">
+                Trade your domain expertise for hands-on skills with creators and swappers worldwide. No money required — pure collaborative learning. {greetingTime}, <span className="text-slate-200 font-semibold">{currentUser.name}</span>.
+              </p>
+            </FadeUp>
+
+            {/* Primary Hero Actions */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <MagneticButton delay={0.3} duration={0.4}>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={onNavigateToExplore}
+                  rightIcon={<ArrowRight className="w-4 h-4" />}
+                >
+                  Explore skills
+                </Button>
+              </MagneticButton>
+
+              <MagneticButton delay={0.38} duration={0.4}>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  onClick={onNavigateToSkillPath}
+                  leftIcon={<Sparkles className="w-4 h-4 text-violet-400" />}
+                >
+                  View your path
+                </Button>
+              </MagneticButton>
+            </div>
+          </div>
+
+          {/* Side Rep / Quick Glance Pill */}
+          <div className="lg:col-span-4 bg-[#181924]/90 backdrop-blur-md border border-white/[0.08] rounded-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Current Standing
+                </span>
+                <span className="text-base font-bold text-white">
+                  Lvl {userLevel} Voyager
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-xl font-bold text-amber-300">
+                  <AnimatedCounter value={currentUser.credits ?? 100} />
+                </span>
+                <span className="text-[10px] text-slate-400 block font-medium">Credits Wallet</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 text-xs">
+              <div className="bg-[#12131A] p-3 rounded-xl border border-white/[0.04]">
+                <span className="text-[10px] font-medium text-slate-400 uppercase block">Active Streak</span>
+                <span className="text-sm font-bold text-white flex items-center gap-1 mt-0.5">
+                  <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                  {currentUser.loginStreak ?? 7} Days
+                </span>
+              </div>
+
+              <div className="bg-[#12131A] p-3 rounded-xl border border-white/[0.04]">
+                <span className="text-[10px] font-medium text-slate-400 uppercase block">Swaps Done</span>
+                <span className="text-sm font-bold text-violet-300 flex items-center gap-1 mt-0.5">
+                  <GraduationCap className="w-3.5 h-3.5 text-violet-400" />
+                  {currentUser.successfulExchanges || 0}
+                </span>
+              </div>
+            </div>
+
+            {onNavigateToGamification && (
+              <button
+                onClick={onNavigateToGamification}
+                className="w-full py-2 bg-white/[0.04] hover:bg-white/[0.08] text-violet-300 hover:text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer border border-white/[0.06]"
+              >
+                <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                <span>Rewards & Leaderboard</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+            )}
+          </div>
+
+        </div>
+      </section>
+
+      {/* ====================================================================
+          2. NEXT EXCHANGE SECTION
+          ==================================================================== */}
+      <section className="space-y-3">
+        <NextExchangeSection
           booking={nextUpcomingSession}
           currentUser={currentUser}
           allUsers={allUsers}
@@ -737,652 +651,454 @@ export default function DashboardView({
             setRescheduleDate(b.date || new Date().toISOString().split('T')[0]);
             setRescheduleSlot(b.timeSlot || 'Afternoon');
           }}
+          onNavigateToExplore={onNavigateToExplore}
         />
-      )}
+      </section>
 
-      {/* 🚀 Welcome Hero Section */}
-      <div className="relative rounded-[32px] bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-10 border border-slate-800 shadow-2xl overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-          <div className="lg:col-span-7 space-y-5 relative">
-            {/* 🌟 Background AmbientOrb begins ambient motion immediately on mount */}
-            <AmbientOrb tone="brass" size="xl" cursorReactive className="-top-20 -left-20 opacity-80" />
-
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/10 backdrop-blur-md border border-white/15 rounded-full text-xs font-extrabold text-indigo-200">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-300 animate-pulse" />
-              <span>SkillSwap 2026 Peer Academy</span>
-            </div>
-
-            {/* 0–700ms: Primary heading word-by-word reveal */}
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
-              <RevealText delay={0} staggerDelay={0.05}>
-                👋 {greetingTime},{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-cyan-300">
-                  {currentUser.name}
-                </span>
-              </RevealText>
-            </h1>
-
-            {/* 200–900ms: Supporting subtext slide and fade */}
-            <FadeUp delay={0.22} duration={0.45} className="space-y-2">
-              <p className="text-base sm:text-lg font-bold text-slate-200 leading-snug">
-                Accelerate your growth through peer barter exchanges today.
-              </p>
-              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-xl">
-                Swap your domain mastery for new skills. No cash required — purely collaborative peer learning powered by AI.
-              </p>
-            </FadeUp>
-
-            {/* 400–1100ms: CTA buttons wrapped in MagneticButton */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <MagneticButton delay={0.42} duration={0.45}>
-                <button
-                  onClick={() => onNavigateToExplore?.()}
-                  className="px-5 py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 hover:opacity-95 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-indigo-500/25 transition-all transform active:scale-95 flex items-center gap-2 cursor-pointer"
-                >
-                  <Compass className="w-4 h-4" />
-                  <span>Find Skill Partner</span>
-                </button>
-              </MagneticButton>
-
-              <MagneticButton delay={0.5} duration={0.45}>
-                <button
-                  onClick={() => onNavigateToExplore?.()}
-                  className="px-5 py-3 bg-white/10 hover:bg-white/20 text-white font-extrabold text-xs sm:text-sm rounded-2xl border border-white/20 transition-all transform active:scale-95 flex items-center gap-2 cursor-pointer"
-                >
-                  <GraduationCap className="w-4 h-4 text-emerald-400" />
-                  <span>Teach a Skill</span>
-                </button>
-              </MagneticButton>
-            </div>
-          </div>
-
-          <div className="lg:col-span-5 bg-white/10 backdrop-blur-xl border border-white/15 rounded-3xl p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center font-extrabold text-slate-950 text-xl shadow-lg shadow-amber-500/30">
-                  <Zap className="w-6 h-6 fill-slate-950" />
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-slate-300 block">Current Rank</span>
-                  <span className="text-lg font-black text-white">Lvl {userLevel} Voyager</span>
-                </div>
+      {/* ====================================================================
+          3. PEOPLE WORTH LEARNING FROM (HORIZONTAL CAROUSEL / SCROLL)
+          ==================================================================== */}
+      <section className="space-y-4">
+        <PinnedHorizontalScroll
+          scrollDistanceMultiplier={2.2}
+          header={
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                  <Users className="w-5 h-5 text-violet-400" />
+                  People worth learning from
+                </h2>
+                <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
+                  High-affinity peer swappers tailored to your target skills
+                </p>
               </div>
-              <div className="text-right">
-                <span className="text-2xl font-black text-amber-300">
-                  <AnimatedCounter value={xpPoints} />
-                </span>
-                <span className="text-[10px] text-slate-300 font-bold uppercase block tracking-wider">Total XP</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-900/60 p-3.5 rounded-2xl border border-white/10 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400">
-                  <Flame className="w-5 h-5 fill-orange-400" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Streak</span>
-                  <span className="text-sm font-extrabold text-white">7 Days 🔥</span>
-                </div>
-              </div>
-
-              <div className="bg-slate-900/60 p-3.5 rounded-2xl border border-white/10 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300">
-                  <Target className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Today's Goal</span>
-                  <span className="text-sm font-extrabold text-emerald-400">1 Swap Ready</span>
-                </div>
-              </div>
-            </div>
-
-            {onNavigateToGamification && (
-              <button
-                onClick={onNavigateToGamification}
-                className="w-full py-2.5 bg-gradient-to-r from-amber-500/20 to-indigo-500/20 hover:from-amber-500/30 hover:to-indigo-500/30 border border-amber-500/30 rounded-2xl font-bold text-xs text-amber-200 flex items-center justify-center gap-2 transition cursor-pointer group"
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onNavigateToExplore}
+                rightIcon={<ChevronRight className="w-4 h-4" />}
               >
-                <Trophy className="w-4 h-4 text-amber-400 group-hover:scale-110 transition" />
-                <span>Rewards, Badges & Leaderboard</span>
-                <ChevronRight className="w-3.5 h-3.5 text-amber-300 group-hover:translate-x-0.5 transition" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+                See all
+              </Button>
+            </div>
+          }
+        >
+          {recommendedPartners.map(({ user, isPerfectMatch, matchScore }) => {
+            const primarySkill = user.skillsOffered?.[0]?.name || 'Domain Specialist';
+            const teachesList = user.skillsOffered?.map((s) => s.name).slice(0, 2).join(', ') || 'Custom Skills';
+            const wantsList = user.skillsWanted?.map((s) => s.name).slice(0, 2).join(', ') || 'Design / Code';
+            const matchPercentage = Math.min(99, Math.max(78, Math.round((matchScore || 0.85) * 100)));
 
-      {/* 📊 SECTION 1: STATISTICS & SUMMARY CARDS */}
-      <RevealOnScroll direction="up" distance={20} duration={0.5} className="space-y-4">
-        <section className="space-y-4 relative">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-indigo-600" />
-              Performance & Growth Metrics
-            </h2>
-            <span className="text-xs text-slate-500 font-bold">Updated live</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-            {summaryCards.map((card, index) => (
-              <RevealOnScroll key={card.title} delay={index * 0.08} className="h-full">
-                <TiltCard
-                  glow={index % 2 === 0 ? 'brass' : 'sage'}
-                  className="h-full flex flex-col justify-between bg-navy text-parchment border border-brass/30 rounded-3xl p-5 sm:p-6 shadow-sm overflow-hidden"
+            return (
+              <div key={user.id} className="w-[320px] sm:w-[360px] shrink-0">
+                <Spotlight
+                  spotlightColor="rgba(139, 92, 246, 0.15)"
+                  className="h-full bg-[#12131A] border border-white/[0.08] hover:border-violet-500/40 rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 shadow-lg group select-none"
                 >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-                        {card.title}
-                      </span>
-                      <div
-                        className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
-                          index % 2 === 0
-                            ? 'bg-brass/20 text-brass-light border-brass/40 shadow-xs'
-                            : 'bg-sage/20 text-sage-light border-sage/40 shadow-xs'
-                        }`}
-                      >
-                        {card.icon}
+                  <div className="space-y-4">
+                    
+                    {/* Header: Portrait & Affinity Badge */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="relative">
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          className="w-14 h-14 rounded-2xl object-cover ring-2 ring-white/[0.1] group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full ring-2 ring-[#12131A]" />
                       </div>
-                    </div>
 
-                    <div>
-                      <div className="text-2xl sm:text-3xl font-black text-parchment tracking-tight">
-                        {card.numericValue !== undefined ? (
-                          <AnimatedCounter value={card.numericValue} suffix={card.suffix} />
-                        ) : (
-                          card.title
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="px-2.5 py-1 bg-violet-950/80 text-violet-300 border border-violet-500/30 rounded-full text-[10px] font-bold tracking-wide">
+                          {matchPercentage}% Match
+                        </span>
+                        {isPerfectMatch && (
+                          <span className="text-[9px] font-bold text-emerald-400 flex items-center gap-0.5">
+                            <Sparkles className="w-2.5 h-2.5" /> Mutual Match
+                          </span>
                         )}
                       </div>
-                      <div className="text-xs text-slate-300 font-medium mt-1">
-                        {card.subtitle}
+                    </div>
+
+                    {/* Name & Primary Skill */}
+                    <div>
+                      <h3 className="text-base font-bold text-white group-hover:text-violet-300 transition-colors">
+                        {user.name}
+                      </h3>
+                      <p className="text-xs text-slate-400 font-medium mt-0.5">{primarySkill}</p>
+
+                      <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold mt-1">
+                        <Star className="w-3.5 h-3.5 fill-amber-400" />
+                        <span>{user.rating?.toFixed(1) || '4.9'}</span>
+                        <span className="text-slate-500 font-normal">
+                          ({user.successfulExchanges || 8} swaps)
+                        </span>
                       </div>
                     </div>
+
+                    {/* Teaches vs Wants Breakdown */}
+                    <div className="space-y-2 pt-2 border-t border-white/[0.06] text-xs">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          Teaches
+                        </span>
+                        <p className="text-slate-200 font-medium truncate">{teachesList}</p>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wider block">
+                          Wants to learn
+                        </span>
+                        <p className="text-violet-300 font-medium truncate">{wantsList}</p>
+                      </div>
+                    </div>
+
                   </div>
 
-                  {card.trend && (
-                    <div
-                      className={`pt-3 mt-3 border-t border-white/10 flex items-center gap-1.5 text-xs font-bold ${
-                        card.trend.type === 'positive'
-                          ? 'text-emerald-400'
-                          : card.trend.type === 'negative'
-                          ? 'text-rose-400'
-                          : 'text-slate-400'
-                      }`}
+                  {/* Magnetic / Action Button */}
+                  <div className="pt-4 mt-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={onNavigateToExplore}
+                      className="w-full justify-center group-hover:bg-violet-600 group-hover:text-white group-hover:border-violet-500 transition-all"
+                      rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
                     >
-                      {card.trend.type === 'positive' ? (
-                        <TrendingUp className="w-3.5 h-3.5" />
-                      ) : (
-                        <Activity className="w-3.5 h-3.5" />
-                      )}
-                      <span>{card.trend.value}</span>
-                    </div>
-                  )}
-                </TiltCard>
-              </RevealOnScroll>
-            ))}
+                      Propose Exchange
+                    </Button>
+                  </div>
+                </Spotlight>
+              </div>
+            );
+          })}
+        </PinnedHorizontalScroll>
+      </section>
+
+      {/* ====================================================================
+          4. PROGRESSIVE DISCLOSURE: SECONDARY SECTIONS
+          ==================================================================== */}
+      <section className="space-y-6 pt-4 border-t border-white/[0.08]">
+        
+        {/* Navigation Tabs for Secondary Insights */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-2 bg-[#12131A] p-1.5 rounded-2xl border border-white/[0.08]">
+            <button
+              onClick={() => setSecondaryTab('pipeline')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border-0 ${
+                secondaryTab === 'pipeline'
+                  ? 'bg-[#181924] text-white shadow-xs border border-white/[0.1]'
+                  : 'text-slate-400 hover:text-white bg-transparent'
+              }`}
+            >
+              Exchange Pipeline ({userBookings.length})
+            </button>
+            <button
+              onClick={() => setSecondaryTab('tracks')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border-0 ${
+                secondaryTab === 'tracks'
+                  ? 'bg-[#181924] text-white shadow-xs border border-white/[0.1]'
+                  : 'text-slate-400 hover:text-white bg-transparent'
+              }`}
+            >
+              Learning Tracks ({progress.length})
+            </button>
+            <button
+              onClick={() => setSecondaryTab('community')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border-0 ${
+                secondaryTab === 'community'
+                  ? 'bg-[#181924] text-white shadow-xs border border-white/[0.1]'
+                  : 'text-slate-400 hover:text-white bg-transparent'
+              }`}
+            >
+              Community Activity
+            </button>
           </div>
-        </section>
-      </RevealOnScroll>
 
-      {/* 📚 SECTION 2 & 3: CONTINUE LEARNING & AI MENTOR PANEL */}
-      <RevealOnScroll direction="up" distance={24} duration={0.55} className="relative">
-        {/* Soft background ambient tone transition (sage/indigo tone) */}
-        <div className="absolute -inset-x-4 -inset-y-4 bg-gradient-to-b from-indigo-50/40 via-transparent to-slate-50/20 rounded-[36px] -z-10 pointer-events-none" />
+          <span className="text-xs text-slate-400 font-medium">
+            Progressive Insights
+          </span>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* SECTION 2: CONTINUE LEARNING (7 Cols) */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                <Play className="w-5 h-5 text-indigo-600 fill-indigo-600" />
-                Continue Learning
-              </h2>
-              <span className="text-xs font-bold text-indigo-600">{progress.length} active courses</span>
-            </div>
-
-            {progress.length === 0 ? (
+        {/* Tab 1: Exchange Pipeline / Bookings Timeline */}
+        {secondaryTab === 'pipeline' && (
+          <div className="space-y-4">
+            {userBookings.length === 0 ? (
               <EmptyState
-                preset="courses"
-                title="Start Your First Barter Learning Track"
-                description="No active skill tracks in progress. Connect with peer swappers to unlock customized learning roadmaps."
-                actionText="Explore Skill Partners"
-                onAction={() => onNavigateToExplore?.()}
+                preset="bookings"
+                title="Your timeline is wide open"
+                description="No upcoming sessions scheduled. Connect with a skill partner to schedule your next classroom."
+                actionText="Book a Session"
+                onAction={onNavigateToExplore}
               />
             ) : (
-              <div className="space-y-4">
-                {progress.map((prog, idx) => (
-                  <MotionCard key={`${prog.userId}-${prog.skillName}-${idx}`} className="space-y-4">
+              <SurfaceCard className="p-6 divide-y divide-white/[0.06]">
+                {userBookings.map((booking) => {
+                  const isTeacher = booking.teacherId === currentUser.id;
+                  const otherPartyName = isTeacher ? booking.learnerName : booking.teacherName;
+
+                  return (
+                    <div
+                      key={booking.id}
+                      className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 rounded-2xl bg-violet-950/60 border border-violet-500/25 flex items-center justify-center text-violet-400 font-bold shrink-0">
+                          <Video className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-white text-sm sm:text-base">
+                            {booking.skillName}
+                          </h4>
+                          <p className="text-slate-400 text-xs mt-0.5">
+                            With <span className="font-semibold text-slate-200">{otherPartyName}</span> • Option:{' '}
+                            <span className="text-violet-300 font-semibold">{booking.learningOption}</span>
+                          </p>
+                          <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-slate-400" /> {booking.date}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-slate-400" /> {booking.timeSlot}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
+                        {booking.status === 'completed' ? (
+                          <span className="px-3 py-1 bg-emerald-950/60 text-emerald-300 border border-emerald-500/25 rounded-full text-xs font-semibold flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Completed
+                          </span>
+                        ) : booking.status === 'cancelled' ? (
+                          <span className="px-3 py-1 bg-rose-950/60 text-rose-300 border border-rose-500/25 rounded-full text-xs font-semibold flex items-center gap-1">
+                            <X className="w-3.5 h-3.5 text-rose-400" /> Cancelled
+                          </span>
+                        ) : booking.status === 'pending' ? (
+                          <span className="px-3 py-1 bg-amber-950/60 text-amber-300 border border-amber-500/25 rounded-full text-xs font-semibold">
+                            Pending Confirmation
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 bg-violet-950/60 text-violet-300 border border-violet-500/25 rounded-full text-xs font-semibold">
+                            Confirmed
+                          </span>
+                        )}
+
+                        {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRescheduleBookingModal(booking);
+                                setRescheduleDate(booking.date || new Date().toISOString().split('T')[0]);
+                                setRescheduleSlot(booking.timeSlot || 'Afternoon');
+                              }}
+                              className="px-3 py-1.5 bg-[#181924] hover:bg-[#202230] text-slate-300 font-semibold text-xs rounded-xl border border-white/[0.08] transition cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Calendar className="w-3.5 h-3.5 text-violet-400" />
+                              <span>Reschedule</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setCancelBookingModal(booking)}
+                              className="px-3 py-1.5 bg-[#181924] hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 font-semibold text-xs rounded-xl border border-white/[0.08] transition cursor-pointer flex items-center gap-1.5"
+                            >
+                              <X className="w-3.5 h-3.5 text-rose-400" />
+                              <span>Cancel</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </SurfaceCard>
+            )}
+          </div>
+        )}
+
+        {/* Tab 2: Learning Tracks & AI Guidance */}
+        {secondaryTab === 'tracks' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7 space-y-4">
+              {progress.length === 0 ? (
+                <EmptyState
+                  preset="courses"
+                  title="Start your first skill track"
+                  description="No active skill tracks in progress. Connect with peer swappers to unlock customized learning roadmaps."
+                  actionText="Explore Skill Partners"
+                  onAction={onNavigateToExplore}
+                />
+              ) : (
+                progress.map((prog, idx) => (
+                  <SurfaceCard key={`${prog.userId}-${prog.skillName}-${idx}`} className="p-5 space-y-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-extrabold">
+                        <div className="w-10 h-10 rounded-2xl bg-violet-950/60 border border-violet-500/25 flex items-center justify-center text-violet-400 font-bold">
                           <BookOpen className="w-5 h-5" />
                         </div>
                         <div>
-                          <h3 className="font-extrabold text-slate-900 text-base">{prog.skillName}</h3>
-                          <span className="text-xs text-slate-500">
-                            {prog.lessonsCompleted} of {prog.lessonsTotal} modules completed
+                          <h4 className="font-bold text-white text-base">{prog.skillName}</h4>
+                          <span className="text-xs text-slate-400">
+                            {prog.lessonsCompleted} of {prog.lessonsTotal} milestones completed
                           </span>
                         </div>
                       </div>
                       <Badge variant="primary">{prog.completionPercentage}% Done</Badge>
                     </div>
 
-                    <ProgressBar value={prog.completionPercentage} color="indigo" showPercentage={false} />
+                    <ProgressBar value={prog.completionPercentage} color="violet" showPercentage={false} />
 
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-                      <span className="text-slate-500 font-medium flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" /> Est. ~25 mins left
+                    <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-xs">
+                      <span className="text-slate-400 font-medium flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-500" /> ~25 mins left
                       </span>
-                      <button
-                        onClick={() => onNavigateToExplore?.()}
-                        className="group px-4 py-2 bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] text-white font-extrabold rounded-xl transition-all duration-200 shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onNavigateToExplore}
+                        rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
                       >
-                        <span>Resume Lesson</span>
-                        <ArrowRight className="w-3.5 h-3.5 icon-shift-right" />
-                      </button>
+                        Resume Module
+                      </Button>
                     </div>
-                  </MotionCard>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* SECTION 3: AI MENTOR CARD (5 Cols) */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                <Bot className="w-5 h-5 text-purple-600" />
-                AI Mentor Proactive Insights
-              </h2>
-              <Badge variant="secondary" icon={<Sparkles className="w-3 h-3 text-purple-600" />}>
-                Active Guidance
-              </Badge>
+                  </SurfaceCard>
+                ))
+              )}
             </div>
 
-            <div className="bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900 text-white rounded-[28px] p-6 border border-purple-500/30 shadow-xl space-y-5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/20 rounded-full blur-2xl pointer-events-none" />
-
-              <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-                <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-300">
+            <div className="lg:col-span-5 bg-[#12131A] border border-white/[0.08] rounded-3xl p-6 space-y-4 shadow-xl">
+              <div className="flex items-center gap-3 pb-3 border-b border-white/[0.06]">
+                <div className="w-10 h-10 rounded-2xl bg-violet-950/80 border border-violet-500/30 flex items-center justify-center text-violet-300">
                   <Bot className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-white text-sm">Personalized AI Recommendation</h3>
-                  <p className="text-[11px] text-purple-300">Based on your teaching profile & goals</p>
+                  <h3 className="font-bold text-white text-sm">AI Mentor Insight</h3>
+                  <p className="text-[11px] text-violet-300">Personalized peer recommendations</p>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10 text-xs space-y-1">
-                  <p className="font-bold text-amber-300 flex items-center gap-1.5">
-                    <Lightbulb className="w-4 h-4 text-amber-400 fill-amber-300" />
-                    Daily Tip
-                  </p>
-                  <p className="text-slate-200 leading-relaxed">
-                    "You're only 20 minutes away from completing your next skill milestone in React 19. Scheduling a peer review now gives +50 bonus XP!"
-                  </p>
-                </div>
-
-                <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10 text-xs space-y-1">
-                  <p className="font-bold text-cyan-300 flex items-center gap-1.5">
-                    <Users className="w-4 h-4" />
-                    Suggested Partner Match
-                  </p>
-                  <p className="text-slate-200 leading-relaxed">
-                    3 peer swappers are currently looking for your taught skill <span className="font-extrabold text-white">"{currentUser.skillsOffered?.[0]?.name || 'TypeScript'}"</span>.
-                  </p>
-                </div>
+              <div className="bg-[#181924] p-4 rounded-2xl border border-white/[0.06] text-xs space-y-1.5">
+                <p className="font-bold text-amber-300 flex items-center gap-1.5">
+                  <Lightbulb className="w-4 h-4 text-amber-400" />
+                  Daily Tip
+                </p>
+                <p className="text-slate-300 leading-relaxed">
+                  "Completing a peer session in React or Design unlocks +50 XP towards your Level {userLevel + 1} milestone."
+                </p>
               </div>
 
-              <button
-                onClick={() => onNavigateToExplore?.()}
-                className="group w-full py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 hover:scale-[1.02] active:scale-[0.98] text-white font-extrabold text-xs rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onNavigateToExplore}
+                className="w-full justify-center"
+                rightIcon={<ArrowUpRight className="w-4 h-4" />}
               >
-                <span>View AI Suggested Partners</span>
-                <ArrowUpRight className="w-4 h-4 icon-shift-up-right" />
-              </button>
+                Browse AI Matches
+              </Button>
             </div>
           </div>
+        )}
 
-        </div>
-      </RevealOnScroll>
-
-      {/* 🤝 SECTION 4: PINNED HORIZONTAL SCROLL - RECOMMENDED SKILL PARTNERS */}
-      <RevealOnScroll direction="up" distance={24} duration={0.55} className="relative">
-        {/* Soft background ambient tone transition (brass/warm tone) */}
-        <div className="absolute -inset-x-4 -inset-y-4 bg-gradient-to-b from-amber-500/[0.03] via-transparent to-transparent rounded-[36px] -z-10 pointer-events-none" />
-
-        <PinnedHorizontalScroll
-          scrollDistanceMultiplier={2.4}
-          header={
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-indigo-600" />
-                  Recommended Skill Partners
-                </h2>
-                <p className="text-slate-500 text-xs">High affinity peer swappers tailored to your wanted skills</p>
-              </div>
-              <button
-                onClick={() => onNavigateToExplore?.()}
-                className="group text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer link-sweep"
-              >
-                <span>See All Swappers</span>
-                <ChevronRight className="w-4 h-4 icon-shift-right" />
-              </button>
+        {/* Tab 3: Community Highlights */}
+        {secondaryTab === 'community' && (
+          <SurfaceCard className="p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Activity className="w-4 h-4 text-violet-400" />
+                Live Swapper Highlights
+              </h3>
+              <span className="text-xs text-slate-400">Global Peer Barter Community</span>
             </div>
-          }
-        >
-          {recommendedPartners.map(({ user, isPerfectMatch }) => (
-            <div key={user.id} className="w-[300px] sm:w-[340px] shrink-0 flex flex-col">
-              <MotionCard className="space-y-4 flex flex-col justify-between h-full bg-white border border-slate-200/90 rounded-3xl p-5 shadow-sm hover:shadow-md transition-shadow">
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <Avatar src={user.avatar} name={user.name} size="lg" isOnline={true} />
-                    {isPerfectMatch && (
-                      <Badge variant="success" icon={<Sparkles className="w-3 h-3" />}>
-                        Perfect Match
-                      </Badge>
-                    )}
-                  </div>
 
-                  <div>
-                    <h3 className="font-extrabold text-slate-900 text-base">{user.name}</h3>
-                    <div className="flex items-center gap-1.5 text-xs text-amber-500 font-bold mt-0.5">
-                      <Star className="w-3.5 h-3.5 fill-amber-400" />
-                      <span>{user.rating?.toFixed(1) || '4.9'}</span>
-                      <span className="text-slate-400 font-normal">({user.successfulExchanges || 12} swaps)</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-xs pt-1 border-t border-slate-100">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Teaches</span>
-                      <p className="font-bold text-slate-800 truncate">
-                        {user.skillsOffered?.map(s => s.name).join(', ') || 'Web Dev'}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Wants to Learn</span>
-                      <p className="font-bold text-indigo-600 truncate">
-                        {user.skillsWanted?.map(s => s.name).join(', ') || 'UI Design'}
-                      </p>
+            <div className="space-y-3">
+              {allReviews.slice(0, 5).map((r) => (
+                <div key={r.id} className="flex items-start gap-3 p-3 bg-[#181924] rounded-2xl border border-white/[0.04]">
+                  <Avatar name={r.learnerName} size="sm" />
+                  <div className="flex-1 text-xs">
+                    <p className="text-slate-300 font-medium">
+                      <span className="font-bold text-white">{r.learnerName}</span> rated session in{' '}
+                      <span className="font-semibold text-violet-300">{r.skillName}</span>
+                    </p>
+                    <div className="flex items-center gap-1 text-amber-400 mt-1">
+                      {[...Array(r.rating || 5)].map((_, i) => (
+                        <Star key={i} className="w-3 h-3 fill-amber-400" />
+                      ))}
+                      {r.comment && <span className="text-slate-400 ml-2 italic">"{r.comment}"</span>}
                     </div>
                   </div>
                 </div>
-
-                <button
-                  onClick={() => onNavigateToExplore?.()}
-                  className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs rounded-xl border border-indigo-200/80 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer mt-2"
-                >
-                  Exchange Skill
-                </button>
-              </MotionCard>
-            </div>
-          ))}
-        </PinnedHorizontalScroll>
-      </RevealOnScroll>
-
-      {/* 📅 SECTION 5: UPCOMING SESSIONS & TIMELINE */}
-      <RevealOnScroll direction="up" distance={24} duration={0.55}>
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-indigo-600" />
-              Upcoming Classrooms & Timeline
-            </h2>
-            <span className="text-xs text-slate-500 font-bold">{userBookings.length} scheduled sessions</span>
-          </div>
-
-          <Card>
-            {userBookings.length === 0 ? (
-              <EmptyState
-                preset="bookings"
-                title="Your Timeline is Wide Open"
-                description="No upcoming sessions scheduled. Discover skill partners and book 1-on-1 barter classrooms!"
-                actionText="Book a Session"
-                onAction={() => onNavigateToExplore?.()}
-              />
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {userBookings.map((booking) => (
-                  <div key={booking.id} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-extrabold shrink-0">
-                        <Video className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-extrabold text-slate-900 text-sm sm:text-base">{booking.skillName}</h4>
-                        <p className="text-slate-500 text-xs mt-0.5">
-                          With <span className="font-bold text-slate-800">{booking.teacherName}</span> • Option: <span className="text-indigo-600 font-bold">{booking.learningOption}</span>
-                        </p>
-                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 font-medium">
-                          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-slate-400" /> {booking.date}</span>
-                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-slate-400" /> {booking.timeSlot}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
-                      {booking.isNoShow ? (
-                        <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-300 rounded-full text-xs font-bold flex items-center gap-1">
-                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                          No-Show Flagged
-                        </span>
-                      ) : booking.status === 'completed' ? (
-                        <span className="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          Completed
-                        </span>
-                      ) : booking.status === 'cancelled' ? (
-                        <span className="px-3 py-1 bg-rose-50 text-rose-800 border border-rose-200 rounded-full text-xs font-bold flex items-center gap-1">
-                          <X className="w-3.5 h-3.5 text-rose-500" />
-                          Cancelled {booking.isLateCancellation ? '(Late)' : ''}
-                        </span>
-                      ) : null}
-
-                      {(booking.status === 'confirmed' || booking.status === 'rescheduled') && (
-                        <SessionJoinGateButton booking={booking} onStartLiveSession={onStartLiveSession} />
-                      )}
-                      {booking.status === 'pending' && (
-                        <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-xs font-bold">
-                          Pending Confirmation
-                        </span>
-                      )}
-
-                      {booking.status !== 'cancelled' && booking.status !== 'completed' && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRescheduleBookingModal(booking);
-                              setRescheduleDate(booking.date || new Date().toISOString().split('T')[0]);
-                              setRescheduleSlot(booking.timeSlot || 'Afternoon');
-                            }}
-                            className="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold text-xs rounded-xl border border-slate-200 transition cursor-pointer flex items-center gap-1.5"
-                          >
-                            <Calendar className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>Propose New Time</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setCancelBookingModal(booking)}
-                            className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 font-bold text-xs rounded-xl border border-slate-200 transition cursor-pointer flex items-center gap-1.5"
-                          >
-                            <X className="w-3.5 h-3.5 text-rose-500" />
-                            <span>Cancel</span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </section>
-      </RevealOnScroll>
-
-      {/* 🌐 SECTION 6 & 7: COMMUNITY FEED & TRENDING SKILLS */}
-      <RevealOnScroll direction="up" distance={24} duration={0.55}>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* SECTION 6: COMMUNITY ACTIVITY FEED (7 Cols) */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                <Activity className="w-5 h-5 text-indigo-600" />
-                Live Peer Activity Feed
-              </h2>
-              <span className="text-xs text-slate-500 font-bold">Global Swapper Highlights</span>
-            </div>
-
-            {communityActivities.length === 0 ? (
-              <div className="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-10 text-center flex flex-col items-center justify-center space-y-3.5 shadow-xs">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-xl shadow-inner">
-                  📚
-                </div>
-                <div className="space-y-1 max-w-sm mx-auto">
-                  <h3 className="font-extrabold text-slate-900 text-base">No community activity yet.</h3>
-                  <p className="text-slate-500 text-xs leading-relaxed">
-                    Be the first member to exchange a skill and inspire others.
-                  </p>
-                </div>
-                <Button
-                  variant="gradient"
-                  size="sm"
-                  onClick={() => onNavigateToExplore?.()}
-                  leftIcon={<Compass className="w-4 h-4" />}
-                >
-                  Find Skill Partner
-                </Button>
-              </div>
-            ) : (
-              <Card className="space-y-4">
-                {communityActivities.map((act) => (
-                  <div key={act.id} className="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-0 last:pb-0">
-                    <Avatar src={act.avatar} name={act.user} size="sm" />
-                    <div className="flex-1 text-xs">
-                      <p className="text-slate-800 font-medium">
-                        <span className="font-extrabold text-slate-900">{act.user}</span> {act.action} <span className="font-bold text-indigo-600">{act.topic}</span>
-                      </p>
-                      <span className="text-[10px] text-slate-400 font-medium">{act.time}</span>
-                    </div>
-                  </div>
-                ))}
-              </Card>
-            )}
-          </div>
-
-          {/* SECTION 7: TRENDING SKILLS UNIVERSE (5 Cols) */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                <Flame className="w-5 h-5 text-orange-500" />
-                Trending Skills Universe
-              </h2>
-              <button onClick={() => onNavigateToExplore?.()} className="group text-xs font-bold text-indigo-600 hover:text-indigo-800 link-sweep cursor-pointer">
-                <span>View All</span>
-                <ChevronRight className="w-3.5 h-3.5 icon-shift-right inline-block" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {trendingSkills.map((sk, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => onNavigateToExplore?.()}
-                  className={`p-4 rounded-2xl bg-gradient-to-br ${sk.gradient} text-white text-left space-y-2 shadow-md transition transform hover:-translate-y-1 cursor-pointer border-0`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xl">{sk.icon}</span>
-                    <span className="text-[9px] font-extrabold bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      {sk.category}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-xs sm:text-sm leading-tight text-white">{sk.name}</h3>
-                    <p className="text-[10px] text-white/80 mt-1">{sk.learners}</p>
-                  </div>
-                </button>
               ))}
             </div>
-          </div>
+          </SurfaceCard>
+        )}
 
-        </div>
-      </RevealOnScroll>
+      </section>
 
+      {/* ====================================================================
+          MODALS: REVIEW, CANCEL, RESCHEDULE
+          ==================================================================== */}
 
-      {/* Review & Ratings Modal Form */}
+      {/* Review & Ratings Modal */}
       <AnimatePresence>
         {reviewBooking && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[28px] w-full max-w-md border border-slate-200 shadow-2xl overflow-hidden"
+              transition={motionTokens.spring.snappy}
+              className="bg-[#12131A] rounded-3xl w-full max-w-md border border-white/[0.12] shadow-2xl overflow-hidden p-6 space-y-4"
             >
-              <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
                 <div>
-                  <h3 className="font-extrabold text-slate-900 text-base">Rate your experience</h3>
-                  <p className="text-slate-500 text-xs mt-0.5">Teaching review for {reviewBooking.teacherName}</p>
+                  <h3 className="font-bold text-white text-base">Rate your session</h3>
+                  <p className="text-slate-400 text-xs mt-0.5">Review for {reviewBooking.teacherName}</p>
                 </div>
-                <button 
+                <button
                   onClick={() => setReviewBooking(null)}
-                  className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition cursor-pointer border-0 bg-transparent"
+                  className="p-1.5 rounded-full hover:bg-white/[0.08] text-slate-400 hover:text-white transition cursor-pointer border-0 bg-transparent"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={submitReview} className="p-6 space-y-4 text-xs text-slate-700">
+              <form onSubmit={submitReview} className="space-y-4 text-xs">
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-900">⭐ General Rating (1 to 5 Stars)</label>
+                  <label className="block font-bold text-slate-300">Rating (1 to 5 Stars)</label>
                   <div className="flex items-center gap-2">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         key={star}
                         type="button"
                         onClick={() => setReviewRating(star)}
-                        className="text-2xl transition hover:scale-110 focus:outline-none cursor-pointer border-0 bg-transparent"
+                        className="text-2xl transition hover:scale-110 cursor-pointer border-0 bg-transparent"
                       >
-                        <Star className={`w-7 h-7 ${star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                        <Star className={`w-7 h-7 ${star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-slate-600'}`} />
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-900">Written Feedback</label>
+                  <label className="block font-bold text-slate-300">Written Feedback</label>
                   <textarea
                     rows={3}
                     value={reviewComment}
                     onChange={(e) => setReviewComment(e.target.value)}
-                    placeholder="Describe how well the swapper taught this session..."
-                    className="w-full bg-white border border-slate-200 rounded-2xl p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs"
+                    placeholder="Describe how helpful the peer session was..."
+                    className="w-full bg-[#181924] border border-white/[0.1] rounded-2xl p-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-violet-500 text-xs"
                   />
                 </div>
 
                 <div className="pt-2 flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setReviewBooking(null)}
-                    className="px-4 py-2 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setReviewBooking(null)}>
                     Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl shadow-md cursor-pointer"
-                  >
+                  </Button>
+                  <Button variant="primary" size="sm" type="submit">
                     Submit Review
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>
@@ -1390,96 +1106,54 @@ export default function DashboardView({
         )}
       </AnimatePresence>
 
-      {/* 🛑 CANCEL BOOKING MODAL */}
+      {/* Cancel Booking Modal */}
       <AnimatePresence>
         {cancelBookingModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[28px] w-full max-w-md border border-slate-200 shadow-2xl overflow-hidden"
+              transition={motionTokens.spring.snappy}
+              className="bg-[#12131A] rounded-3xl w-full max-w-md border border-white/[0.12] shadow-2xl overflow-hidden p-6 space-y-4"
             >
-              <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-rose-50/50">
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-rose-950/80 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
                     <AlertCircle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-slate-900 text-base">Cancel Session</h3>
-                    <p className="text-slate-500 text-xs">Confirm booking cancellation</p>
+                    <h3 className="font-bold text-white text-base">Cancel Session</h3>
+                    <p className="text-slate-400 text-xs">Confirm cancellation</p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => {
-                    setCancelBookingModal(null);
-                    setCancelReasonPreset('');
-                    setCancelReasonCustom('');
-                  }}
-                  className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition cursor-pointer border-0 bg-transparent"
+                <button
+                  onClick={() => setCancelBookingModal(null)}
+                  className="p-1.5 rounded-full hover:bg-white/[0.08] text-slate-400 hover:text-white transition cursor-pointer border-0 bg-transparent"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="p-6 space-y-4 text-xs text-slate-700">
-                {/* Confirmation Question */}
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
-                  <p className="font-extrabold text-slate-900 text-sm">
-                    Are you sure you want to cancel this session with{' '}
-                    <span className="text-indigo-600 font-black">
-                      {currentUser.id === cancelBookingModal.learnerId ? cancelBookingModal.teacherName : cancelBookingModal.learnerName}
-                    </span>?
+              <div className="space-y-4 text-xs">
+                <div className="bg-[#181924] p-4 rounded-2xl border border-white/[0.06] space-y-1">
+                  <p className="font-bold text-white">
+                    Cancel exchange for {cancelBookingModal.skillName}?
                   </p>
-                  <p className="text-slate-500 text-xs">
-                    Skill: <strong>{cancelBookingModal.skillName}</strong> • Scheduled: <strong>{cancelBookingModal.date} ({cancelBookingModal.timeSlot})</strong>
+                  <p className="text-slate-400 text-[11px]">
+                    Scheduled for {cancelBookingModal.date} ({cancelBookingModal.timeSlot})
                   </p>
                 </div>
 
-                {/* Late Cancellation Check & Warning */}
-                {(() => {
-                  const startTimeIso = computeStartTime(cancelBookingModal.date, cancelBookingModal.timeSlot, cancelBookingModal.scheduledTime);
-                  const startTimeMs = new Date(startTimeIso).getTime();
-                  const diffMs = startTimeMs - Date.now();
-                  const isLate = diffMs <= 30 * 60 * 1000;
-
-                  if (isLate) {
-                    return (
-                      <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2.5 text-amber-900">
-                        <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                        <div className="space-y-1 text-xs">
-                          <p className="font-bold">Late Cancellation Notice (&lt;30 Mins)</p>
-                          <p className="text-amber-800 leading-snug">
-                            This session is scheduled to start in less than 30 minutes. Cancelling now is flagged as a late cancellation.
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-2.5 text-emerald-900">
-                      <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                      <div className="space-y-1 text-xs">
-                        <p className="font-bold">Standard Cancellation Policy</p>
-                        <p className="text-emerald-800 leading-snug">
-                          You can cancel standard bookings anytime prior to 30 minutes before the session starts.
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Reason Selection */}
                 <div className="space-y-2">
-                  <label className="block font-bold text-slate-900">Reason for Cancellation (Optional)</label>
+                  <label className="block font-bold text-slate-300">Reason (Optional)</label>
                   <select
                     value={cancelReasonPreset}
                     onChange={(e) => setCancelReasonPreset(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-2xl px-3 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 text-xs font-medium cursor-pointer"
+                    className="w-full bg-[#181924] border border-white/[0.1] rounded-2xl px-3 py-2.5 text-white focus:outline-none focus:border-violet-500 text-xs font-medium cursor-pointer"
                   >
-                    <option value="">Select a reason...</option>
-                    <option value="Change of plans">Change of plans</option>
+                    <option value="">Select reason...</option>
+                    <option value="Schedule conflict">Schedule conflict</option>
                     <option value="Found another time">Found another time</option>
                     <option value="No longer needed">No longer needed</option>
                     <option value="Other">Other</option>
@@ -1489,30 +1163,21 @@ export default function DashboardView({
                     rows={2}
                     value={cancelReasonCustom}
                     onChange={(e) => setCancelReasonCustom(e.target.value)}
-                    placeholder="Additional details or note for peer (optional)..."
-                    className="w-full bg-white border border-slate-200 rounded-2xl p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 text-xs"
+                    placeholder="Additional note for peer..."
+                    className="w-full bg-[#181924] border border-white/[0.1] rounded-2xl p-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-violet-500 text-xs"
                   />
                 </div>
 
-                {/* Modal Buttons */}
                 <div className="pt-2 flex justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCancelBookingModal(null);
-                      setCancelReasonPreset('');
-                      setCancelReasonCustom('');
-                    }}
-                    className="px-4 py-2.5 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-100 cursor-pointer text-xs"
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setCancelBookingModal(null)}>
                     Keep Session
-                  </button>
+                  </Button>
                   <button
                     type="button"
                     onClick={handleCancelSubmit}
-                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl shadow-md cursor-pointer text-xs transition transform active:scale-95"
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition cursor-pointer border-0"
                   >
-                    Confirm Cancellation
+                    Confirm Cancel
                   </button>
                 </div>
               </div>
@@ -1521,67 +1186,60 @@ export default function DashboardView({
         )}
       </AnimatePresence>
 
-      {/* 📅 PROPOSE NEW TIME MODAL */}
+      {/* Reschedule Booking Modal */}
       <AnimatePresence>
         {rescheduleBookingModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[28px] w-full max-w-md border border-slate-200 shadow-2xl overflow-hidden"
+              transition={motionTokens.spring.snappy}
+              className="bg-[#12131A] rounded-3xl w-full max-w-md border border-white/[0.12] shadow-2xl overflow-hidden p-6 space-y-4"
             >
-              <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-indigo-50/50">
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-violet-950/80 text-violet-400 border border-violet-500/30 flex items-center justify-center shrink-0">
                     <Calendar className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-slate-900 text-base">Propose New Time</h3>
-                    <p className="text-slate-500 text-xs">
-                      Reschedule session with {currentUser.id === rescheduleBookingModal.learnerId ? rescheduleBookingModal.teacherName : rescheduleBookingModal.learnerName}
-                    </p>
+                    <h3 className="font-bold text-white text-base">Propose New Time</h3>
+                    <p className="text-slate-400 text-xs">Reschedule session</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setRescheduleBookingModal(null)}
-                  className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition cursor-pointer border-0 bg-transparent"
+                  className="p-1.5 rounded-full hover:bg-white/[0.08] text-slate-400 hover:text-white transition cursor-pointer border-0 bg-transparent"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleRescheduleSubmit} className="p-6 space-y-4 text-xs text-slate-700">
-                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
-                  <p className="font-bold text-slate-800 text-xs">
-                    Current Schedule: <span className="text-indigo-600 font-extrabold">{rescheduleBookingModal.date} ({rescheduleBookingModal.timeSlot})</span>
-                  </p>
-                </div>
-
+              <form onSubmit={handleRescheduleSubmit} className="space-y-4 text-xs">
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-900">New Date</label>
+                  <label className="block font-bold text-slate-300">New Date</label>
                   <input
                     type="date"
                     required
                     min={new Date().toISOString().split('T')[0]}
                     value={rescheduleDate}
                     onChange={(e) => setRescheduleDate(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-2xl p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-medium"
+                    className="w-full bg-[#181924] border border-white/[0.1] rounded-2xl p-3 text-white focus:outline-none focus:border-violet-500 text-xs"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-900">Time Slot</label>
+                  <label className="block font-bold text-slate-300">Time Slot</label>
                   <div className="grid grid-cols-3 gap-2">
                     {(['Morning', 'Afternoon', 'Evening'] as const).map((slot) => (
                       <button
                         key={slot}
                         type="button"
                         onClick={() => setRescheduleSlot(slot)}
-                        className={`py-2 px-3 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                        className={`py-2 px-3 rounded-xl border text-xs font-semibold transition cursor-pointer ${
                           rescheduleSlot === slot
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                            ? 'bg-violet-600 text-white border-violet-500 shadow-xs'
+                            : 'bg-[#181924] text-slate-400 border-white/[0.08] hover:bg-[#202230]'
                         }`}
                       >
                         {slot}
@@ -1591,40 +1249,22 @@ export default function DashboardView({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-900">Exact Start Time</label>
+                  <label className="block font-bold text-slate-300">Start Time</label>
                   <input
                     type="time"
                     value={rescheduleTime}
                     onChange={(e) => setRescheduleTime(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-2xl p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-medium"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-900">Note for Peer (Optional)</label>
-                  <textarea
-                    rows={2}
-                    value={rescheduleNote}
-                    onChange={(e) => setRescheduleNote(e.target.value)}
-                    placeholder="Explain why you are proposing a new time..."
-                    className="w-full bg-white border border-slate-200 rounded-2xl p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs"
+                    className="w-full bg-[#181924] border border-white/[0.1] rounded-2xl p-3 text-white focus:outline-none focus:border-violet-500 text-xs"
                   />
                 </div>
 
                 <div className="pt-2 flex justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setRescheduleBookingModal(null)}
-                    className="px-4 py-2.5 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-100 cursor-pointer text-xs"
-                  >
-                    Keep Original Time
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl shadow-md cursor-pointer text-xs transition transform active:scale-95"
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setRescheduleBookingModal(null)}>
+                    Cancel
+                  </Button>
+                  <Button variant="primary" size="sm" type="submit">
                     Send Proposed Time
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>

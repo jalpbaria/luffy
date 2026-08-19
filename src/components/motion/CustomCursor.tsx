@@ -5,10 +5,10 @@ export type CursorVariant = 'default' | 'interactive' | 'labeled' | 'hidden';
 
 export interface CustomCursorProps {
   /** Optional custom color tone */
-  tone?: 'brass' | 'sage';
+  tone?: 'violet' | 'lavender' | 'brass' | 'sage';
 }
 
-export const CustomCursor: React.FC<CustomCursorProps> = ({ tone = 'brass' }) => {
+export const CustomCursor: React.FC<CustomCursorProps> = ({ tone = 'violet' }) => {
   const [isTouchDevice, setIsTouchDevice] = useState(true);
   const [cursorVariant, setCursorVariant] = useState<CursorVariant>('default');
   const [cursorLabel, setCursorLabel] = useState<string>('');
@@ -83,15 +83,24 @@ export const CustomCursor: React.FC<CustomCursorProps> = ({ tone = 'brass' }) =>
     };
   }, [isVisible, mouseX, mouseY]);
 
-  // If touch device or server-side, completely return null (no DOM tree added)
+  // If touch device or server-side, completely return null
   if (isTouchDevice) {
     return null;
   }
 
-  const toneGlow =
-    tone === 'brass'
-      ? 'shadow-[0_0_20px_rgba(176,141,87,0.45)] border-brass/60 bg-brass/20 text-brass-light'
-      : 'shadow-[0_0_20px_rgba(138,154,126,0.45)] border-sage/60 bg-sage/20 text-sage-light';
+  const toneGlow = {
+    violet: 'shadow-[0_0_20px_rgba(139,92,246,0.45)] border-violet-500/60 bg-violet-600/20 text-violet-200',
+    lavender: 'shadow-[0_0_20px_rgba(196,181,253,0.45)] border-purple-400/60 bg-purple-500/20 text-purple-200',
+    brass: 'shadow-[0_0_20px_rgba(176,141,87,0.45)] border-amber-500/60 bg-amber-500/20 text-amber-200',
+    sage: 'shadow-[0_0_20px_rgba(138,154,126,0.45)] border-emerald-500/60 bg-emerald-500/20 text-emerald-200',
+  }[tone];
+
+  const dotBg = {
+    violet: 'bg-violet-500/90 shadow-[0_0_8px_rgba(139,92,246,0.8)]',
+    lavender: 'bg-purple-400/90 shadow-[0_0_8px_rgba(196,181,253,0.8)]',
+    brass: 'bg-amber-400/90 shadow-[0_0_8px_rgba(245,158,11,0.8)]',
+    sage: 'bg-emerald-400/90 shadow-[0_0_8px_rgba(16,185,129,0.8)]',
+  }[tone];
 
   return (
     <AnimatePresence>
@@ -112,7 +121,7 @@ export const CustomCursor: React.FC<CustomCursorProps> = ({ tone = 'brass' }) =>
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.5, opacity: 0 }}
-              className="w-3.5 h-3.5 rounded-full bg-brass/90 border border-white/40 shadow-xs backdrop-blur-xs"
+              className={`w-3 h-3 rounded-full border border-white/40 shadow-xs backdrop-blur-xs ${dotBg}`}
             />
           )}
 
@@ -132,7 +141,7 @@ export const CustomCursor: React.FC<CustomCursorProps> = ({ tone = 'brass' }) =>
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.7, opacity: 0 }}
-              className={`px-3 py-1 rounded-full border backdrop-blur-md font-black text-[10px] uppercase tracking-widest ${toneGlow}`}
+              className={`px-3 py-1 rounded-full border backdrop-blur-md font-bold text-[10px] uppercase tracking-widest ${toneGlow}`}
             >
               {cursorLabel || 'VIEW'}
             </motion.div>

@@ -6,6 +6,7 @@ export type BadgeVariant =
   | 'accent'
   | 'success'
   | 'warning'
+  | 'danger'
   | 'neutral'
   | 'duolingo';
 
@@ -26,18 +27,19 @@ export const Badge: React.FC<BadgeProps> = ({
   ...props
 }) => {
   const variantClasses = {
-    primary: 'bg-indigo-50 text-indigo-700 border-indigo-200/80',
-    secondary: 'bg-purple-50 text-purple-700 border-purple-200/80',
-    accent: 'bg-cyan-50 text-cyan-800 border-cyan-200/80',
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
-    warning: 'bg-amber-50 text-amber-800 border-amber-200/80',
-    neutral: 'bg-slate-100 text-slate-700 border-slate-200',
-    duolingo: 'bg-emerald-500 text-white border-emerald-600 font-extrabold shadow-2xs',
+    primary: 'bg-violet-950/60 text-violet-300 border-violet-500/25 shadow-xs',
+    secondary: 'bg-purple-950/60 text-lavender-200 border-purple-400/25 shadow-xs',
+    accent: 'bg-violet-900/40 text-violet-200 border-violet-400/25 shadow-xs',
+    success: 'bg-emerald-950/60 text-emerald-300 border-emerald-500/25 shadow-xs',
+    warning: 'bg-amber-950/60 text-amber-300 border-amber-500/25 shadow-xs',
+    danger: 'bg-rose-950/60 text-rose-300 border-rose-500/25 shadow-xs',
+    neutral: 'bg-white/[0.06] text-slate-300 border-white/[0.08]',
+    duolingo: 'bg-emerald-500 text-slate-950 border-emerald-400 font-bold shadow-xs',
   }[variant];
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-bold border transition-colors ${
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold border transition-colors ${
         pill ? 'rounded-full' : 'rounded-lg'
       } ${variantClasses} ${className}`}
       {...props}
@@ -64,10 +66,10 @@ export const Chip: React.FC<ChipProps> = ({
   return (
     <button
       type="button"
-      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border ${
+      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border ${
         active
-          ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/20'
-          : 'bg-white text-slate-600 hover:text-slate-900 border-slate-200 hover:border-slate-300 shadow-2xs'
+          ? 'bg-violet-600 text-white border-violet-500 shadow-[0_0_16px_rgba(139,92,246,0.35)]'
+          : 'bg-[#181924] text-slate-400 hover:text-white border-white/[0.07] hover:border-white/[0.16]'
       } ${className}`}
       {...props}
     >
@@ -95,13 +97,13 @@ export const SkillTag: React.FC<SkillTagProps> = ({
   return (
     <span
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-2xl text-xs font-semibold text-slate-800 shadow-2xs transition-all ${
-        onClick ? 'cursor-pointer hover:border-indigo-300 hover:text-indigo-600' : ''
+      className={`inline-flex items-center gap-1.5 px-3 py-1 bg-[#181924] hover:bg-[#202230] border border-white/[0.08] rounded-xl text-xs font-medium text-slate-200 transition-all ${
+        onClick ? 'cursor-pointer hover:border-violet-400/40 hover:text-white' : ''
       } ${className}`}
     >
       <span>{name}</span>
       {level && (
-        <span className="px-1.5 py-0.2 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-md">
+        <span className="px-1.5 py-0.2 bg-white/[0.06] text-slate-400 text-[10px] font-semibold rounded-md">
           {level}
         </span>
       )}

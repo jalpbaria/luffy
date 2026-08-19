@@ -4,19 +4,34 @@ import {
   Search, SlidersHorizontal, Star, Award, GraduationCap, 
   MapPin, Clock, Languages, Globe, Calendar, Check, MessageSquare,
   ArrowRight, ExternalLink, X, Compass, CheckCircle2, ChevronRight,
-  BookOpen, Sparkles, Send, CheckSquare, ArrowLeft, Code, RefreshCw, Layers, AlertTriangle
+  BookOpen, Sparkles, Send, CheckSquare, ArrowLeft, RefreshCw, AlertTriangle,
+  ChevronLeft, Flame, Filter
 } from 'lucide-react';
 import { UserProfile, Skill, LearningOption, Review } from '../types';
 import { getSkillGuide } from '../data/skillGuides';
 import { getAISkillTutorReply } from '../lib/gemini';
-import { computeAllUserMatches, calculateMatch, UserMatchResult } from '../lib/matchUtils';
+import { calculateMatch } from '../lib/matchUtils';
 import { VerifiedSkillBadge } from './VerifiedSkillBadge';
 import { EmptyState, CardSkeletonGrid } from './ui';
+import { Spotlight } from './motion/Spotlight';
+import { MagneticButton } from './motion/MagneticButton';
+import { RevealText } from './motion/RevealText';
+import { FadeUp } from './motion/FadeUp';
+import { ProfileDetailModal } from './ProfileDetailModal';
 
 interface ExploreViewProps {
   currentUser: UserProfile;
   users: UserProfile[];
-  onBookSession: (teacher: UserProfile, skill: Skill, option: LearningOption, date: string, slot: 'Morning' | 'Afternoon' | 'Evening', notes: string, scheduledTime?: string, swapRole?: 'learn' | 'teach') => void;
+  onBookSession: (
+    teacher: UserProfile, 
+    skill: Skill, 
+    option: LearningOption, 
+    date: string, 
+    slot: 'Morning' | 'Afternoon' | 'Evening', 
+    notes: string, 
+    scheduledTime?: string, 
+    swapRole?: 'learn' | 'teach'
+  ) => void;
   onOpenChat: (userId: string) => void;
   isLoading: boolean;
   allReviews?: Review[];
@@ -28,6 +43,10 @@ const CATEGORIES = [
   'Public Speaking', 'Business'
 ];
 
+const SUGGESTED_SEARCHES = [
+  'React', 'Python', 'UI/UX Design', 'Music Theory', 'Video Editing', 'Spanish'
+];
+
 const LEARNING_OPTIONS: { value: LearningOption; icon: string; desc: string }[] = [
   { value: 'Live 1-on-1 Session', icon: '📹', desc: 'Real-time interactive session via voice or video' },
   { value: 'Group Session', icon: '👥', desc: 'Join a group with other learners sharing the skill' },
@@ -37,7 +56,14 @@ const LEARNING_OPTIONS: { value: LearningOption; icon: string; desc: string }[] 
   { value: 'Project-Based Learning', icon: '🛠', desc: 'Build a practical, real-world project together' }
 ];
 
-export default function ExploreView({ currentUser, users, onBookSession, onOpenChat, isLoading, allReviews = [] }: ExploreViewProps) {
+export default function ExploreView({ 
+  currentUser, 
+  users, 
+  onBookSession, 
+  onOpenChat, 
+  isLoading, 
+  allReviews = [] 
+}: ExploreViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedLevel, setSelectedLevel] = useState<string>('All');
@@ -46,6 +72,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
   const [selectedTimeZone, setSelectedTimeZone] = useState<string>('All');
   const [showFilters, setShowFilters] = useState(false);
   const [matchFilter, setMatchFilter] = useState<'all' | 'perfect' | 'partial'>('all');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   
   // Selected teacher for full details
   const [selectedTeacher, setSelectedTeacher] = useState<UserProfile | null>(null);
@@ -60,6 +87,10 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [swapRole, setSwapRole] = useState<'learn' | 'teach'>('learn');
+
+  // Discovery Carousel reference
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Self-Guided Learning Study Hub State
   const [activeStudySkill, setActiveStudySkill] = useState<Skill | null>(null);
@@ -91,7 +122,6 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
   const handleOpenStudyHub = (skill: Skill) => {
     setActiveStudySkill(skill);
     setStudyActiveTab('roadmap');
-    // Seed initial message if chat is empty
     setTutorMessages([
       { 
         role: 'model', 
@@ -123,7 +153,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
       console.error('Error sending message to tutor:', error);
       setTutorMessages(prev => [...prev, { 
         role: 'model', 
-        text: `⚠️ I had a temporary issue connecting to the AI server. Please make sure your development environment has internet access and try again!\n\nIn the meantime, you can continue browsing the **Syllabus Roadmap** and **Official Resources (W3Schools)** on the other tabs!` 
+        text: `⚠️ I had a temporary issue connecting to the AI server. Please make sure your development environment has internet access and try again!\n\nIn the meantime, you can continue browsing the **Syllabus Roadmap** and **Official Resources** on the other tabs!` 
       }]);
     } finally {
       setIsTutorLoading(false);
@@ -137,7 +167,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
       if (part.startsWith('```')) {
         const codeLines = part.replace(/```[a-zA-Z]*\n?/, '').replace(/```$/, '').trim();
         return (
-          <pre key={index} className="bg-slate-900 text-slate-100 rounded-lg p-3 font-mono text-[11px] overflow-x-auto my-2 border border-slate-800">
+          <pre key={index} className="bg-black/80 text-lavender-200 rounded-lg p-3 font-mono text-[11px] overflow-x-auto my-2 border border-white/10">
             <code>{codeLines}</code>
           </pre>
         );
@@ -148,54 +178,43 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
         <div key={index} className="space-y-1.5">
           {lines.map((line, lIdx) => {
             const trimmed = line.trim();
-            if (!trimmed) return <div key={lIdx} className="h-1" />;
-
-            const isBullet = trimmed.startsWith('* ') || trimmed.startsWith('- ') || /^\d+\.\s/.test(trimmed);
-            let content = trimmed;
-            if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
-              content = trimmed.substring(2);
-            } else if (/^\d+\.\s/.test(trimmed)) {
-              const match = trimmed.match(/^(\d+\.\s)(.*)/);
-              content = match ? match[2] : trimmed;
+            if (trimmed.startsWith('# ')) {
+              return <h3 key={lIdx} className="font-bold text-sm text-white mt-2 mb-1">{trimmed.replace('# ', '')}</h3>;
             }
-
-            const boldParts = content.split(/(\*\*.*?\*\*)/g);
-            const parsedContent = boldParts.map((bp, bIdx) => {
-              if (bp.startsWith('**') && bp.endsWith('**')) {
-                return <strong key={bIdx} className="font-semibold text-slate-900">{bp.slice(2, -2)}</strong>;
-              }
-              return bp;
-            });
-
-            if (isBullet) {
+            if (trimmed.startsWith('## ')) {
+              return <h4 key={lIdx} className="font-bold text-xs text-lavender-200 mt-2 mb-1">{trimmed.replace('## ', '')}</h4>;
+            }
+            if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
               return (
-                <div key={lIdx} className="flex items-start gap-2 pl-4">
-                  <span className="text-indigo-500 mt-1 shrink-0 text-sm">•</span>
-                  <p className="text-slate-700 text-sm leading-relaxed">{parsedContent}</p>
+                <div key={lIdx} className="flex items-start gap-1.5 pl-2 text-xs">
+                  <span className="text-violet-400 font-bold">•</span>
+                  <span>{trimmed.replace(/^[*|-]\s+/, '')}</span>
                 </div>
               );
             }
-
-            return (
-              <p key={lIdx} className="text-slate-700 text-sm leading-relaxed">{parsedContent}</p>
-            );
+            if (!trimmed) return <div key={lIdx} className="h-1" />;
+            return <p key={lIdx} className="text-xs leading-relaxed">{line}</p>;
           })}
         </div>
       );
     });
   };
 
-  // Filter users based on query state & compute mutual matches
-  const otherUsers = useMemo(() => users.filter(u => u.id !== currentUser?.id), [users, currentUser?.id]);
+  // Exclude current user from explore list
+  const otherUsers = useMemo(() => {
+    return users.filter(u => u.id !== currentUser.id);
+  }, [users, currentUser.id]);
 
-  // Compute matches for all users relative to currentUser
+  // Compute matches for all other users
   const userMatches = useMemo(() => {
-    return computeAllUserMatches(currentUser, users);
-  }, [currentUser, users]);
+    return otherUsers.map(u => calculateMatch(currentUser, u));
+  }, [otherUsers, currentUser]);
 
   const matchMap = useMemo(() => {
-    const map = new Map<string, UserMatchResult>();
-    userMatches.forEach(m => map.set(m.user.id, m));
+    const map = new Map<string, ReturnType<typeof calculateMatch>>();
+    userMatches.forEach(m => {
+      map.set(m.otherUser.id, m);
+    });
     return map;
   }, [userMatches]);
 
@@ -206,7 +225,19 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
   const partialMatches = useMemo(() => {
     return userMatches.filter(m => m.isPartialMatch);
   }, [userMatches]);
-  
+
+  // Featured discovery users: perfect matches first, then high rated
+  const featuredDiscoveryUsers = useMemo(() => {
+    const sorted = [...otherUsers].sort((a, b) => {
+      const matchA = matchMap.get(a.id);
+      const matchB = matchMap.get(b.id);
+      if (matchA?.isPerfectMatch && !matchB?.isPerfectMatch) return -1;
+      if (!matchA?.isPerfectMatch && matchB?.isPerfectMatch) return 1;
+      return (b.rating || 5) - (a.rating || 5);
+    });
+    return sorted.slice(0, 8);
+  }, [otherUsers, matchMap]);
+
   const filteredUsers = useMemo(() => {
     let result = otherUsers.filter(user => {
       // Search match
@@ -256,7 +287,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
     });
   }, [otherUsers, searchQuery, selectedCategory, selectedLevel, selectedLanguage, selectedAvailability, selectedTimeZone, matchFilter, matchMap]);
 
-  // Get list of unique languages and time zones across all users
+  // Unique languages and time zones across all users
   const allLanguages = Array.from(new Set(otherUsers.flatMap(u => (u.languages ?? []).map(l => l.split(' ')[0]))));
   const allTimeZones = Array.from(new Set(otherUsers.map(u => u.timeZone)));
 
@@ -269,7 +300,6 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
   const handleStartBooking = () => {
     setIsBookingMode(true);
-    // Set default date to tomorrow and time to 14:00
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     setBookingDate(tomorrow.toISOString().split('T')[0]);
@@ -310,58 +340,139 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
     }, 2000);
   };
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const prefersReducedMotion = useReducedMotion();
+  const scrollCarousel = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      const scrollAmount = direction === 'left' ? -380 : 380;
+      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ['start start', 'end end']
-  });
-
-  const headerY = useTransform(scrollYProgress, [0, 1], prefersReducedMotion ? [0, 0] : [0, -12]);
-  const filtersY = useTransform(scrollYProgress, [0, 1], prefersReducedMotion ? [0, 0] : [0, -6]);
+  const activeFilterCount = (selectedLevel !== 'All' ? 1 : 0) +
+    (selectedLanguage !== 'All' ? 1 : 0) +
+    (selectedAvailability !== 'All' ? 1 : 0) +
+    (selectedTimeZone !== 'All' ? 1 : 0);
 
   return (
-    <div ref={containerRef} id="explore-view-root" className="space-y-6">
-      {/* Title section with subtle scroll parallax */}
-      <motion.div style={{ y: headerY }} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Discover Skill Swappers</h1>
-          <p className="text-zinc-400 mt-1 text-sm">Find your perfect skill-sharing partner. Filter by language, level, and availability.</p>
-        </div>
-      </motion.div>
+    <div id="explore-view-root" className="space-y-10 pb-16">
+      {/* 1. HERO SECTION: "Find your next skill." + prominent glowing search */}
+      <section className="relative pt-2 sm:pt-6">
+        {/* Subtle Ambient Violet Atmosphere */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-56 bg-gradient-to-b from-violet-600/10 via-lavender-500/5 to-transparent blur-3xl -z-10 pointer-events-none" />
 
-      {/* Search and Filters bar with subtle scroll elevation */}
-      <motion.div style={{ y: filtersY }} className="bg-zinc-900/90 rounded-[24px] border border-zinc-800 shadow-xl p-5 space-y-4 backdrop-blur-md">
-        {/* Match Fit Filter Mode Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-4">
-          <div className="flex items-center gap-1.5 bg-zinc-950/80 p-1.5 rounded-2xl border border-zinc-800/80">
+        <div className="max-w-3xl mx-auto text-center space-y-4">
+          <FadeUp delay={0.05}>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-raised border border-white/10 text-xs font-semibold text-lavender-200 mb-1">
+              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+              <span>Peer-to-Peer Barter Discovery</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span className="text-[11px] text-text-sub font-normal">{otherUsers.length} active practitioners</span>
+            </div>
+          </FadeUp>
+
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white font-display leading-[1.08]">
+            <RevealText text="Find your next skill." />
+          </h1>
+
+          <FadeUp delay={0.15}>
+            <p className="text-text-sub text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+              Connect with practitioners ready to trade knowledge. Learn what you need, share what you know — no fees, pure barter.
+            </p>
+          </FadeUp>
+
+          {/* Visually Prominent Search Field with Focus State & Ambient Aura */}
+          <FadeUp delay={0.25}>
+            <div className="mt-8 relative max-w-2xl mx-auto">
+              <div 
+                className={`relative rounded-2xl transition-all duration-300 ${
+                  isSearchFocused 
+                    ? 'ring-2 ring-violet-500/50 shadow-2xl shadow-violet-500/20 bg-surface-raised border-violet-500/50' 
+                    : 'bg-surface-base border border-white/10 hover:border-white/20 shadow-xl'
+                }`}
+              >
+                <div className="flex items-center px-4 sm:px-5 py-3.5 sm:py-4">
+                  <Search className={`w-5 h-5 transition-colors shrink-0 ${isSearchFocused ? 'text-violet-400' : 'text-text-muted'}`} />
+                  
+                  <input 
+                    ref={searchInputRef}
+                    type="text" 
+                    placeholder="What do you want to learn? (e.g., React, Python, UI Design, Guitar)" 
+                    value={searchQuery}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-3.5 pr-2 bg-transparent text-sm sm:text-base text-white placeholder:text-text-muted focus:outline-none"
+                  />
+
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        searchInputRef.current?.focus();
+                      }}
+                      className="p-1 rounded-lg text-text-muted hover:text-white hover:bg-white/10 transition cursor-pointer shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Suggestion Pills under Search Bar */}
+              <div className="flex items-center justify-center flex-wrap gap-2 mt-3 text-xs text-text-muted">
+                <span className="font-medium text-[11px] text-text-dim uppercase tracking-wider">Suggested:</span>
+                {SUGGESTED_SEARCHES.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setSearchQuery(item)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
+                      searchQuery.toLowerCase() === item.toLowerCase()
+                        ? 'bg-violet-600/30 text-violet-300 border border-violet-500/30'
+                        : 'bg-surface-raised/70 hover:bg-surface-raised text-text-sub hover:text-white border border-white/5'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </FadeUp>
+        </div>
+      </section>
+
+      {/* 2. POPULAR CATEGORIES & MATCH FILTER BAR */}
+      <section className="space-y-4">
+        {/* Match Fit Mode + Filter Drawer Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-base p-3 sm:p-4 rounded-2xl border border-white/5">
+          {/* Match Filter Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
             <button
               onClick={() => setMatchFilter('all')}
-              className={`px-3.5 py-1.5 rounded-xl font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
+              className={`px-3.5 py-2 rounded-xl font-semibold text-xs transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
                 matchFilter === 'all'
-                  ? 'bg-zinc-800 text-white shadow-md'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-surface-interactive text-white shadow-md border border-white/10'
+                  : 'text-text-sub hover:text-white hover:bg-surface-raised'
               }`}
             >
               <span>All Swappers</span>
-              <span className="px-2 py-0.5 bg-zinc-900 text-zinc-300 rounded-full text-[10px] font-bold">
+              <span className="px-1.5 py-0.5 bg-black/40 text-text-sub rounded-md text-[10px] font-bold">
                 {otherUsers.length}
               </span>
             </button>
 
             <button
               onClick={() => setMatchFilter('perfect')}
-              className={`px-3.5 py-1.5 rounded-xl font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
+              className={`px-3.5 py-2 rounded-xl font-semibold text-xs transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
                 matchFilter === 'perfect'
-                  ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white shadow-md'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/20'
                   : 'text-emerald-400 hover:bg-emerald-500/10'
               }`}
             >
               <Sparkles className={`w-3.5 h-3.5 ${matchFilter === 'perfect' ? 'text-amber-300 fill-amber-300' : 'text-emerald-400'}`} />
-              <span>Perfect Matches</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                matchFilter === 'perfect' ? 'bg-black/30 text-emerald-200' : 'bg-emerald-500/20 text-emerald-300'
+              <span>Perfect Barters</span>
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                matchFilter === 'perfect' ? 'bg-black/30 text-emerald-100' : 'bg-emerald-500/20 text-emerald-300'
               }`}>
                 {perfectMatches.length}
               </span>
@@ -369,55 +480,42 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
             <button
               onClick={() => setMatchFilter('partial')}
-              className={`px-3.5 py-1.5 rounded-xl font-semibold text-xs transition cursor-pointer flex items-center gap-2 ${
+              className={`px-3.5 py-2 rounded-xl font-semibold text-xs transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
                 matchFilter === 'partial'
-                  ? 'bg-zinc-800 text-indigo-400 shadow-md'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-violet-600/30 text-violet-300 border border-violet-500/30'
+                  : 'text-lavender-300 hover:text-white hover:bg-violet-500/10'
               }`}
             >
-              <span>Partial Matches</span>
-              <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-full text-[10px] font-bold">
+              <RefreshCw className="w-3.5 h-3.5 text-violet-400" />
+              <span>Partial Fits</span>
+              <span className="px-1.5 py-0.5 bg-violet-500/20 text-violet-200 rounded-md text-[10px] font-bold">
                 {partialMatches.length}
               </span>
             </button>
           </div>
 
-          {perfectMatches.length > 0 && matchFilter !== 'perfect' && (
-            <button
-              onClick={() => setMatchFilter('perfect')}
-              className="text-xs text-emerald-400 font-bold hover:underline flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400/30" />
-              <span>{perfectMatches.length} Perfect Barter Match{perfectMatches.length > 1 ? 'es' : ''} Found!</span>
-            </button>
-          )}
-        </div>
-
-        <div className="flex gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
-            <input 
-              type="text" 
-              placeholder="Search skills, names, bios..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 text-xs text-white placeholder:text-zinc-600"
-            />
-          </div>
+          {/* Filter Trigger Button */}
           <button 
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-4 py-2.5 border rounded-xl text-xs flex items-center gap-2 font-semibold transition cursor-pointer ${
-              showFilters ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
+            className={`px-4 py-2 border rounded-xl text-xs flex items-center justify-center gap-2 font-semibold transition cursor-pointer shrink-0 ${
+              showFilters || activeFilterCount > 0
+                ? 'bg-violet-600/20 border-violet-500/40 text-violet-300' 
+                : 'bg-surface-raised border-white/10 text-text-sub hover:text-white'
             }`}
           >
-            <SlidersHorizontal className="w-4 h-4" />
-            Filters
-            {showFilters ? 'Hide' : 'Show'}
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-violet-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+            <span className="text-[11px] text-text-muted">{showFilters ? 'Hide' : 'Show'}</span>
           </button>
         </div>
 
-        {/* Categories Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+        {/* Categories Pills Horizontal Strip */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
           {CATEGORIES.map(category => {
             const isSelected = selectedCategory === category;
 
@@ -425,10 +523,10 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                   isSelected 
-                    ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 text-white shadow-lg shadow-indigo-500/20' 
-                    : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
+                    ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/25 border border-violet-400/30' 
+                    : 'bg-surface-base text-text-sub hover:text-white hover:bg-surface-raised border border-white/5'
                 }`}
               >
                 {category}
@@ -437,21 +535,22 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
           })}
         </div>
 
-        {/* Extra Filters Panel */}
+        {/* Collapsible Secondary Filters Panel */}
         <AnimatePresence>
           {showFilters && (
             <motion.div 
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden border-t border-zinc-800 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs"
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden bg-surface-base border border-white/10 rounded-2xl p-4 sm:p-5 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs"
             >
               <div>
-                <label className="block text-zinc-400 font-semibold mb-1.5">Skill level</label>
+                <label className="block text-text-sub font-semibold mb-1.5">Skill Level</label>
                 <select 
                   value={selectedLevel} 
                   onChange={(e) => setSelectedLevel(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-surface-raised border border-white/10 text-white rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-violet-500 cursor-pointer"
                 >
                   <option value="All">All Levels</option>
                   <option value="Beginner">Beginner</option>
@@ -461,11 +560,11 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
               </div>
 
               <div>
-                <label className="block text-zinc-400 font-semibold mb-1.5">Language spoken</label>
+                <label className="block text-text-sub font-semibold mb-1.5">Language</label>
                 <select 
                   value={selectedLanguage} 
                   onChange={(e) => setSelectedLanguage(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-surface-raised border border-white/10 text-white rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-violet-500 cursor-pointer"
                 >
                   <option value="All">All Languages</option>
                   {allLanguages.map(lang => (
@@ -475,11 +574,11 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
               </div>
 
               <div>
-                <label className="block text-zinc-400 font-semibold mb-1.5">Availability</label>
+                <label className="block text-text-sub font-semibold mb-1.5">Availability</label>
                 <select 
                   value={selectedAvailability} 
                   onChange={(e) => setSelectedAvailability(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-surface-raised border border-white/10 text-white rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-violet-500 cursor-pointer"
                 >
                   <option value="All">Any Time</option>
                   <option value="Morning">Morning</option>
@@ -489,11 +588,11 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
               </div>
 
               <div>
-                <label className="block text-zinc-400 font-semibold mb-1.5">Time Zone</label>
+                <label className="block text-text-sub font-semibold mb-1.5">Time Zone</label>
                 <select 
                   value={selectedTimeZone} 
                   onChange={(e) => setSelectedTimeZone(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-surface-raised border border-white/10 text-white rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-violet-500 cursor-pointer"
                 >
                   <option value="All">Any Time Zone</option>
                   {allTimeZones.map(tz => (
@@ -501,694 +600,365 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                   ))}
                 </select>
               </div>
+
+              {activeFilterCount > 0 && (
+                <div className="col-span-2 sm:col-span-4 flex justify-end pt-2 border-t border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedLevel('All');
+                      setSelectedLanguage('All');
+                      setSelectedAvailability('All');
+                      setSelectedTimeZone('All');
+                    }}
+                    className="text-xs text-violet-400 hover:text-violet-300 font-semibold cursor-pointer underline"
+                  >
+                    Reset all filters
+                  </button>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </section>
 
-      {/* Grid of Users */}
-      {isLoading ? (
-        <CardSkeletonGrid count={6} />
-      ) : filteredUsers.length === 0 ? (
-        <EmptyState
-          preset="partners"
-          title="No Matching Skill Swappers Found"
-          description="Try broadening your search query, clearing category filters, or exploring popular skills like React, Python, or UI Design."
-          actionText="Reset Search & Filters"
-          onAction={() => {
-            setSearchQuery('');
-            setSelectedCategory('All');
-            setSelectedLevel('All');
-            setSelectedLanguage('All');
-            setSelectedAvailability('All');
-            setSelectedTimeZone('All');
-            setMatchFilter('all');
-          }}
-        />
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="relative"
-        >
-          {/* Subtle Ambient Section Glow Transition */}
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-3/4 h-24 bg-gradient-to-b from-indigo-500/5 via-emerald-500/5 to-transparent rounded-full blur-2xl -z-10 pointer-events-none" />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredUsers.map((user) => {
-            const matchInfo = matchMap.get(user.id);
-            const isPerfect = matchInfo?.isPerfectMatch;
-            const isPartial = matchInfo?.isPartialMatch;
-
-            return (
-              <motion.div 
-                key={user.id}
-                layoutId={`user-card-${user.id}`}
-                className={`bg-zinc-900/90 rounded-[24px] border transition-all duration-200 flex flex-col overflow-hidden cursor-pointer ${
-                  isPerfect 
-                    ? 'border-emerald-500/40 shadow-xl shadow-emerald-500/5 ring-1 ring-emerald-500/20' 
-                    : isPartial
-                    ? 'border-indigo-500/30 hover:border-indigo-500/50 shadow-xl'
-                    : 'border-zinc-800 hover:border-zinc-700 shadow-lg'
-                }`}
-                onClick={() => handleOpenDetails(user)}
-              >
-                {/* Perfect Match Top Banner */}
-                {isPerfect && (
-                  <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white px-4 py-2 flex items-center justify-between text-xs font-bold">
-                    <span className="flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300 animate-pulse" />
-                      Perfect 2-Way Skill Fit
-                    </span>
-                    <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide">
-                      100% Mutual Match
-                    </span>
-                  </div>
-                )}
-
-                {/* Header card info */}
-                <div className="p-5 flex items-start gap-4 cursor-pointer">
-                  <img 
-                    src={user.avatar} 
-                    alt={user.name} 
-                    referrerPolicy="no-referrer"
-                    className={`w-14 h-14 rounded-full object-cover border-2 flex-shrink-0 ${
-                      isPerfect ? 'border-emerald-400 ring-2 ring-emerald-500/30' : 'border-zinc-800'
-                    }`}
-                  />
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1.5">
-                      <h3 className="font-bold text-white truncate text-base hover:text-indigo-400 transition">{user.name}</h3>
-                      <span className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded-md text-[10px] font-medium shrink-0">{user.skillLevel}</span>
-                    </div>
-                    
-                    {/* Rating */}
-                    <div className="flex items-center gap-1 text-xs text-amber-400 font-semibold">
-                      <Star className="w-3.5 h-3.5 fill-current" />
-                      <span>{user.rating.toFixed(1)}</span>
-                      <span className="text-zinc-500 font-normal">({user.reviewsCount} reviews)</span>
-                    </div>
-
-                    {/* Timezone / Availability info */}
-                    <div className="flex items-center gap-1 text-xs text-zinc-400">
-                      <Globe className="w-3 h-3 text-zinc-500" />
-                      <span>{user.timeZone}</span>
-                      <span className="text-zinc-600">•</span>
-                      <Clock className="w-3 h-3 text-zinc-500" />
-                      <span className="truncate">{(user.availability ?? []).join(', ')}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Perfect Mutual Match Highlight Box */}
-                {isPerfect && matchInfo && (
-                  <div className="mx-5 mb-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2 text-xs">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                      <div className="bg-zinc-950/80 p-2 rounded-lg border border-emerald-500/20">
-                        <span className="text-emerald-400 block text-[10px] font-extrabold uppercase tracking-wider">They Teach ➔ You Want</span>
-                        <span className="font-bold text-white">
-                          {matchInfo.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}
-                        </span>
-                      </div>
-                      <div className="bg-zinc-950/80 p-2 rounded-lg border border-indigo-500/20">
-                        <span className="text-indigo-400 block text-[10px] font-extrabold uppercase tracking-wider">You Teach ➔ They Want</span>
-                        <span className="font-bold text-white">
-                          {matchInfo.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Partial Match Box */}
-                {isPartial && matchInfo && !isPerfect && (
-                  <div className="mx-5 mb-3 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[11px] space-y-1">
-                    <span className="font-bold text-indigo-300 flex items-center gap-1">
-                      <RefreshCw className="w-3 h-3 text-indigo-400" />
-                      Partial Skill Match
-                    </span>
-                    {matchInfo.theyTeachUserWants.length > 0 && (
-                      <p className="text-zinc-300">
-                        They teach <strong className="text-emerald-300">{matchInfo.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}</strong> (you want)
-                      </p>
-                    )}
-                    {matchInfo.userTeachesTheyWant.length > 0 && (
-                      <p className="text-zinc-300">
-                        They want <strong className="text-indigo-300">{matchInfo.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}</strong> (you teach)
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Teaching skills */}
-                <div className="px-5 pb-4 flex-1 space-y-3 cursor-pointer">
-                  <div>
-                    <span className="text-[11px] font-bold text-zinc-500 tracking-wider uppercase">Teaches</span>
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {(user.skillsOffered ?? []).map((sk, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 rounded-lg text-xs font-semibold">
-                          <Award className="w-3 h-3 text-indigo-400 shrink-0" />
-                          <span>{sk.name}</span>
-                          <VerifiedSkillBadge teacherId={user.id} skillName={sk.name} allReviews={allReviews} />
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="text-[11px] font-bold text-zinc-500 tracking-wider uppercase">Wants to Learn</span>
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {(user.skillsWanted ?? []).map((sk, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-lg text-xs font-semibold">
-                          <GraduationCap className="w-3 h-3 text-amber-400" />
-                          {sk.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Successful Exchanges and CTA */}
-                <div className="px-5 py-3.5 bg-zinc-950/80 border-t border-zinc-800 flex items-center justify-between text-xs">
-                  <span className="text-zinc-400">
-                    <span className="font-bold text-white">{user.successfulExchanges}</span> successful swaps
-                  </span>
-                  <span className="text-indigo-400 font-semibold group flex items-center gap-1 cursor-pointer link-sweep">
-                    <span>View Profile</span>
-                    <ChevronRight className="w-4 h-4 icon-shift-right" />
-                  </span>
-                </div>
-              </motion.div>
-            );
-          })}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Teacher Profile Detail Overlay */}
-      <AnimatePresence>
-        {selectedTeacher && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-zinc-900 rounded-[28px] w-full max-w-2xl border border-zinc-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-            >
-              {/* Profile Details Header */}
-              <div className="p-6 border-b border-zinc-800 flex items-start justify-between bg-zinc-950/80">
-                <div className="flex items-center gap-4">
-                  <img 
-                    src={selectedTeacher.avatar} 
-                    alt={selectedTeacher.name} 
-                    referrerPolicy="no-referrer"
-                    className="w-16 h-16 rounded-full object-cover border-2 border-zinc-700 shadow-md"
-                  />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-bold text-white">{selectedTeacher.name}</h2>
-                      <span className="px-2.5 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-md text-xs font-semibold border border-indigo-500/30">{selectedTeacher.skillLevel}</span>
-                    </div>
-                    <p className="text-zinc-400 text-xs flex items-center gap-3 mt-1">
-                      <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-zinc-500" />{selectedTeacher.timeZone}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1"><Languages className="w-3.5 h-3.5 text-zinc-500" />{selectedTeacher.languages.join(', ')}</span>
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setSelectedTeacher(null)}
-                  className="p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+      {/* 3. HORIZONTAL DISCOVERY AREA: Featured Mentors & High-Affinity Barters */}
+      {!isLoading && featuredDiscoveryUsers.length > 0 && searchQuery === '' && selectedCategory === 'All' && matchFilter === 'all' && (
+        <section className="space-y-4 pt-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Flame className="w-4 h-4 text-violet-400" />
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-display">
+                  Featured Practitioners
+                </h2>
               </div>
+              <p className="text-xs text-text-sub mt-0.5">Top-rated peers and high-affinity skill barter matches</p>
+            </div>
 
-              {/* Profile Details Body */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {!isBookingMode ? (
-                  <>
-                    {/* Mutual Skill Barter Match Banner */}
-                    {(() => {
-                      const teacherMatch = calculateMatch(currentUser, selectedTeacher);
-                      if (teacherMatch.isPerfectMatch) {
-                        return (
-                          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl space-y-2 shadow-lg">
-                            <div className="flex items-center justify-between">
-                              <span className="font-extrabold text-emerald-300 text-xs flex items-center gap-1.5">
-                                <Sparkles className="w-4 h-4 text-emerald-400 fill-emerald-400/30 animate-pulse" />
-                                Perfect 2-Way Skill Barter Fit!
-                              </span>
-                              <span className="px-2.5 py-0.5 bg-emerald-600 text-white text-[10px] font-extrabold rounded-full uppercase tracking-wider">
-                                100% Mutual Match
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
-                              <div className="bg-zinc-950/80 p-2.5 rounded-xl border border-emerald-500/20">
-                                <span className="text-emerald-400 block text-[10px] font-bold uppercase tracking-wider">They Teach (You Want)</span>
-                                <span className="font-bold text-white">
-                                  {teacherMatch.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}
-                                </span>
-                              </div>
-                              <div className="bg-zinc-950/80 p-2.5 rounded-xl border border-indigo-500/20">
-                                <span className="text-indigo-400 block text-[10px] font-bold uppercase tracking-wider">You Teach (They Want)</span>
-                                <span className="font-bold text-white">
-                                  {teacherMatch.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      } else if (teacherMatch.isPartialMatch) {
-                        return (
-                          <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-xs space-y-1">
-                            <span className="font-bold text-indigo-300 flex items-center gap-1">
-                              <RefreshCw className="w-3.5 h-3.5 text-indigo-400" />
-                              Partial Skill Barter Match
+            {/* Carousel Arrow Controls */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => scrollCarousel('left')}
+                className="w-8 h-8 rounded-xl bg-surface-base border border-white/10 hover:border-white/20 text-text-sub hover:text-white flex items-center justify-center transition cursor-pointer"
+                aria-label="Previous featured mentors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => scrollCarousel('right')}
+                className="w-8 h-8 rounded-xl bg-surface-base border border-white/10 hover:border-white/20 text-text-sub hover:text-white flex items-center justify-center transition cursor-pointer"
+                aria-label="Next featured mentors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Horizontal Discovery Carousel */}
+          <div 
+            ref={carouselRef}
+            className="flex items-stretch gap-4 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scrollbar-none -mx-2.5 px-2.5 sm:mx-0 sm:px-0"
+          >
+            {featuredDiscoveryUsers.map((user) => {
+              const match = matchMap.get(user.id);
+              const isPerfect = match?.isPerfectMatch;
+
+              return (
+                <div
+                  key={`featured-${user.id}`}
+                  className="w-[280px] sm:w-[320px] shrink-0 snap-start"
+                >
+                  <Spotlight
+                    spotlightColor="rgba(139, 92, 246, 0.18)"
+                    className={`h-full bg-surface-base rounded-2xl border transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer group ${
+                      isPerfect
+                        ? 'border-emerald-500/40 shadow-xl shadow-emerald-500/5'
+                        : 'border-white/10 hover:border-violet-500/40'
+                    }`}
+                    onClick={() => handleOpenDetails(user)}
+                  >
+                    {/* Top Image Banner & Avatar */}
+                    <div className="relative h-28 bg-gradient-to-tr from-surface-raised to-charcoal-800 overflow-hidden">
+                      {isPerfect && (
+                        <div className="absolute top-2.5 left-2.5 z-10 bg-emerald-500/90 backdrop-blur-md text-white px-2.5 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 shadow-md">
+                          <Sparkles className="w-3 h-3 text-amber-300 fill-amber-300" />
+                          <span>100% Match</span>
+                        </div>
+                      )}
+                      
+                      <div className="absolute top-2.5 right-2.5 z-10 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-semibold text-amber-400 flex items-center gap-1 border border-white/10">
+                        <Star className="w-3 h-3 fill-amber-400" />
+                        <span>{user.rating.toFixed(1)}</span>
+                      </div>
+
+                      <div className="absolute -bottom-5 left-4">
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          referrerPolicy="no-referrer"
+                          className="w-14 h-14 rounded-2xl object-cover border-2 border-surface-base shadow-xl bg-surface-raised"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Card Content */}
+                    <div className="p-4 pt-6 space-y-3 flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-1">
+                          <h3 className="font-bold text-white text-base group-hover:text-violet-300 transition truncate">
+                            {user.name}
+                          </h3>
+                          <span className="px-2 py-0.5 bg-surface-raised text-text-sub rounded-md text-[10px] font-medium shrink-0 border border-white/5">
+                            {user.skillLevel}
+                          </span>
+                        </div>
+
+                        <p className="text-text-sub text-xs line-clamp-2 mt-1.5 leading-relaxed">
+                          {user.bio || 'Active practitioner available for skill barter.'}
+                        </p>
+                      </div>
+
+                      {/* Top Skill Offered */}
+                      <div className="pt-2 border-t border-white/5 space-y-1.5">
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Top Offering</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(user.skillsOffered ?? []).slice(0, 2).map((sk, idx) => (
+                            <span 
+                              key={idx} 
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-500/10 border border-violet-500/20 text-lavender-300 text-[11px] font-medium"
+                            >
+                              <Award className="w-3 h-3 text-violet-400 shrink-0" />
+                              <span className="truncate max-w-[120px]">{sk.name}</span>
                             </span>
-                            {teacherMatch.theyTeachUserWants.length > 0 && (
-                              <p className="text-zinc-300">
-                                They teach <strong className="text-emerald-300">{teacherMatch.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}</strong> which matches your wishlist.
-                              </p>
-                            )}
-                            {teacherMatch.userTeachesTheyWant.length > 0 && (
-                              <p className="text-zinc-300">
-                                They want to learn <strong className="text-indigo-300">{teacherMatch.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}</strong> which you teach.
-                              </p>
-                            )}
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-
-                    {/* Bio */}
-                    <div>
-                      <h4 className="text-xs font-bold text-zinc-500 tracking-wider uppercase mb-1.5">Introduction</h4>
-                      <p className="text-zinc-300 text-sm leading-relaxed">{selectedTeacher.bio}</p>
-                    </div>
-
-                    {/* Education & Experience */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-zinc-950/80 p-4 rounded-2xl border border-zinc-800">
-                      <div>
-                        <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">🎓 Education</span>
-                        <p className="text-zinc-200 mt-1">{selectedTeacher.education || 'No education specified'}</p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">💼 Experience</span>
-                        <p className="text-zinc-200 mt-1">{selectedTeacher.experience || 'No experience specified'}</p>
-                      </div>
-                    </div>
-
-                    {/* Portfolio / Links */}
-                    {Object.keys(selectedTeacher.portfolio).length > 0 && (
-                      <div>
-                        <h4 className="text-xs font-bold text-zinc-500 tracking-wider uppercase mb-2">Portfolio & Socials</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedTeacher.portfolio.github && (
-                            <a href={selectedTeacher.portfolio.github} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 rounded-xl text-xs font-semibold text-zinc-300 transition">
-                              GitHub <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
-                            </a>
-                          )}
-                          {selectedTeacher.portfolio.linkedin && (
-                            <a href={selectedTeacher.portfolio.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 rounded-xl text-xs font-semibold text-zinc-300 transition">
-                              LinkedIn <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
-                            </a>
-                          )}
-                          {selectedTeacher.portfolio.behance && (
-                            <a href={selectedTeacher.portfolio.behance} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 rounded-xl text-xs font-semibold text-zinc-300 transition">
-                              Behance <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
-                            </a>
-                          )}
-                          {selectedTeacher.portfolio.portfolioUrl && (
-                            <a href={selectedTeacher.portfolio.portfolioUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 rounded-xl text-xs font-semibold text-zinc-300 transition">
-                              Website <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
-                            </a>
-                          )}
+                          ))}
                         </div>
                       </div>
-                    )}
 
-                    {/* Skills Selection */}
+                      {/* Action trigger */}
+                      <div className="pt-2 flex items-center justify-between text-xs">
+                        <span className="text-[11px] text-text-muted">
+                          {user.successfulExchanges} exchanges
+                        </span>
+                        <span className="font-semibold text-violet-400 flex items-center gap-1 group-hover:translate-x-0.5 transition">
+                          View profile <ChevronRight className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+                    </div>
+                  </Spotlight>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 4. MAIN PROFILE RESULTS GRID: Editorial Cards */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-display">
+              {searchQuery ? `Results for "${searchQuery}"` : selectedCategory !== 'All' ? `${selectedCategory} Practitioners` : 'All Practitioners'}
+            </h2>
+            <p className="text-xs text-text-sub mt-0.5">
+              Showing {filteredUsers.length} peer{filteredUsers.length === 1 ? '' : 's'} ready to barter skills
+            </p>
+          </div>
+        </div>
+
+        {/* Grid or Empty / Loading State */}
+        {isLoading ? (
+          <CardSkeletonGrid count={6} />
+        ) : filteredUsers.length === 0 ? (
+          <EmptyState
+            preset="partners"
+            title="No Matching Skill Swappers Found"
+            description="Try broadening your search query, clearing category filters, or exploring popular skills like React, Python, or UI Design."
+            actionText="Reset Search & Filters"
+            onAction={() => {
+              setSearchQuery('');
+              setSelectedCategory('All');
+              setSelectedLevel('All');
+              setSelectedLanguage('All');
+              setSelectedAvailability('All');
+              setSelectedTimeZone('All');
+              setMatchFilter('all');
+            }}
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredUsers.map((user) => {
+              const matchInfo = matchMap.get(user.id);
+              const isPerfect = matchInfo?.isPerfectMatch;
+              const isPartial = matchInfo?.isPartialMatch;
+
+              return (
+                <Spotlight
+                  key={user.id}
+                  spotlightColor={isPerfect ? "rgba(16, 185, 129, 0.12)" : "rgba(139, 92, 246, 0.12)"}
+                  className={`bg-surface-base rounded-2xl border transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer group ${
+                    isPerfect 
+                      ? 'border-emerald-500/40 shadow-xl shadow-emerald-500/5 ring-1 ring-emerald-500/20' 
+                      : isPartial
+                      ? 'border-violet-500/30 hover:border-violet-500/50 shadow-xl'
+                      : 'border-white/10 hover:border-white/20 shadow-lg'
+                  }`}
+                  onClick={() => handleOpenDetails(user)}
+                >
+                  {/* Perfect Match Top Banner */}
+                  {isPerfect && (
+                    <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-violet-700 text-white px-4 py-2 flex items-center justify-between text-xs font-bold">
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                        Perfect 2-Way Skill Fit
+                      </span>
+                      <span className="bg-black/30 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide">
+                        100% Mutual
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Header info */}
+                  <div className="p-5 flex items-start gap-4">
+                    <img 
+                      src={user.avatar} 
+                      alt={user.name} 
+                      referrerPolicy="no-referrer"
+                      className={`w-14 h-14 rounded-2xl object-cover border-2 flex-shrink-0 bg-surface-raised ${
+                        isPerfect ? 'border-emerald-400' : 'border-white/10'
+                      }`}
+                    />
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <h3 className="font-bold text-white truncate text-base group-hover:text-violet-300 transition">
+                          {user.name}
+                        </h3>
+                        <span className="px-2 py-0.5 bg-surface-raised text-text-sub rounded-md text-[10px] font-medium shrink-0 border border-white/5">
+                          {user.skillLevel}
+                        </span>
+                      </div>
+                      
+                      {/* Rating */}
+                      <div className="flex items-center gap-1 text-xs text-amber-400 font-semibold">
+                        <Star className="w-3.5 h-3.5 fill-current" />
+                        <span>{user.rating.toFixed(1)}</span>
+                        <span className="text-text-muted font-normal">({user.reviewsCount} reviews)</span>
+                      </div>
+
+                      {/* Timezone / Availability */}
+                      <div className="flex items-center gap-1 text-[11px] text-text-sub truncate">
+                        <Globe className="w-3 h-3 text-text-muted shrink-0" />
+                        <span className="truncate">{user.timeZone}</span>
+                        <span className="text-text-dim">•</span>
+                        <Clock className="w-3 h-3 text-text-muted shrink-0" />
+                        <span className="truncate">{(user.availability ?? []).join(', ')}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Perfect Mutual Match Highlight Box */}
+                  {isPerfect && matchInfo && (
+                    <div className="mx-5 mb-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                        <div className="bg-black/50 p-2 rounded-lg border border-emerald-500/20">
+                          <span className="text-emerald-400 block text-[10px] font-extrabold uppercase tracking-wider">They Teach (You Want)</span>
+                          <span className="font-bold text-white truncate block">
+                            {matchInfo.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}
+                          </span>
+                        </div>
+                        <div className="bg-black/50 p-2 rounded-lg border border-violet-500/20">
+                          <span className="text-violet-400 block text-[10px] font-extrabold uppercase tracking-wider">You Teach (They Want)</span>
+                          <span className="font-bold text-white truncate block">
+                            {matchInfo.userTeachesTheyWant.map(m => m.userSkill.name).join(', ')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Partial Match Box */}
+                  {isPartial && matchInfo && !isPerfect && (
+                    <div className="mx-5 mb-3 p-2.5 bg-violet-500/10 border border-violet-500/20 rounded-xl text-[11px] space-y-1">
+                      <span className="font-bold text-lavender-300 flex items-center gap-1">
+                        <RefreshCw className="w-3 h-3 text-violet-400" />
+                        Partial Barter Match
+                      </span>
+                      {matchInfo.theyTeachUserWants.length > 0 && (
+                        <p className="text-text-sub">
+                          They teach <strong className="text-emerald-300">{matchInfo.theyTeachUserWants.map(m => m.otherSkill.name).join(', ')}</strong> (on your wishlist)
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Teaching & Learning skills */}
+                  <div className="px-5 pb-4 flex-1 space-y-3">
                     <div>
-                      <h4 className="text-xs font-bold text-zinc-500 tracking-wider uppercase mb-2">Select a skill to learn from {selectedTeacher.name}</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {(selectedTeacher?.skillsOffered ?? []).map((sk, idx) => (
-                          <div 
-                            key={idx}
-                            onClick={() => setSelectedSkillToLearn(sk)}
-                            className={`p-3 border rounded-2xl cursor-pointer transition flex items-center justify-between ${
-                              selectedSkillToLearn?.name === sk.name 
-                                ? 'bg-indigo-500/10 border-indigo-500 ring-1 ring-indigo-500/30' 
-                                : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
-                            }`}
-                          >
-                            <div className="flex-1 min-w-0 pr-2">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <p className="font-bold text-white text-sm">{sk.name}</p>
-                                <VerifiedSkillBadge teacherId={selectedTeacher.id} skillName={sk.name} allReviews={allReviews} />
-                              </div>
-                              <p className="text-[11px] text-zinc-400 mt-0.5">{sk.category} • {sk.level} level</p>
-                            </div>
-                            {selectedSkillToLearn?.name === sk.name && (
-                              <div className="w-5 h-5 bg-indigo-500 text-white rounded-full flex items-center justify-center shrink-0">
-                                <Check className="w-3.5 h-3.5 stroke-[3]" />
-                              </div>
-                            )}
-                          </div>
+                      <span className="text-[10px] font-bold text-text-dim tracking-wider uppercase">Teaches</span>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {(user.skillsOffered ?? []).slice(0, 3).map((sk, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-violet-500/10 border border-violet-500/20 text-lavender-300 rounded-lg text-xs font-medium">
+                            <Award className="w-3 h-3 text-violet-400 shrink-0" />
+                            <span>{sk.name}</span>
+                            <VerifiedSkillBadge teacherId={user.id} skillName={sk.name} allReviews={allReviews} />
+                          </span>
                         ))}
                       </div>
                     </div>
 
-                    {selectedSkillToLearn && (() => {
-                      const guide = getSkillGuide(selectedSkillToLearn.name, selectedSkillToLearn.category);
-                      return (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs animate-fade-in"
-                        >
-                          <div className="flex items-start gap-2.5">
-                            <span className="text-xl bg-indigo-500/20 text-indigo-300 w-8 h-8 rounded-xl flex items-center justify-center shrink-0">📚</span>
-                            <div>
-                              <p className="font-bold text-white">Learn & Study on Your Own</p>
-                              <p className="text-zinc-400 mt-0.5">Explore structured syllabi, direct W3Schools tutorials, and ask our AI Skill Coach any questions!</p>
-                            </div>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2 shrink-0 w-full md:w-auto">
-                            {guide.w3schoolsLink && (
-                              <a
-                                href={guide.w3schoolsLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 whitespace-nowrap text-center text-xs decoration-transparent no-underline cursor-pointer"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                                Learn on W3Schools 🟢
-                              </a>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleOpenStudyHub(selectedSkillToLearn)}
-                              className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 font-semibold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
-                            >
-                              <BookOpen className="w-3.5 h-3.5" />
-                              Open Study Hub
-                            </button>
-                          </div>
-                        </motion.div>
-                      );
-                    })()}
-
-                    {/* Teacher Reviews Section */}
-                    <div className="space-y-3 pt-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-zinc-500 tracking-wider uppercase flex items-center gap-1.5">
-                          <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                          Student Reviews ({allReviews.filter(r => r.teacherId === selectedTeacher.id).length})
-                        </h4>
-                        <span className="text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
-                          ★ {selectedTeacher.rating?.toFixed(1) || '5.0'} Rating
-                        </span>
-                      </div>
-
-                      {(() => {
-                        const tReviews = allReviews
-                          .filter(r => r.teacherId === selectedTeacher.id)
-                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-                        if (tReviews.length === 0) {
-                          return (
-                            <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-2xl text-center">
-                              <p className="text-xs text-zinc-500 italic">No individual student reviews yet. Be the first to swap skills and leave a review!</p>
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                            {tReviews.map((rev) => (
-                              <div key={rev.id} className="p-3 bg-zinc-950/80 border border-zinc-800 rounded-2xl text-xs space-y-1.5">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-white">{rev.learnerName}</span>
-                                    {rev.skillName && (
-                                      <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-md font-semibold text-[10px]">
-                                        {rev.skillName}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <div className="flex items-center text-amber-400">
-                                      {Array.from({ length: 5 }).map((_, i) => (
-                                        <Star
-                                          key={i}
-                                          className={`w-3 h-3 ${i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-zinc-700'}`}
-                                        />
-                                      ))}
-                                    </div>
-                                    <span className="text-[10px] text-zinc-500 ml-1">
-                                      {new Date(rev.createdAt).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                </div>
-                                <p className="text-zinc-300 italic leading-relaxed">{rev.comment || 'No written comment provided.'}</p>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                    {/* Booking Prompt */}
-                    <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div>
-                        <h5 className="font-bold text-white text-sm">Ready to make the exchange?</h5>
-                        <p className="text-zinc-400 text-xs mt-0.5">Free skill exchange. No money or tokens required.</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => onOpenChat(selectedTeacher.id)}
-                          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 rounded-xl font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                          Chat First
-                        </button>
-                        <button 
-                          onClick={handleStartBooking}
-                          className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl font-semibold text-xs shadow-lg shadow-indigo-500/20 transition flex items-center gap-1 cursor-pointer"
-                        >
-                          Book Swap <ArrowRight className="w-4 h-4" />
-                        </button>
+                    <div>
+                      <span className="text-[10px] font-bold text-text-dim tracking-wider uppercase">Wants to Learn</span>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {(user.skillsWanted ?? []).slice(0, 3).map((sk, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 bg-surface-raised border border-white/5 text-text-sub rounded-lg text-xs">
+                            <GraduationCap className="w-3 h-3 text-text-muted" />
+                            <span>{sk.name}</span>
+                          </span>
+                        ))}
                       </div>
                     </div>
-                  </>
-                ) : (
-                  <form onSubmit={submitBooking} className="space-y-5">
-                    {/* Progress Success State */}
-                    {bookingSuccess ? (
-                      <div className="text-center py-10 space-y-3">
-                        <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/30 animate-bounce">
-                          <CheckCircle2 className="w-10 h-10" />
-                        </div>
-                        <h3 className="text-lg font-bold text-white">Exchange Requested!</h3>
-                        <p className="text-zinc-400 text-sm">{selectedTeacher.name} will review your request.</p>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="p-3 bg-zinc-950/80 border border-zinc-800 rounded-xl flex items-center justify-between text-xs">
-                          <div>
-                            <span className="text-zinc-500">Selected Teacher: </span>
-                            <span className="font-semibold text-white">{selectedTeacher.name}</span>
-                          </div>
-                          <div>
-                            <span className="text-zinc-500">Skill: </span>
-                            <span className="font-semibold text-indigo-400">{selectedSkillToLearn?.name}</span>
-                          </div>
-                        </div>
+                  </div>
 
-                        {/* Session Role Selection (Learn vs Teach) */}
-                        <div className="space-y-2">
-                          <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                            Session Role <span className="text-indigo-400">*</span>
-                          </label>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            <div
-                              onClick={() => setSwapRole('learn')}
-                              className={`p-3.5 border rounded-2xl cursor-pointer transition flex items-start gap-3 ${
-                                swapRole === 'learn'
-                                  ? 'bg-indigo-500/10 border-indigo-500 ring-1 ring-indigo-500/30'
-                                  : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                id="role-learn"
-                                name="swapRole"
-                                value="learn"
-                                checked={swapRole === 'learn'}
-                                onChange={() => setSwapRole('learn')}
-                                className="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                              />
-                              <div>
-                                <label htmlFor="role-learn" className="font-bold text-white text-xs cursor-pointer block">
-                                  I want to LEARN this skill from them
-                                </label>
-                                <p className="text-[10px] text-zinc-400 mt-0.5">
-                                  You will be the learner (costs 10 credits when completed)
-                                </p>
-                              </div>
-                            </div>
-
-                            <div
-                              onClick={() => setSwapRole('teach')}
-                              className={`p-3.5 border rounded-2xl cursor-pointer transition flex items-start gap-3 ${
-                                swapRole === 'teach'
-                                  ? 'bg-indigo-500/10 border-indigo-500 ring-1 ring-indigo-500/30'
-                                  : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                id="role-teach"
-                                name="swapRole"
-                                value="teach"
-                                checked={swapRole === 'teach'}
-                                onChange={() => setSwapRole('teach')}
-                                className="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                              />
-                              <div>
-                                <label htmlFor="role-teach" className="font-bold text-white text-xs cursor-pointer block">
-                                  I want to TEACH them this skill
-                                </label>
-                                <p className="text-[10px] text-zinc-400 mt-0.5">
-                                  You will be the teacher (earns 10 credits when completed)
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Insufficient credits warning */}
-                          {swapRole === 'learn' && (currentUser.credits ?? 0) < 10 && (
-                            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 flex items-center gap-2 mt-2">
-                              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
-                              <span>You need at least 10 credits to book a learning session.</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Learning Options Segment */}
-                        <div className="space-y-2">
-                          <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider">How do you want to learn?</label>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            {LEARNING_OPTIONS.map((opt) => (
-                              <div
-                                key={opt.value}
-                                onClick={() => setChosenOption(opt.value)}
-                                className={`p-3 border rounded-2xl cursor-pointer transition flex items-start gap-3 ${
-                                  chosenOption === opt.value
-                                    ? 'bg-indigo-500/10 border-indigo-500 ring-1 ring-indigo-500/30'
-                                    : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
-                                }`}
-                              >
-                                <span className="text-2xl mt-0.5">{opt.icon}</span>
-                                <div className="space-y-0.5">
-                                  <p className="font-bold text-white text-xs">{opt.value}</p>
-                                  <p className="text-[10px] text-zinc-400 leading-normal">{opt.desc}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Calendar / Date / Time */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                          <div>
-                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Select Date & Time</label>
-                            <div className="grid grid-cols-2 gap-2">
-                              <input 
-                                type="date" 
-                                required
-                                value={bookingDate}
-                                onChange={(e) => setBookingDate(e.target.value)}
-                                className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              />
-                              <input 
-                                type="time" 
-                                required
-                                value={bookingTime}
-                                onChange={(e) => setBookingTime(e.target.value)}
-                                className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Time Slot Availability</label>
-                            <div className="grid grid-cols-3 gap-1.5">
-                              {(['Morning', 'Afternoon', 'Evening'] as const).map(slot => (
-                                <button
-                                  key={slot}
-                                  type="button"
-                                  onClick={() => setBookingSlot(slot)}
-                                  className={`py-2.5 border rounded-xl text-xs font-semibold transition cursor-pointer ${
-                                    bookingSlot === slot
-                                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-md'
-                                      : selectedTeacher.availability.includes(slot)
-                                        ? 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-800'
-                                        : 'bg-zinc-950/40 border-zinc-900 text-zinc-600 cursor-not-allowed line-through'
-                                  }`}
-                                  disabled={!selectedTeacher.availability.includes(slot)}
-                                >
-                                  {slot}
-                                </button>
-                              ))}
-                            </div>
-                            <span className="text-[10px] text-zinc-500 mt-1 block">Crossed slots are not available for {selectedTeacher.name}.</span>
-                          </div>
-                        </div>
-
-                        {/* Booking notes */}
-                        <div>
-                          <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">What do you want to focus on? (Optional)</label>
-                          <textarea 
-                            rows={3}
-                            placeholder="Introduce your level and what goals you hope to focus on during this swap..."
-                            value={bookingNotes}
-                            onChange={(e) => setBookingNotes(e.target.value)}
-                            className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-zinc-600"
-                          />
-                        </div>
-
-                        {/* Submit Button */}
-                        <div className="flex items-center justify-end gap-2 pt-2">
-                          <button 
-                            type="button"
-                            onClick={() => setIsBookingMode(false)}
-                            className="px-4 py-2 border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 rounded-xl font-semibold text-xs text-zinc-300 transition cursor-pointer"
-                          >
-                            Back to Profile
-                          </button>
-                          <button 
-                            type="submit"
-                            disabled={swapRole === 'learn' && (currentUser.credits ?? 0) < 10}
-                            className="px-5 py-2 rounded-xl font-semibold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Calendar className="w-4 h-4" />
-                            Request Session
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </form>
-                )}
-              </div>
-            </motion.div>
+                  {/* Bottom Footer bar */}
+                  <div className="px-5 py-3 bg-surface-raised/80 border-t border-white/5 flex items-center justify-between text-xs">
+                    <span className="text-text-sub">
+                      <span className="font-bold text-white">{user.successfulExchanges}</span> swaps completed
+                    </span>
+                    <span className="text-violet-400 font-semibold group-hover:text-lavender-200 flex items-center gap-1 transition">
+                      <span>View Profile</span>
+                      <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
+                    </span>
+                  </div>
+                </Spotlight>
+              );
+            })}
           </div>
         )}
-      </AnimatePresence>
+      </section>
 
-      {/* Interactive Study Hub Overlay */}
+      {/* 5. TEACHER PROFILE DETAIL OVERLAY & BOOKING MODAL */}
+      <ProfileDetailModal
+        teacher={selectedTeacher}
+        currentUser={currentUser}
+        allReviews={allReviews}
+        onClose={() => setSelectedTeacher(null)}
+        onOpenChat={onOpenChat}
+        onBookSession={({
+          teacher,
+          skill,
+          option,
+          date,
+          slot,
+          notes,
+          scheduledTime,
+          swapRole
+        }) => {
+          onBookSession(teacher, skill, option, date, slot, notes, scheduledTime, swapRole);
+        }}
+        onOpenStudyHub={handleOpenStudyHub}
+      />
+
+      {/* 6. INTERACTIVE STUDY HUB OVERLAY */}
       <AnimatePresence>
         {activeStudySkill && (() => {
           const guide = getSkillGuide(activeStudySkill.name, activeStudySkill.category);
@@ -1198,39 +968,40 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-zinc-900 rounded-[28px] w-full max-w-3xl border border-zinc-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                className="bg-surface-base rounded-3xl w-full max-w-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
               >
                 {/* Header */}
-                <div className="p-6 border-b border-zinc-800 bg-zinc-950/80 flex items-start justify-between shrink-0">
+                <div className="p-6 border-b border-white/10 bg-surface-raised/50 flex items-start justify-between shrink-0">
                   <div className="space-y-1">
                     <button 
                       onClick={() => setActiveStudySkill(null)}
-                      className="text-indigo-400 hover:text-indigo-300 text-xs font-semibold flex items-center gap-1 mb-2 group transition bg-transparent border-0 cursor-pointer"
+                      className="text-violet-400 hover:text-violet-300 text-xs font-semibold flex items-center gap-1 mb-2 group transition bg-transparent border-0 cursor-pointer"
                     >
                       <ArrowLeft className="w-3.5 h-3.5 transition group-hover:-translate-x-0.5" /> Back to Profile
                     </button>
                     <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-bold text-white">Study Hub: {activeStudySkill.name}</h2>
-                      <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded text-[10px] font-semibold">{activeStudySkill.level}</span>
+                      <h2 className="text-xl font-bold text-white font-display">Study Hub: {activeStudySkill.name}</h2>
+                      <span className="px-2 py-0.5 bg-violet-500/20 text-lavender-300 border border-violet-500/30 rounded text-[10px] font-semibold">{activeStudySkill.level}</span>
                     </div>
-                    <p className="text-zinc-400 text-xs mt-0.5">Category: <span className="font-semibold text-zinc-200">{activeStudySkill.category}</span> • Self-Paced Interactive Syllabus</p>
+                    <p className="text-text-sub text-xs mt-0.5">Category: <span className="font-semibold text-white">{activeStudySkill.category}</span> • Self-Paced Interactive Syllabus</p>
                   </div>
                   <button 
                     onClick={() => setActiveStudySkill(null)}
-                    className="p-1 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition mt-6 cursor-pointer"
+                    className="p-1 rounded-full hover:bg-surface-raised text-text-muted hover:text-white transition mt-6 cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                {/* Tabs selection */}
-                <div className="flex border-b border-zinc-800 px-6 bg-zinc-950 shrink-0 overflow-x-auto">
+                {/* Tabs */}
+                <div className="flex border-b border-white/10 px-6 bg-surface-base shrink-0 overflow-x-auto">
                   <button
                     onClick={() => setStudyActiveTab('roadmap')}
                     className={`py-3.5 px-4 text-xs font-semibold border-b-2 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                       studyActiveTab === 'roadmap' 
-                        ? 'border-indigo-500 text-indigo-400' 
-                        : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                        ? 'border-violet-500 text-violet-400' 
+                        : 'border-transparent text-text-sub hover:text-white'
                     }`}
                   >
                     <CheckSquare className="w-4 h-4" />
@@ -1240,8 +1011,8 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                     onClick={() => setStudyActiveTab('resources')}
                     className={`py-3.5 px-4 text-xs font-semibold border-b-2 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                       studyActiveTab === 'resources' 
-                        ? 'border-indigo-500 text-indigo-400' 
-                        : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                        ? 'border-violet-500 text-violet-400' 
+                        : 'border-transparent text-text-sub hover:text-white'
                     }`}
                   >
                     <BookOpen className="w-4 h-4" />
@@ -1251,11 +1022,11 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                     onClick={() => setStudyActiveTab('coach')}
                     className={`py-3.5 px-4 text-xs font-semibold border-b-2 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                       studyActiveTab === 'coach' 
-                        ? 'border-indigo-500 text-indigo-400' 
-                        : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                        ? 'border-violet-500 text-violet-400' 
+                        : 'border-transparent text-text-sub hover:text-white'
                     }`}
                   >
-                    <Sparkles className="w-4 h-4 text-indigo-400" />
+                    <Sparkles className="w-4 h-4 text-violet-400" />
                     3. AI Virtual Skill Coach
                   </button>
                 </div>
@@ -1264,21 +1035,19 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                   {studyActiveTab === 'roadmap' && (
                     <div className="space-y-6">
-                      {/* Overview */}
-                      <div className="bg-zinc-950/80 p-4 rounded-2xl border border-zinc-800">
+                      <div className="bg-surface-raised p-4 rounded-2xl border border-white/5">
                         <h3 className="font-bold text-white text-sm flex items-center gap-1.5">
                           <span>💡</span> Skill Overview
                         </h3>
-                        <p className="text-zinc-300 text-xs mt-1.5 leading-relaxed">{guide.description}</p>
+                        <p className="text-text-sub text-xs mt-1.5 leading-relaxed">{guide.description}</p>
                       </div>
 
-                      {/* Staggered Roadmap Phases */}
                       <div className="space-y-4">
-                        <h4 className="text-xs font-bold text-zinc-500 tracking-wider uppercase">Syllabus Roadmaps & Practice Tasks</h4>
+                        <h4 className="text-xs font-bold text-text-dim tracking-wider uppercase">Syllabus Roadmaps & Tasks</h4>
                         {guide.syllabus.map((phase, pIdx) => (
-                          <div key={pIdx} className="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950/90 shadow-lg">
-                            <div className="bg-zinc-900 px-4 py-2.5 border-b border-zinc-800 flex justify-between items-center text-xs">
-                              <span className="font-bold text-indigo-400 uppercase tracking-wide">{phase.phase}</span>
+                          <div key={pIdx} className="border border-white/10 rounded-2xl overflow-hidden bg-surface-raised shadow-lg">
+                            <div className="bg-surface-base px-4 py-2.5 border-b border-white/10 flex justify-between items-center text-xs">
+                              <span className="font-bold text-violet-400 uppercase tracking-wide">{phase.phase}</span>
                               <span className="font-semibold text-white">{phase.title}</span>
                             </div>
                             <div className="p-4 space-y-3">
@@ -1290,17 +1059,17 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                                     key={tIdx} 
                                     className={`flex items-start gap-3 p-2.5 rounded-xl cursor-pointer transition text-xs border ${
                                       isDone 
-                                        ? 'bg-indigo-500/10 border-indigo-500/20 text-zinc-400' 
-                                        : 'bg-zinc-900/60 border-zinc-800 hover:bg-zinc-900 text-zinc-200'
+                                        ? 'bg-violet-500/10 border-violet-500/20 text-text-muted' 
+                                        : 'bg-surface-base border-white/5 hover:border-white/15 text-text-main'
                                     }`}
                                   >
                                     <input 
                                       type="checkbox" 
                                       checked={isDone}
                                       onChange={() => toggleTask(taskKey)}
-                                      className="mt-0.5 rounded border-zinc-700 bg-zinc-950 text-indigo-500 focus:ring-indigo-500 w-4 h-4"
+                                      className="mt-0.5 rounded border-white/20 bg-surface-raised text-violet-600 focus:ring-violet-500 w-4 h-4 cursor-pointer"
                                     />
-                                    <span className={isDone ? 'line-through text-zinc-500' : ''}>{task}</span>
+                                    <span className={isDone ? 'line-through text-text-muted' : ''}>{task}</span>
                                   </label>
                                 );
                               })}
@@ -1310,15 +1079,15 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                       </div>
 
                       {/* Practice Project Card */}
-                      <div className="bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-amber-500/10 p-5 rounded-2xl border border-indigo-500/20">
+                      <div className="bg-gradient-to-br from-violet-600/10 via-purple-600/10 to-surface-raised p-5 rounded-2xl border border-violet-500/20">
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🛠️</span>
                           <h4 className="font-bold text-white text-sm">Suggested Hands-on Project: {guide.practiceProject.title}</h4>
                         </div>
-                        <p className="text-zinc-300 text-xs mt-1 leading-normal">{guide.practiceProject.description}</p>
+                        <p className="text-text-sub text-xs mt-1 leading-normal">{guide.practiceProject.description}</p>
                         <div className="mt-4 space-y-2">
-                          <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">Suggested Build Steps:</p>
-                          <ol className="list-decimal pl-4 text-xs text-zinc-300 space-y-1">
+                          <p className="text-[10px] font-bold text-lavender-300 uppercase tracking-wider">Suggested Build Steps:</p>
+                          <ol className="list-decimal pl-4 text-xs text-text-sub space-y-1">
                             {guide.practiceProject.steps.map((step, idx) => (
                               <li key={idx}>{step}</li>
                             ))}
@@ -1330,7 +1099,6 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
 
                   {studyActiveTab === 'resources' && (
                     <div className="space-y-6">
-                      {/* Direct W3Schools banner */}
                       {guide.w3schoolsLink && (
                         <div className="p-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="space-y-1">
@@ -1338,7 +1106,7 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                             <h3 className="font-bold text-white text-base mt-1.5 flex items-center gap-1">
                               Learn {activeStudySkill.name} on W3Schools 🟢
                             </h3>
-                            <p className="text-zinc-300 text-xs leading-relaxed">
+                            <p className="text-text-sub text-xs leading-relaxed">
                               Learn and execute code snippets or practice exercises in their interactive sandbox, with comprehensive testing, examples, and certifications.
                             </p>
                           </div>
@@ -1346,34 +1114,33 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                             href={guide.w3schoolsLink} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1 shrink-0 cursor-pointer decoration-transparent no-underline"
+                            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1 shrink-0 cursor-pointer no-underline"
                           >
                             Launch W3Schools <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         </div>
                       )}
 
-                      {/* Other Curated Resources */}
                       <div className="space-y-3">
-                        <h4 className="text-xs font-bold text-zinc-500 tracking-wider uppercase">More Curated Study Materials</h4>
+                        <h4 className="text-xs font-bold text-text-dim tracking-wider uppercase">Curated Study Materials</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {guide.otherLinks.map((link, idx) => (
-                            <div key={idx} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col justify-between hover:border-zinc-700 transition shadow-md">
+                            <div key={idx} className="bg-surface-raised border border-white/5 rounded-2xl p-4 flex flex-col justify-between hover:border-white/15 transition shadow-md">
                               <div>
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">{link.siteName}</span>
+                                  <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wider">{link.siteName}</span>
                                 </div>
                                 <h5 className="font-bold text-white text-xs mt-1">{link.name}</h5>
-                                <p className="text-zinc-400 text-[11px] mt-1.5 leading-normal">{link.description}</p>
+                                <p className="text-text-sub text-[11px] mt-1.5 leading-normal">{link.description}</p>
                               </div>
-                              <div className="mt-4 pt-3 border-t border-zinc-800 flex justify-end">
+                              <div className="mt-4 pt-3 border-t border-white/5 flex justify-end">
                                 <a 
                                   href={link.url} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition group cursor-pointer"
+                                  className="text-xs font-semibold text-violet-400 hover:text-violet-300 flex items-center gap-1 transition cursor-pointer"
                                 >
-                                  Go to Tutorial <ExternalLink className="w-3.5 h-3.5 transition group-hover:translate-x-0.5" />
+                                  Go to Tutorial <ExternalLink className="w-3.5 h-3.5" />
                                 </a>
                               </div>
                             </div>
@@ -1384,8 +1151,8 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                   )}
 
                   {studyActiveTab === 'coach' && (
-                    <div className="flex flex-col h-[45vh] border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950 shadow-inner">
-                      {/* Message History list */}
+                    <div className="flex flex-col h-[45vh] border border-white/10 rounded-2xl overflow-hidden bg-surface-raised shadow-inner">
+                      {/* Messages list */}
                       <div className="flex-1 overflow-y-auto p-4 space-y-4">
                         {tutorMessages.map((msg, idx) => (
                           <div 
@@ -1395,12 +1162,12 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                             <div 
                               className={`max-w-[85%] p-3.5 rounded-2xl text-xs space-y-2 leading-relaxed shadow-md ${
                                 msg.role === 'user'
-                                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-br-none'
-                                  : 'bg-zinc-900 text-zinc-200 border border-zinc-800 rounded-bl-none'
+                                  ? 'bg-violet-600 text-white rounded-br-none'
+                                  : 'bg-surface-base text-text-main border border-white/10 rounded-bl-none'
                               }`}
                             >
                               {msg.role === 'model' && (
-                                <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-400 tracking-wider uppercase mb-1">
+                                <div className="flex items-center gap-1 text-[10px] font-bold text-violet-400 tracking-wider uppercase mb-1">
                                   <Sparkles className="w-3 h-3" />
                                   AI Tutor Coach
                                 </div>
@@ -1412,32 +1179,31 @@ export default function ExploreView({ currentUser, users, onBookSession, onOpenC
                           </div>
                         ))}
 
-                        {/* Typing Animation Loader */}
                         {isTutorLoading && (
                           <div className="flex justify-start">
-                            <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl rounded-bl-none shadow-md flex items-center gap-1.5 text-zinc-400">
-                              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
-                              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                            <div className="bg-surface-base border border-white/10 p-4 rounded-2xl rounded-bl-none shadow-md flex items-center gap-1.5 text-text-sub">
+                              <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce"></span>
+                              <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                              <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
                             </div>
                           </div>
                         )}
                       </div>
 
                       {/* Chat Input form */}
-                      <form onSubmit={handleSendTutorMessage} className="p-3 bg-zinc-900 border-t border-zinc-800 flex gap-2 shrink-0">
+                      <form onSubmit={handleSendTutorMessage} className="p-3 bg-surface-base border-t border-white/10 flex gap-2 shrink-0">
                         <input 
                           type="text"
                           value={tutorInput}
                           onChange={(e) => setTutorInput(e.target.value)}
                           placeholder={`Ask anything about ${activeStudySkill.name}...`}
                           disabled={isTutorLoading}
-                          className="flex-1 bg-zinc-950 border border-zinc-800 text-white rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-zinc-600 disabled:opacity-50"
+                          className="flex-1 bg-surface-raised border border-white/10 text-white rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder:text-text-muted disabled:opacity-50"
                         />
                         <button 
                           type="submit"
                           disabled={!tutorInput.trim() || isTutorLoading}
-                          className="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-40 text-white rounded-xl shadow-md transition shrink-0 flex items-center justify-center w-9 h-9 border-0 cursor-pointer"
+                          className="p-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white rounded-xl shadow-md transition shrink-0 flex items-center justify-center w-9 h-9 border-0 cursor-pointer"
                         >
                           <Send className="w-4 h-4" />
                         </button>

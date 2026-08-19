@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { motionTokens } from './tokens';
 
 export interface RevealTextProps {
   /** The text string to reveal word-by-word. Can also pass string children */
@@ -7,24 +8,30 @@ export interface RevealTextProps {
   children?: React.ReactNode;
   /** Initial delay before first word starts in seconds */
   delay?: number;
-  /** Stagger time between words in seconds (default ~0.04s for 0-700ms total) */
+  /** Stagger time between words in seconds (default ~0.04s) */
   staggerDelay?: number;
   /** CSS class for wrapper container */
   className?: string;
-  /** CSS class applied to each word */
+  /** CSS class applied to each individual word */
   wordClassName?: string;
+  /** Custom translation offset in px */
+  offsetY?: number;
+  /** Whether to animate as a heading element (h1, h2, h3, span, etc.) */
+  as?: 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'span' | 'div';
 }
 
 export const RevealText: React.FC<RevealTextProps> = ({
   text,
   children,
-  delay = 0,
-  staggerDelay = 0.045,
+  delay = 0.05,
+  staggerDelay = motionTokens.stagger.fast,
   className = '',
   wordClassName = '',
+  offsetY = 16,
+  as: Component = 'span',
 }) => {
   const content = text || (typeof children === 'string' ? children : '');
-  const words = content.split(' ');
+  const words = content.trim().split(/\s+/).filter(Boolean);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -40,16 +47,16 @@ export const RevealText: React.FC<RevealTextProps> = ({
   const wordVariants = {
     hidden: {
       opacity: 0,
-      y: 16,
-      filter: 'blur(4px)',
+      y: offsetY,
+      filter: 'blur(5px)',
     },
     visible: {
       opacity: 1,
       y: 0,
       filter: 'blur(0px)',
       transition: {
-        duration: 0.38,
-        ease: [0.22, 1, 0.36, 1],
+        duration: motionTokens.duration.standard,
+        ease: motionTokens.ease.outCubic,
       },
     },
   };
@@ -61,11 +68,12 @@ export const RevealText: React.FC<RevealTextProps> = ({
         initial="hidden"
         animate="visible"
         variants={{
-          hidden: { opacity: 0, y: 14 },
+          hidden: { opacity: 0, y: offsetY, filter: 'blur(4px)' },
           visible: {
             opacity: 1,
             y: 0,
-            transition: { duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] },
+            filter: 'blur(0px)',
+            transition: { duration: motionTokens.duration.standard, delay, ease: motionTokens.ease.outCubic },
           },
         }}
         className={className}
@@ -78,7 +86,8 @@ export const RevealText: React.FC<RevealTextProps> = ({
   return (
     <motion.span
       initial="hidden"
-      animate="visible"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-40px' }}
       variants={containerVariants}
       className={`inline-flex flex-wrap gap-x-[0.28em] gap-y-1 ${className}`}
     >
