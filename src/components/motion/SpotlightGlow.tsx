@@ -1,13 +1,13 @@
 import React, { useRef } from 'react';
-import { motion, useMotionValue, useMotionTemplate } from 'motion/react';
+import { motion, useMotionValue, useMotionTemplate, useReducedMotion } from 'motion/react';
 
 export interface SpotlightGlowProps extends React.HTMLAttributes<HTMLDivElement> {
   children?: React.ReactNode;
   /** Color tone or custom rgba/hex string */
-  color?: 'brass' | 'sage' | 'indigo' | 'white' | string;
+  color?: 'violet' | 'lavender' | 'emerald' | 'amber' | 'white' | string;
   /** Spotlight radius in pixels */
   radius?: number;
-  /** Spotlight intensity/opacity (0 to 1) */
+  /** Spotlight intensity/opacity (0 to 1) - defaults to subconscious 0.07 */
   opacity?: number;
   /** Custom CSS classes */
   className?: string;
@@ -15,24 +15,27 @@ export interface SpotlightGlowProps extends React.HTMLAttributes<HTMLDivElement>
 
 export const SpotlightGlow: React.FC<SpotlightGlowProps> = ({
   children,
-  color = 'brass',
-  radius = 280,
-  opacity = 0.18,
+  color = 'violet',
+  radius = 320,
+  opacity = 0.07,
   className = '',
   ...props
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
   const mouseX = useMotionValue(-1000);
   const mouseY = useMotionValue(-1000);
 
   const getColorRgba = () => {
     switch (color) {
-      case 'brass':
-        return `rgba(176, 141, 87, ${opacity})`;
-      case 'sage':
-        return `rgba(138, 154, 126, ${opacity})`;
-      case 'indigo':
-        return `rgba(99, 102, 241, ${opacity})`;
+      case 'violet':
+        return `rgba(139, 92, 246, ${opacity})`;
+      case 'lavender':
+        return `rgba(196, 181, 253, ${opacity})`;
+      case 'emerald':
+        return `rgba(16, 185, 129, ${opacity})`;
+      case 'amber':
+        return `rgba(245, 158, 11, ${opacity})`;
       case 'white':
         return `rgba(255, 255, 255, ${opacity})`;
       default:
@@ -44,7 +47,7 @@ export const SpotlightGlow: React.FC<SpotlightGlowProps> = ({
   const background = useMotionTemplate`radial-gradient(${radius}px circle at ${mouseX}px ${mouseY}px, ${colorRgba}, transparent 80%)`;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
+    if (prefersReducedMotion || !containerRef.current) return;
     const { left, top } = containerRef.current.getBoundingClientRect();
     mouseX.set(e.clientX - left);
     mouseY.set(e.clientY - top);
@@ -63,11 +66,13 @@ export const SpotlightGlow: React.FC<SpotlightGlowProps> = ({
       className={`relative overflow-hidden ${className}`}
       {...props}
     >
-      {/* Dynamic Cursor Spotlight Layer */}
-      <motion.div
-        className="pointer-events-none absolute -inset-px transition-opacity duration-300 z-10"
-        style={{ background }}
-      />
+      {/* Dynamic Subconscious Cursor Spotlight Layer */}
+      {!prefersReducedMotion && (
+        <motion.div
+          className="pointer-events-none absolute -inset-px transition-opacity duration-300 z-10 rounded-inherit"
+          style={{ background }}
+        />
+      )}
       {children}
     </div>
   );

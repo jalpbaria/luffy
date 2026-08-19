@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { 
   Compass, LayoutDashboard, MessageSquare, Brain, User, 
   Sparkles, Globe, LogOut, ArrowLeftRight, Award, Flame, RefreshCw, Home,
@@ -24,7 +24,7 @@ import { GamificationOverlay } from './components/GamificationCelebration';
 import { triggerCelebrationConfetti } from './lib/gamification';
 import { GamificationToast, Badge as GamificationBadge } from './types';
 import { Navbar } from './components/Navbar';
-import { CustomCursor, InitialAppLoader } from './components/motion';
+import { InitialAppLoader } from './components/motion';
 import { AmbientBackground } from './components/layout';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification, mapNotificationToSupabase, mapSupabaseToReview, mapReviewToSupabase } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
@@ -34,6 +34,7 @@ import { fallbackUsers } from './data/fallbackUsers';
 
 export default function App() {
   const { signOut } = useAuth();
+  const prefersReducedMotion = useReducedMotion();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'explore' | 'chat' | 'study-hub' | 'skill-path' | 'gamification' | 'credits' | 'profile' | 'live-room'>('dashboard');
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -1655,7 +1656,6 @@ export default function App() {
   if (!currentUser) {
     return (
       <AmbientBackground className="min-h-screen flex flex-col font-sans text-slate-100 antialiased justify-between selection:bg-violet-500/30 selection:text-violet-200">
-        <CustomCursor tone="violet" />
         <InitialAppLoader />
         <div className="flex-1 flex items-center justify-center w-full">
           <LoginView 
@@ -1676,7 +1676,6 @@ export default function App() {
 
   return (
     <AmbientBackground className="flex flex-col min-h-screen text-slate-100 font-sans antialiased selection:bg-violet-500/30 selection:text-violet-200">
-      <CustomCursor tone="violet" />
       <InitialAppLoader />
       
       {/* Redesigned Floating Glass Navigation */}
@@ -1713,10 +1712,10 @@ export default function App() {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 8, scale: 0.996 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.996 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.995, filter: 'blur(3px)' }}
+            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.995, filter: 'blur(3px)' }}
+            transition={{ duration: prefersReducedMotion ? 0.1 : 0.42, ease: [0.22, 1, 0.36, 1] }}
             className="w-full"
           >
             {activeTab === 'dashboard' && (
