@@ -890,31 +890,34 @@ export default function LiveSessionRoomView({
   // LOBBY VIEW (Device Preparation Screen)
   if (inLobby) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6 text-xs text-slate-700">
+      <div className="max-w-4xl mx-auto space-y-6 text-xs text-text-sub">
         <button
           onClick={onLeave}
-          className="inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-900 transition font-semibold cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-text-dim hover:text-white transition font-semibold cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Dashboard</span>
         </button>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12">
+        <div className="bg-surface-raised rounded-3xl border border-white/10 shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 backdrop-blur-xl">
           
           {/* Left: Camera Preview & Quick Toggles */}
-          <div className="md:col-span-7 bg-slate-950 p-6 flex flex-col justify-between items-center min-h-[420px] relative">
-            <div className="w-full flex items-center justify-between text-slate-400 text-xs z-10">
-              <span className="font-semibold text-white flex items-center gap-2">
+          <div className="md:col-span-7 bg-surface-base p-6 flex flex-col justify-between items-center min-h-[420px] relative border-b md:border-b-0 md:border-r border-white/10">
+            {/* Violet ambient backlight in studio */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="w-full flex items-center justify-between text-text-dim text-xs z-10">
+              <span className="font-bold text-white flex items-center gap-2">
                 <Shield className="w-4 h-4 text-emerald-400" />
-                Device & Media Setup
+                Green Room Preview
               </span>
-              <span className="px-2.5 py-1 bg-slate-800 text-slate-300 rounded-full font-bold text-[10px] border border-slate-700">
-                {isTeacher ? 'Instructor' : 'Learner'} Preview
+              <span className="px-2.5 py-1 bg-surface-raised text-lavender-300 rounded-full font-bold text-[10px] border border-white/10">
+                {isTeacher ? 'Instructor' : 'Learner'} Setup
               </span>
             </div>
 
             {/* Video Preview Frame */}
-            <div className="w-full aspect-video bg-slate-900 rounded-2xl overflow-hidden relative border border-slate-800 shadow-2xl my-auto flex items-center justify-center">
+            <div className="w-full aspect-video bg-surface-raised rounded-2xl overflow-hidden relative border border-white/10 shadow-2xl my-auto flex items-center justify-center">
               <video
                 ref={lobbyVideoRef}
                 autoPlay
@@ -924,15 +927,15 @@ export default function LiveSessionRoomView({
               />
 
               {(!isCameraOn || cameraStatus === 'denied' || cameraStatus === 'error' || cameraStatus === 'off') && (
-                <div className="flex flex-col items-center gap-2.5 text-slate-400 p-6 text-center">
-                  <div className="w-14 h-14 bg-slate-800/80 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-700">
+                <div className="flex flex-col items-center gap-2.5 text-text-dim p-6 text-center">
+                  <div className="w-14 h-14 bg-surface-base rounded-2xl flex items-center justify-center text-text-dim border border-white/10 shadow-inner">
                     <VideoOff className="w-7 h-7" />
                   </div>
                   <div>
                     <p className="font-bold text-sm text-white">
                       {cameraStatus === 'denied' ? 'Camera Access Blocked' : 'Camera is Turned Off'}
                     </p>
-                    <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
+                    <p className="text-[11px] text-text-dim mt-1 max-w-xs">
                       {cameraStatus === 'denied'
                         ? 'Grant browser camera permissions to enable video'
                         : 'Click the camera button below to test your video preview'}
@@ -942,8 +945,8 @@ export default function LiveSessionRoomView({
               )}
 
               {/* User watermark badge */}
-              <div className="absolute bottom-3 left-3 bg-slate-900/85 backdrop-blur-xs px-2.5 py-1 rounded-lg text-white font-medium text-[11px] flex items-center gap-2 border border-slate-800 shadow-sm">
-                <div className={`w-2 h-2 rounded-full ${isCameraOn && cameraStatus === 'ready' ? 'bg-emerald-500 animate-ping' : 'bg-amber-400'}`} />
+              <div className="absolute bottom-3 left-3 bg-surface-base/90 backdrop-blur-md px-2.5 py-1 rounded-xl text-white font-semibold text-[11px] flex items-center gap-2 border border-white/10 shadow-md">
+                <div className={`w-2 h-2 rounded-full ${isCameraOn && cameraStatus === 'ready' ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
                 <span>{currentUser.name} (You)</span>
               </div>
             </div>
@@ -953,10 +956,10 @@ export default function LiveSessionRoomView({
               <button
                 type="button"
                 onClick={toggleMic}
-                className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md text-xs ${
+                className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md text-xs border ${
                   isMicOn 
-                    ? 'bg-slate-800 text-emerald-400 hover:bg-slate-700 border border-slate-700' 
-                    : 'bg-rose-600 text-white hover:bg-rose-700'
+                    ? 'bg-surface-raised text-emerald-400 hover:bg-white/10 border-white/10' 
+                    : 'bg-rose-600 text-white hover:bg-rose-700 border-rose-500'
                 }`}
                 title={isMicOn ? 'Mute Microphone' : 'Unmute Microphone'}
               >
@@ -967,10 +970,10 @@ export default function LiveSessionRoomView({
               <button
                 type="button"
                 onClick={toggleCamera}
-                className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md text-xs ${
+                className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md text-xs border ${
                   isCameraOn 
-                    ? 'bg-slate-800 text-emerald-400 hover:bg-slate-700 border border-slate-700' 
-                    : 'bg-rose-600 text-white hover:bg-rose-700'
+                    ? 'bg-surface-raised text-emerald-400 hover:bg-white/10 border-white/10' 
+                    : 'bg-rose-600 text-white hover:bg-rose-700 border-rose-500'
                 }`}
                 title={isCameraOn ? 'Turn Off Camera' : 'Turn On Camera'}
               >
@@ -981,18 +984,18 @@ export default function LiveSessionRoomView({
           </div>
 
           {/* Right: Device Readiness Health Check & Join Session CTA */}
-          <div className="md:col-span-5 p-6 flex flex-col justify-between space-y-6 bg-slate-50/50">
+          <div className="md:col-span-5 p-6 flex flex-col justify-between space-y-6 bg-surface-raised/40">
             <div className="space-y-4">
               <div>
-                <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 inline-flex items-center gap-1.5 shadow-2xs">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Green Room • Pre-Join Preview
+                <span className="text-[10px] font-bold text-lavender-300 uppercase tracking-widest bg-violet-500/15 px-3 py-1 rounded-full border border-violet-500/30 inline-flex items-center gap-1.5 shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+                  Live Room Check
                 </span>
-                <h2 className="text-lg font-extrabold text-slate-900 mt-2.5">
-                  Pre-Call Device Check
+                <h2 className="text-xl font-black text-white mt-2.5 font-display">
+                  Hardware Readiness
                 </h2>
-                <p className="text-slate-500 text-xs mt-1">
-                  Adjust camera & microphone settings before connecting to <strong>{booking.skillName}</strong>.
+                <p className="text-text-dim text-xs mt-1">
+                  Verify camera & microphone before connecting to <strong>{booking.skillName}</strong>.
                 </p>
               </div>
 
@@ -1000,54 +1003,54 @@ export default function LiveSessionRoomView({
               <div className="space-y-2.5">
                 
                 {/* Camera Status Row */}
-                <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between shadow-2xs">
+                <div className="bg-surface-base border border-white/5 rounded-2xl p-3 flex items-center justify-between shadow-md">
                   <div className="flex items-center gap-2.5">
-                    <div className={`p-2 rounded-lg ${cameraStatus === 'ready' && isCameraOn ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                    <div className={`p-2 rounded-xl border ${cameraStatus === 'ready' && isCameraOn ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-surface-raised border-white/10 text-text-dim'}`}>
                       <Video className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="font-bold text-slate-800 text-xs">Camera</p>
-                      <p className="text-[10px] text-slate-400 truncate max-w-[150px]">{cameraName}</p>
+                      <p className="font-bold text-white text-xs">Camera</p>
+                      <p className="text-[10px] text-text-dim truncate max-w-[150px]">{cameraName}</p>
                     </div>
                   </div>
-                  <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold ${
+                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
                     cameraStatus === 'ready' && isCameraOn
-                      ? 'bg-emerald-100 text-emerald-800'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                       : cameraStatus === 'denied'
-                      ? 'bg-rose-100 text-rose-800'
-                      : 'bg-slate-100 text-slate-600'
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                      : 'bg-surface-raised text-text-dim border border-white/10'
                   }`}>
                     {cameraStatus === 'ready' && isCameraOn
-                      ? 'Camera: Ready'
+                      ? 'Camera Ready'
                       : cameraStatus === 'denied'
                       ? 'Blocked'
                       : !isCameraOn
-                      ? 'Camera: Off'
+                      ? 'Camera Off'
                       : 'Checking...'}
                   </span>
                 </div>
 
                 {/* Microphone Status Row with Live Audio Meter */}
-                <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-2xs">
+                <div className="bg-surface-base border border-white/5 rounded-2xl p-3 space-y-2 shadow-md">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className={`p-2 rounded-lg ${micStatus === 'ready' && isMicOn ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                      <div className={`p-2 rounded-xl border ${micStatus === 'ready' && isMicOn ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-surface-raised border-white/10 text-text-dim'}`}>
                         <Mic className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="font-bold text-slate-800 text-xs">Microphone</p>
-                        <p className="text-[10px] text-slate-400 truncate max-w-[150px]">{micName}</p>
+                        <p className="font-bold text-white text-xs">Microphone</p>
+                        <p className="text-[10px] text-text-dim truncate max-w-[150px]">{micName}</p>
                       </div>
                     </div>
-                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold ${
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
                       micStatus === 'ready' && isMicOn
-                        ? 'bg-emerald-100 text-emerald-800'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                         : micStatus === 'denied'
-                        ? 'bg-rose-100 text-rose-800'
-                        : 'bg-slate-100 text-slate-600'
+                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        : 'bg-surface-raised text-text-dim border border-white/10'
                     }`}>
                       {micStatus === 'ready' && isMicOn
-                        ? 'Microphone: Ready'
+                        ? 'Mic Ready'
                         : micStatus === 'denied'
                         ? 'Blocked'
                         : !isMicOn
@@ -1057,41 +1060,35 @@ export default function LiveSessionRoomView({
                   </div>
 
                   {micStatus === 'ready' && isMicOn && (
-                    <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
-                      <span className="text-[10px] text-slate-400 font-medium">Mic Input Test:</span>
-                      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden flex items-center">
+                    <div className="flex items-center gap-2 pt-1 border-t border-white/5">
+                      <span className="text-[10px] text-text-dim font-medium">Input Meter:</span>
+                      <div className="flex-1 h-2 bg-surface-raised rounded-full overflow-hidden flex items-center">
                         <div
                           className="h-full bg-emerald-500 transition-all duration-75 rounded-full"
                           style={{ width: `${Math.max(8, audioLevel)}%` }}
                         />
                       </div>
-                      <span className="text-[9px] font-mono text-emerald-600 font-bold">{audioLevel}%</span>
+                      <span className="text-[9px] font-mono text-emerald-400 font-bold">{audioLevel}%</span>
                     </div>
                   )}
                 </div>
 
               </div>
 
-              {/* Permission Denied Troubleshooting Alert */}
+              {/* Troubleshooting Alert */}
               {deviceError && (
-                <div className="bg-rose-50 border border-rose-200 p-3.5 rounded-xl space-y-2 text-rose-900 text-xs">
-                  <div className="flex items-center gap-2 font-bold text-rose-800">
-                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <div className="bg-rose-500/15 border border-rose-500/30 p-3.5 rounded-2xl space-y-2 text-rose-300 text-xs">
+                  <div className="flex items-center gap-2 font-bold text-rose-200">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                     <span>Hardware Permission Required</span>
                   </div>
-                  <p className="text-[11px] leading-relaxed text-rose-700">
-                    Your browser blocked access to your camera or microphone.
+                  <p className="text-[11px] leading-relaxed text-rose-300">
+                    Browser blocked device access. Click below to retry.
                   </p>
-                  <div className="bg-white/80 p-2.5 rounded-lg text-[10px] space-y-1 text-slate-700 border border-rose-100">
-                    <p className="font-bold text-slate-900">How to fix permissions:</p>
-                    <p>1. Click the lock/camera icon next to the URL bar.</p>
-                    <p>2. Set Camera & Microphone permissions to <strong>Allow</strong>.</p>
-                    <p>3. Click the button below to retry.</p>
-                  </div>
                   <button
                     type="button"
                     onClick={initLobbyMedia}
-                    className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Retry Device Check</span>
@@ -1100,37 +1097,37 @@ export default function LiveSessionRoomView({
               )}
 
               {/* Session Context Card */}
-              <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2 text-[11px] text-slate-600 shadow-2xs">
+              <div className="bg-surface-base border border-white/5 rounded-2xl p-3.5 space-y-2 text-[11px] text-text-sub shadow-inner">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Classroom:</span>
-                  <span className="font-bold text-slate-800">{booking.skillName}</span>
+                  <span className="text-text-dim">Classroom:</span>
+                  <span className="font-bold text-white">{booking.skillName}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Instructor:</span>
-                  <span className="font-bold text-slate-800">{booking.teacherName}</span>
+                  <span className="text-text-dim">Instructor:</span>
+                  <span className="font-bold text-lavender-200">{booking.teacherName}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Learner:</span>
-                  <span className="font-bold text-slate-800">{booking.learnerName}</span>
+                  <span className="text-text-dim">Learner:</span>
+                  <span className="font-bold text-lavender-200">{booking.learnerName}</span>
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-2.5 pt-4 border-t border-slate-200">
+            <div className="space-y-2.5 pt-4 border-t border-white/10">
               <button
                 type="button"
                 onClick={enterClassroom}
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer text-sm transform active:scale-95"
+                className="w-full py-3.5 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-2xl shadow-lg shadow-violet-500/25 transition flex items-center justify-center gap-2 cursor-pointer text-sm transform active:scale-95 border-0"
               >
                 <Play className="w-4 h-4 fill-current" />
-                <span>Confirm & Enter Call</span>
+                <span>Enter Live Classroom</span>
               </button>
 
               <button
                 type="button"
                 onClick={onLeave}
-                className="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-700 font-semibold border border-slate-200 rounded-xl transition cursor-pointer text-xs"
+                className="w-full py-2.5 bg-surface-interactive hover:bg-white/15 text-text-sub font-semibold border border-white/10 rounded-2xl transition cursor-pointer text-xs"
               >
                 Cancel & Exit
               </button>
@@ -1142,41 +1139,41 @@ export default function LiveSessionRoomView({
     );
   }
 
-  // CLASSROOM VIEW
+  // CLASSROOM VIEW (Immersive Live Session Studio)
   return (
-    <div className="max-w-6xl mx-auto space-y-4 text-xs text-slate-700">
+    <div className="max-w-6xl mx-auto space-y-4 text-xs text-text-sub">
       
-      {/* Top Session Bar (Google Meet Style Header) */}
-      <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-md flex flex-wrap items-center justify-between gap-3 border border-slate-800">
+      {/* Top Session Bar (Studio Header) */}
+      <div className="bg-surface-raised text-white rounded-3xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 border border-white/10 backdrop-blur-xl">
         
         {/* Left: Skill & Participants */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center font-bold text-sm border border-emerald-500/30">
-            🎥
+          <div className="w-10 h-10 bg-violet-500/20 text-lavender-300 rounded-2xl flex items-center justify-center font-bold text-sm border border-violet-500/30 shadow-inner">
+            <Video className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-bold text-white text-sm">{booking.skillName}</h2>
-              <span className="px-2 py-0.5 bg-indigo-950/80 text-indigo-300 rounded text-[10px] font-semibold border border-indigo-800/60">
-                1-on-1 Classroom
+              <span className="px-2.5 py-0.5 bg-violet-900/40 text-lavender-300 rounded-full text-[10px] font-bold border border-violet-500/30">
+                1-on-1 Studio
               </span>
             </div>
-            <p className="text-slate-400 text-[11px] mt-0.5 flex items-center gap-2">
-              <span>Instructor: <strong className="text-slate-200">{booking.teacherName}</strong></span>
+            <p className="text-text-dim text-[11px] mt-0.5 flex items-center gap-2">
+              <span>Instructor: <strong className="text-white">{booking.teacherName}</strong></span>
               <span>•</span>
-              <span>Learner: <strong className="text-slate-200">{booking.learnerName}</strong></span>
+              <span>Learner: <strong className="text-white">{booking.learnerName}</strong></span>
             </p>
           </div>
         </div>
 
-        {/* Center: Persistent Connection Status & Session Timer (Requirements 1 & 2) */}
+        {/* Center: Persistent Connection Status & Session Timer */}
         <div className="flex items-center gap-3">
           {/* Connection Status Badge */}
-          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-950/90 rounded-full border border-slate-800 shadow-xs">
+          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-surface-base rounded-full border border-white/10 shadow-md">
             {connectionStatus === 'connected' && (
               <>
-                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shrink-0" />
-                <span className="font-bold text-emerald-400 text-xs">Connected</span>
+                <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse shrink-0" />
+                <span className="font-bold text-emerald-400 text-xs">Live Connected</span>
               </>
             )}
             {connectionStatus === 'connecting' && (
@@ -1193,8 +1190,8 @@ export default function LiveSessionRoomView({
             )}
             {connectionStatus === 'waiting' && (
               <>
-                <span className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-ping shrink-0" />
-                <span className="font-medium text-blue-300 text-xs">Waiting for peer…</span>
+                <span className="w-2.5 h-2.5 bg-violet-400 rounded-full animate-ping shrink-0" />
+                <span className="font-medium text-lavender-300 text-xs">Waiting for peer…</span>
               </>
             )}
             {connectionStatus === 'disconnected' && (
@@ -1211,38 +1208,37 @@ export default function LiveSessionRoomView({
             )}
           </div>
 
-          {/* Session Timer (Requirement 2) */}
-          <div className="flex items-center gap-1.5 bg-slate-950/90 px-3.5 py-1.5 rounded-full border border-slate-800 text-slate-200 font-mono text-xs shadow-xs">
-            <Clock className="w-3.5 h-3.5 text-indigo-400" />
+          {/* Session Timer */}
+          <div className="flex items-center gap-1.5 bg-surface-base px-3.5 py-1.5 rounded-full border border-white/10 text-white font-mono text-xs shadow-md">
+            <Clock className="w-3.5 h-3.5 text-violet-400" />
             <span className="font-bold">Session: {formatTimer(elapsedSeconds)}</span>
           </div>
         </div>
 
-        {/* Right: Chat Toggle & Red Leave Button */}
+        {/* Right: Chat Toggle & Leave Button */}
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setShowChat(!showChat)}
-            className={`p-2.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 font-bold ${
+            className={`p-2.5 rounded-2xl transition cursor-pointer flex items-center gap-1.5 font-bold border ${
               showChat 
-                ? 'bg-indigo-600 text-white' 
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                ? 'bg-violet-600 text-white border-violet-500 shadow-md shadow-violet-500/20' 
+                : 'bg-surface-interactive text-text-sub hover:text-white border-white/10'
             }`}
           >
             <MessageSquare className="w-4 h-4" />
-            <span className="hidden sm:inline">Chat</span>
+            <span className="hidden sm:inline">Notes & Chat</span>
             {chatMessages.length > 0 && (
-              <span className="px-1.5 py-0.2 bg-indigo-400 text-slate-950 rounded-full text-[10px] font-extrabold">
+              <span className="px-1.5 py-0.2 bg-violet-400 text-slate-950 rounded-full text-[10px] font-black">
                 {chatMessages.length}
               </span>
             )}
           </button>
 
-          {/* Red Leave Button with Options (Requirement 4) */}
           <button
             type="button"
             onClick={() => setShowLeaveModal(true)}
-            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transform"
+            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-rose-600/25 active:scale-95 transform border-0"
           >
             <PhoneOff className="w-4 h-4" />
             <span>Leave</span>
@@ -1250,14 +1246,17 @@ export default function LiveSessionRoomView({
         </div>
       </div>
 
-      {/* Main Classroom Stage Grid */}
+      {/* Main Studio Stage Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[500px] relative">
         
         {/* Left/Main Area: Main Video Stage */}
         <div className={`${showChat ? 'lg:col-span-8' : 'lg:col-span-12'} transition-all space-y-3`}>
-          <div className="bg-slate-950 rounded-2xl overflow-hidden aspect-video relative shadow-xl border border-slate-800 flex items-center justify-center">
+          <div className="bg-surface-base rounded-3xl overflow-hidden aspect-video relative shadow-2xl border border-white/10 flex items-center justify-center">
             
-            {/* Remote Video Stream (Main Participant View) */}
+            {/* Subtle violet stage backlight */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-600/10 rounded-full blur-[100px] pointer-events-none" />
+
+            {/* Remote Video Stream */}
             <video
               ref={remoteVideoRef}
               autoPlay
@@ -1269,34 +1268,34 @@ export default function LiveSessionRoomView({
 
             {/* Remote Participant Camera Off Placeholder */}
             {connectionStatus === 'connected' && !remoteUserLeft && !remoteMediaState.isCameraOn && (
-              <div className="flex flex-col items-center justify-center text-slate-400 space-y-2">
-                <div className="w-20 h-20 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center text-slate-300 text-3xl font-bold shadow-inner">
+              <div className="flex flex-col items-center justify-center text-text-dim space-y-2 z-10">
+                <div className="w-20 h-20 bg-surface-raised border border-white/10 rounded-3xl flex items-center justify-center text-white text-3xl font-black shadow-2xl font-display">
                   {otherUser.name.charAt(0)}
                 </div>
-                <p className="font-semibold text-white text-sm">{otherUser.name}</p>
-                <div className="px-2.5 py-1 bg-slate-900 rounded-full border border-slate-800 text-[10px] text-slate-400 flex items-center gap-1.5">
+                <p className="font-bold text-white text-sm">{otherUser.name}</p>
+                <div className="px-3 py-1 bg-surface-raised rounded-full border border-white/10 text-[10px] text-text-dim flex items-center gap-1.5">
                   <VideoOff className="w-3 h-3 text-rose-400" />
                   <span>Participant camera is off</span>
                 </div>
               </div>
             )}
 
-            {/* Requirement 5: Participant Left State Card */}
+            {/* Participant Left State Card */}
             {(remoteUserLeft || connectionStatus === 'disconnected') && (
               <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 max-w-md mx-auto z-20">
-                <div className="w-20 h-20 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center text-slate-400 text-3xl font-bold shadow-2xl relative">
+                <div className="w-20 h-20 bg-surface-raised border border-white/10 rounded-3xl flex items-center justify-center text-text-dim text-3xl font-bold shadow-2xl relative font-display">
                   {otherUser.name.charAt(0)}
-                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-rose-600 rounded-full border-2 border-slate-950 flex items-center justify-center text-xs text-white">
+                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-rose-600 rounded-full border-2 border-surface-base flex items-center justify-center text-xs text-white">
                     ×
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-extrabold text-white text-lg">
+                  <h3 className="font-black text-white text-lg font-display">
                     {otherUser.name} has left the session
                   </h3>
-                  <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
-                    They disconnected or exited the classroom. You can wait briefly for them to rejoin, or end the session on your side.
+                  <p className="text-text-dim text-xs mt-1.5 leading-relaxed">
+                    They disconnected or exited the classroom. You can wait briefly for them to rejoin, or conclude the session.
                   </p>
                 </div>
 
@@ -1304,7 +1303,7 @@ export default function LiveSessionRoomView({
                   <button
                     type="button"
                     onClick={handleEndForEveryone}
-                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-md flex items-center gap-2 transform active:scale-95"
+                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl text-xs transition cursor-pointer shadow-lg shadow-rose-600/20 flex items-center gap-2 transform active:scale-95 border-0"
                   >
                     <PhoneOff className="w-4 h-4" />
                     <span>End Session for Everyone</span>
@@ -1313,7 +1312,7 @@ export default function LiveSessionRoomView({
                   <button
                     type="button"
                     onClick={handleLeaveOnly}
-                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700 rounded-xl text-xs transition cursor-pointer"
+                    className="px-4 py-2.5 bg-surface-interactive hover:bg-white/15 text-text-sub font-semibold border border-white/10 rounded-2xl text-xs transition cursor-pointer"
                   >
                     <span>Leave Call</span>
                   </button>
@@ -1321,31 +1320,31 @@ export default function LiveSessionRoomView({
               </div>
             )}
 
-            {/* Connecting / Waiting Placeholder overlay when not connected and remote user hasn't explicitly left */}
+            {/* Connecting / Waiting Placeholder */}
             {connectionStatus !== 'connected' && !remoteUserLeft && connectionStatus !== 'disconnected' && (
-              <div className="flex flex-col items-center justify-center space-y-3 text-slate-400 p-6 text-center max-w-md z-10">
-                <div className="w-16 h-16 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-300 text-2xl shadow-inner">
+              <div className="flex flex-col items-center justify-center space-y-3 text-text-dim p-6 text-center max-w-md z-10">
+                <div className="w-16 h-16 bg-surface-raised border border-white/10 rounded-3xl flex items-center justify-center text-lavender-300 text-2xl shadow-2xl">
                   {connectionStatus === 'failed' ? (
-                    <AlertTriangle className="w-8 h-8 text-rose-500" />
+                    <AlertTriangle className="w-8 h-8 text-rose-400" />
                   ) : connectionStatus === 'reconnecting' ? (
                     <RefreshCw className="w-8 h-8 text-amber-400 animate-spin" />
                   ) : (
-                    <User className="w-8 h-8 text-slate-500" />
+                    <User className="w-8 h-8 text-violet-400" />
                   )}
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-base">
+                  <h3 className="font-black text-white text-base font-display">
                     {connectionStatus === 'waiting'
                       ? `Waiting for ${otherUser.name}...`
                       : connectionStatus === 'reconnecting'
-                      ? 'Reconnecting WebRTC Stream…'
+                      ? 'Reconnecting Live Stream…'
                       : connectionStatus === 'failed'
-                      ? 'Connection Could Not Be Established'
-                      : 'Connecting WebRTC Stream...'}
+                      ? 'Connection Interrupted'
+                      : 'Connecting WebRTC Peer Stream...'}
                   </h3>
-                  <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
+                  <p className="text-text-dim text-xs mt-1.5 leading-relaxed">
                     {connectionStatus === 'waiting'
-                      ? 'Both participants must join this room to begin the live two-way video call.'
+                      ? 'Both participants must join this room to begin the live two-way video exchange.'
                       : connectionStatus === 'reconnecting'
                       ? 'Network connection temporarily interrupted. Attempting to restore video feed...'
                       : connectionStatus === 'failed'
@@ -1355,9 +1354,9 @@ export default function LiveSessionRoomView({
                 </div>
 
                 {connectionStatus === 'waiting' && (
-                  <div className="px-3.5 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-amber-400 text-[11px] flex items-center gap-2">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Listening for peer presence on private channel</span>
+                  <div className="px-3.5 py-2 bg-surface-raised/90 border border-white/10 rounded-2xl text-lavender-300 text-[11px] flex items-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-violet-400" />
+                    <span>Listening for peer presence on private barter channel</span>
                   </div>
                 )}
 
@@ -1367,7 +1366,7 @@ export default function LiveSessionRoomView({
                     onClick={() => {
                       enterClassroom();
                     }}
-                    className="mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-2 shadow-md"
+                    className="mt-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-2xl text-xs transition cursor-pointer flex items-center gap-2 shadow-lg shadow-violet-500/20 border-0"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Retry Connection</span>
@@ -1377,20 +1376,19 @@ export default function LiveSessionRoomView({
             )}
 
             {/* Remote User Label & Media Status Overlay */}
-            <div className="absolute top-4 left-4 bg-slate-900/85 backdrop-blur-xs px-3 py-1.5 rounded-xl text-white font-semibold text-xs flex items-center gap-2 border border-slate-800 shadow-md z-20">
-              <div className={`w-2.5 h-2.5 rounded-full ${connectionStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+            <div className="absolute top-4 left-4 bg-surface-base/90 backdrop-blur-md px-3 py-1.5 rounded-2xl text-white font-semibold text-xs flex items-center gap-2 border border-white/10 shadow-lg z-20">
+              <div className={`w-2.5 h-2.5 rounded-full ${connectionStatus === 'connected' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
               <span>{otherUser.name} ({isTeacher ? 'Learner' : 'Instructor'})</span>
               
-              {/* Remote Mic Indicator */}
               {connectionStatus === 'connected' && !remoteUserLeft && (
-                <span className={`p-1 rounded ${remoteMediaState.isMicOn ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                <span className={`p-1 rounded-lg ${remoteMediaState.isMicOn ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                   {remoteMediaState.isMicOn ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
                 </span>
               )}
             </div>
 
             {/* Local Video Stream Preview (Picture-in-Picture) */}
-            <div className="absolute bottom-4 right-4 w-40 sm:w-52 aspect-video bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-800 shadow-2xl z-20 group">
+            <div className="absolute bottom-4 right-4 w-40 sm:w-52 aspect-video bg-surface-base rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl z-20 group">
               <video
                 ref={localVideoRef}
                 autoPlay
@@ -1400,13 +1398,13 @@ export default function LiveSessionRoomView({
               />
 
               {!isCameraOn && (
-                <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-900">
-                  <VideoOff className="w-6 h-6 text-slate-600" />
+                <div className="w-full h-full flex flex-col items-center justify-center text-text-dim bg-surface-base">
+                  <VideoOff className="w-6 h-6 text-text-dim" />
                   <span className="text-[10px] font-semibold mt-1">Camera Off</span>
                 </div>
               )}
 
-              <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between bg-slate-950/85 backdrop-blur-xs px-2 py-0.5 rounded text-[10px] text-white font-medium border border-slate-800/80">
+              <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between bg-surface-raised/90 backdrop-blur-md px-2 py-0.5 rounded-lg text-[10px] text-white font-medium border border-white/10">
                 <span className="truncate">You ({currentUser.name})</span>
                 <span className={`p-0.5 rounded ${isMicOn ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {isMicOn ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
@@ -1414,29 +1412,29 @@ export default function LiveSessionRoomView({
               </div>
             </div>
 
-            {/* Requirement 3: Both Participants Muted Prompt */}
+            {/* Both Participants Muted Alert */}
             <AnimatePresence>
               {showBothMutedPrompt && (
                 <motion.div
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 border border-amber-500/40 backdrop-blur-md px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-3 text-white text-xs z-30"
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-surface-raised/95 border border-amber-500/40 backdrop-blur-xl px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-3 text-white text-xs z-30"
                 >
                   <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
                   <span className="font-medium text-amber-200">Looks like you're both muted!</span>
                   <button
                     type="button"
                     onClick={toggleMic}
-                    className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-full text-[11px] transition cursor-pointer flex items-center gap-1 shadow-xs"
+                    className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-full text-[11px] transition cursor-pointer flex items-center gap-1 shadow-xs border-0"
                   >
                     <Mic className="w-3 h-3" />
-                    <span>Unmute Mic</span>
+                    <span>Unmute</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowBothMutedPrompt(false)}
-                    className="text-slate-400 hover:text-white p-1 rounded-full cursor-pointer ml-1"
+                    className="text-text-dim hover:text-white p-1 rounded-full cursor-pointer ml-1 bg-transparent border-0"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -1446,24 +1444,24 @@ export default function LiveSessionRoomView({
 
           </div>
 
-          {/* Bottom Classroom Controls Toolbar (Requirement 4) */}
-          <div className="bg-slate-900 rounded-2xl p-3 border border-slate-800 flex flex-wrap items-center justify-center gap-3 shadow-lg">
+          {/* Bottom Controls Toolbar */}
+          <div className="bg-surface-raised rounded-3xl p-3 border border-white/10 flex flex-wrap items-center justify-center gap-3 shadow-2xl backdrop-blur-xl">
             
             {/* Microphone Toggle */}
             <button
               type="button"
               onClick={toggleMic}
-              className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md ${
+              className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2.5 cursor-pointer shadow-md border ${
                 isMicOn 
-                  ? 'bg-slate-800 text-white hover:bg-slate-700 border border-slate-700' 
-                  : 'bg-rose-600 text-white hover:bg-rose-700'
+                  ? 'bg-surface-base text-white hover:bg-white/10 border-white/10' 
+                  : 'bg-rose-600 text-white hover:bg-rose-700 border-rose-500'
               }`}
               title={isMicOn ? 'Mute Microphone' : 'Unmute Microphone'}
             >
               {isMicOn ? <Mic className="w-5 h-5 text-emerald-400" /> : <MicOff className="w-5 h-5" />}
               <div className="hidden sm:flex flex-col items-start text-left">
                 <span className="text-xs font-bold leading-none">{isMicOn ? 'Mic On' : 'Muted'}</span>
-                <span className="text-[9px] font-normal text-slate-400 mt-0.5">{isMicOn ? 'Click to Mute' : 'Click to Unmute'}</span>
+                <span className="text-[9px] font-normal text-text-dim mt-0.5">{isMicOn ? 'Click to Mute' : 'Click to Unmute'}</span>
               </div>
             </button>
 
@@ -1471,17 +1469,17 @@ export default function LiveSessionRoomView({
             <button
               type="button"
               onClick={toggleCamera}
-              className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md ${
+              className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2.5 cursor-pointer shadow-md border ${
                 isCameraOn 
-                  ? 'bg-slate-800 text-white hover:bg-slate-700 border border-slate-700' 
-                  : 'bg-rose-600 text-white hover:bg-rose-700'
+                  ? 'bg-surface-base text-white hover:bg-white/10 border-white/10' 
+                  : 'bg-rose-600 text-white hover:bg-rose-700 border-rose-500'
               }`}
               title={isCameraOn ? 'Stop Camera' : 'Start Camera'}
             >
               {isCameraOn ? <Video className="w-5 h-5 text-emerald-400" /> : <VideoOff className="w-5 h-5" />}
               <div className="hidden sm:flex flex-col items-start text-left">
                 <span className="text-xs font-bold leading-none">{isCameraOn ? 'Camera On' : 'Camera Off'}</span>
-                <span className="text-[9px] font-normal text-slate-400 mt-0.5">{isCameraOn ? 'Click to Stop' : 'Click to Start'}</span>
+                <span className="text-[9px] font-normal text-text-dim mt-0.5">{isCameraOn ? 'Click to Stop' : 'Click to Start'}</span>
               </div>
             </button>
 
@@ -1489,49 +1487,49 @@ export default function LiveSessionRoomView({
             <button
               type="button"
               onClick={toggleScreenShare}
-              className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md ${
+              className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2.5 cursor-pointer shadow-md border ${
                 isScreenSharing 
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                  ? 'bg-violet-600 text-white hover:bg-violet-500 border-violet-500 shadow-md shadow-violet-500/20' 
+                  : 'bg-surface-base text-text-sub hover:text-white border-white/10'
               }`}
               title={isScreenSharing ? 'Stop Screen Sharing' : 'Share Screen'}
             >
               {isScreenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
               <div className="hidden sm:flex flex-col items-start text-left">
-                <span className="text-xs font-bold leading-none">{isScreenSharing ? 'Sharing Screen' : 'Share Screen'}</span>
-                <span className="text-[9px] font-normal text-slate-400 mt-0.5">{isScreenSharing ? 'Click to Stop' : 'Code / Slides'}</span>
+                <span className="text-xs font-bold leading-none">{isScreenSharing ? 'Sharing' : 'Share Screen'}</span>
+                <span className="text-[9px] font-normal text-text-dim mt-0.5">{isScreenSharing ? 'Click to Stop' : 'Code / Workspace'}</span>
               </div>
             </button>
 
-            {/* Chat Toggle */}
+            {/* Notes & Chat Toggle */}
             <button
               type="button"
               onClick={() => setShowChat(!showChat)}
-              className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2 cursor-pointer shadow-md ${
+              className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2.5 cursor-pointer shadow-md border ${
                 showChat 
-                  ? 'bg-indigo-600 text-white' 
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                  ? 'bg-violet-600 text-white border-violet-500 shadow-md shadow-violet-500/20' 
+                  : 'bg-surface-base text-text-sub hover:text-white border-white/10'
               }`}
               title="Toggle Classroom Chat"
             >
               <MessageSquare className="w-5 h-5" />
               <div className="hidden sm:flex flex-col items-start text-left">
-                <span className="text-xs font-bold leading-none">Classroom Chat</span>
-                <span className="text-[9px] font-normal text-slate-400 mt-0.5">{chatMessages.length} messages</span>
+                <span className="text-xs font-bold leading-none">Classroom Notes</span>
+                <span className="text-[9px] font-normal text-text-dim mt-0.5">{chatMessages.length} messages</span>
               </div>
             </button>
 
-            {/* Distinct Red Leave Button (Requirement 4) */}
+            {/* Leave Room Button */}
             <button
               type="button"
               onClick={() => setShowLeaveModal(true)}
-              className="p-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl transition flex items-center gap-2 cursor-pointer shadow-md transform active:scale-95"
+              className="p-3.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl transition flex items-center gap-2.5 cursor-pointer shadow-lg shadow-rose-600/20 transform active:scale-95 border-0"
               title="Leave Classroom Session"
             >
               <PhoneOff className="w-5 h-5" />
               <div className="hidden sm:flex flex-col items-start text-left">
-                <span className="text-xs font-bold leading-none">Leave Classroom</span>
-                <span className="text-[9px] font-normal text-rose-200 mt-0.5">Leave or End Session</span>
+                <span className="text-xs font-bold leading-none">Leave Studio</span>
+                <span className="text-[9px] font-normal text-rose-200 mt-0.5">Exit or Conclude</span>
               </div>
             </button>
 
@@ -1540,30 +1538,30 @@ export default function LiveSessionRoomView({
 
         {/* Right Desktop Chat Side Panel */}
         {showChat && (
-          <div className="hidden lg:flex lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-lg flex-col h-[520px] overflow-hidden">
-            <div className="p-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div className="hidden lg:flex lg:col-span-4 bg-surface-raised rounded-3xl border border-white/10 shadow-2xl flex-col h-[520px] overflow-hidden backdrop-blur-xl">
+            <div className="p-3.5 bg-surface-base border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-indigo-600" />
-                <h3 className="font-bold text-slate-900 text-xs">Classroom Notes & Chat</h3>
+                <MessageSquare className="w-4 h-4 text-violet-400" />
+                <h3 className="font-bold text-white text-xs">Classroom Notes & Links</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowChat(false)}
-                className="text-slate-400 hover:text-slate-700 font-bold text-xs p-1 cursor-pointer"
+                className="text-text-dim hover:text-white font-bold text-xs p-1 cursor-pointer bg-transparent border-0"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Chat Messages Log */}
-            <div className="p-4 flex-1 overflow-y-auto space-y-3 bg-slate-50/50">
+            <div className="p-4 flex-1 overflow-y-auto space-y-3 bg-surface-raised/40">
               {chatMessages.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 text-xs space-y-1">
-                  <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-2 text-slate-400">
+                <div className="text-center py-12 text-text-dim text-xs space-y-1">
+                  <div className="w-10 h-10 bg-surface-base rounded-2xl flex items-center justify-center mx-auto mb-2 text-text-dim border border-white/10">
                     <MessageSquare className="w-5 h-5" />
                   </div>
-                  <p className="font-semibold text-slate-600">No chat messages yet</p>
-                  <p className="text-[11px]">Send code snippets, documentation links, or notes to your peer.</p>
+                  <p className="font-bold text-white">No notes yet</p>
+                  <p className="text-[11px] text-text-dim">Send code snippets, documentation links, or notes to your partner.</p>
                 </div>
               ) : (
                 chatMessages.map((msg) => {
@@ -1573,15 +1571,15 @@ export default function LiveSessionRoomView({
                       key={msg.id}
                       className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}
                     >
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mb-0.5">
-                        <span className="font-bold text-slate-700">{isSelf ? 'You' : msg.senderName}</span>
+                      <div className="flex items-center gap-1.5 text-[10px] text-text-dim mb-0.5">
+                        <span className="font-bold text-white">{isSelf ? 'You' : msg.senderName}</span>
                         <span>• {msg.timestamp}</span>
                       </div>
                       <div
                         className={`p-2.5 rounded-2xl max-w-[88%] text-xs leading-relaxed break-words ${
                           isSelf
-                            ? 'bg-indigo-600 text-white rounded-tr-none'
-                            : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none shadow-2xs'
+                            ? 'bg-violet-600 text-white rounded-tr-none shadow-md shadow-violet-500/20'
+                            : 'bg-surface-base border border-white/10 text-white rounded-tl-none shadow-md'
                         }`}
                       >
                         {msg.text}
@@ -1594,18 +1592,18 @@ export default function LiveSessionRoomView({
             </div>
 
             {/* Chat Input Form */}
-            <form onSubmit={handleSendChatMessage} className="p-3 border-t border-slate-200 bg-white flex items-center gap-2">
+            <form onSubmit={handleSendChatMessage} className="p-3 border-t border-white/10 bg-surface-base flex items-center gap-2">
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Type a message or paste a link..."
-                className="flex-1 px-3.5 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                placeholder="Type notes or paste code links..."
+                className="flex-1 px-3.5 py-2 bg-surface-raised border border-white/10 rounded-xl text-xs text-white placeholder:text-text-dim focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
               <button
                 type="submit"
                 disabled={!chatInput.trim()}
-                className="p-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl transition cursor-pointer"
+                className="p-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white rounded-xl transition cursor-pointer shadow-md border-0"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -1615,14 +1613,14 @@ export default function LiveSessionRoomView({
 
       </div>
 
-      {/* Mobile Chat Slide-over Drawer */}
+      {/* Mobile Chat Drawer */}
       <AnimatePresence>
         {showChat && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="lg:hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex flex-col justify-end"
+            className="lg:hidden fixed inset-0 bg-surface-base/80 backdrop-blur-md z-50 flex flex-col justify-end"
             onClick={() => setShowChat(false)}
           >
             <motion.div
@@ -1630,28 +1628,28 @@ export default function LiveSessionRoomView({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-white rounded-t-3xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl"
+              className="bg-surface-raised border-t border-white/10 rounded-t-3xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div className="p-4 bg-surface-base border-b border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-indigo-600" />
-                  <h3 className="font-bold text-slate-900 text-sm">Classroom Notes & Chat</h3>
+                  <MessageSquare className="w-4 h-4 text-violet-400" />
+                  <h3 className="font-bold text-white text-sm">Classroom Notes</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowChat(false)}
-                  className="p-1.5 rounded-full bg-slate-200/60 hover:bg-slate-200 text-slate-600 font-bold text-xs"
+                  className="p-1.5 rounded-full bg-surface-raised text-text-dim hover:text-white font-bold text-xs border-0 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Chat Messages Log */}
-              <div className="p-4 flex-1 overflow-y-auto space-y-3 bg-slate-50/50 min-h-[250px]">
+              <div className="p-4 flex-1 overflow-y-auto space-y-3 bg-surface-raised/50 min-h-[250px]">
                 {chatMessages.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 text-xs space-y-1">
-                    <p className="font-semibold text-slate-600">No chat messages yet</p>
+                  <div className="text-center py-8 text-text-dim text-xs space-y-1">
+                    <p className="font-bold text-white">No messages yet</p>
                     <p>Send messages, code snippets, or links during your call.</p>
                   </div>
                 ) : (
@@ -1662,15 +1660,15 @@ export default function LiveSessionRoomView({
                         key={msg.id}
                         className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}
                       >
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mb-0.5">
-                          <span className="font-bold text-slate-700">{isSelf ? 'You' : msg.senderName}</span>
+                        <div className="flex items-center gap-1.5 text-[10px] text-text-dim mb-0.5">
+                          <span className="font-bold text-white">{isSelf ? 'You' : msg.senderName}</span>
                           <span>• {msg.timestamp}</span>
                         </div>
                         <div
                           className={`p-2.5 rounded-2xl max-w-[85%] text-xs leading-relaxed break-words ${
                             isSelf
-                              ? 'bg-indigo-600 text-white rounded-tr-none'
-                              : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none shadow-2xs'
+                              ? 'bg-violet-600 text-white rounded-tr-none'
+                              : 'bg-surface-base border border-white/10 text-white rounded-tl-none shadow-md'
                           }`}
                         >
                           {msg.text}
@@ -1683,18 +1681,18 @@ export default function LiveSessionRoomView({
               </div>
 
               {/* Chat Input Form */}
-              <form onSubmit={handleSendChatMessage} className="p-3 border-t border-slate-200 bg-white flex items-center gap-2">
+              <form onSubmit={handleSendChatMessage} className="p-3 border-t border-white/10 bg-surface-base flex items-center gap-2">
                 <input
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1 px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  placeholder="Type notes or paste code..."
+                  className="flex-1 px-3.5 py-2.5 bg-surface-raised border border-white/10 rounded-xl text-xs text-white placeholder:text-text-dim focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
                 <button
                   type="submit"
                   disabled={!chatInput.trim()}
-                  className="p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl transition cursor-pointer"
+                  className="p-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white rounded-xl transition cursor-pointer border-0"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -1704,30 +1702,30 @@ export default function LiveSessionRoomView({
         )}
       </AnimatePresence>
 
-      {/* Requirement 4: Leave Action Options Modal */}
+      {/* Leave Action Options Modal */}
       <AnimatePresence>
         {showLeaveModal && (
-          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-surface-base/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-slate-900 rounded-2xl max-w-md w-full border border-slate-800 shadow-2xl p-6 text-white space-y-5"
+              className="bg-surface-raised rounded-3xl max-w-md w-full border border-white/10 shadow-2xl p-6 text-white space-y-5"
             >
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center">
                     <PhoneOff className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-base">Leave Classroom</h3>
-                    <p className="text-slate-400 text-xs">Choose how you want to exit</p>
+                    <h3 className="font-black text-base font-display">Leave Classroom</h3>
+                    <p className="text-text-dim text-xs">Choose how you want to exit</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowLeaveModal(false)}
-                  className="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer"
+                  className="text-text-dim hover:text-white p-1 rounded-xl transition cursor-pointer bg-transparent border-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1741,16 +1739,16 @@ export default function LiveSessionRoomView({
                     setShowLeaveModal(false);
                     handleLeaveOnly();
                   }}
-                  className="w-full text-left p-4 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 transition cursor-pointer group flex items-start gap-3"
+                  className="w-full text-left p-4 rounded-2xl bg-surface-base hover:bg-white/5 border border-white/5 hover:border-white/10 transition cursor-pointer group flex items-start gap-3"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition">
+                  <div className="w-8 h-8 rounded-xl bg-violet-500/20 text-lavender-300 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition">
                     <User className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="font-bold text-white text-xs group-hover:text-indigo-300 transition">
+                    <div className="font-bold text-white text-xs group-hover:text-lavender-300 transition">
                       Just Leave Call
                     </div>
-                    <p className="text-slate-400 text-[11px] mt-0.5 leading-snug">
+                    <p className="text-text-dim text-[11px] mt-0.5 leading-snug">
                       Leave the room for yourself. {otherUser.name} can stay or wait briefly for you to rejoin.
                     </p>
                   </div>
@@ -1763,9 +1761,9 @@ export default function LiveSessionRoomView({
                     setShowLeaveModal(false);
                     handleEndForEveryone();
                   }}
-                  className="w-full text-left p-4 rounded-xl bg-rose-950/40 hover:bg-rose-900/50 border border-rose-800/60 transition cursor-pointer group flex items-start gap-3"
+                  className="w-full text-left p-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition cursor-pointer group flex items-start gap-3"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition">
+                  <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition">
                     <PhoneOff className="w-4 h-4" />
                   </div>
                   <div>
@@ -1783,7 +1781,7 @@ export default function LiveSessionRoomView({
                 <button
                   type="button"
                   onClick={() => setShowLeaveModal(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition cursor-pointer"
+                  className="px-4 py-2 bg-surface-interactive hover:bg-white/15 text-text-sub font-semibold rounded-xl text-xs transition cursor-pointer border border-white/10"
                 >
                   Cancel
                 </button>
@@ -1796,20 +1794,20 @@ export default function LiveSessionRoomView({
       {/* Peer Ended Session Modal */}
       <AnimatePresence>
         {sessionEndedByPeer && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-surface-base/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-slate-900 rounded-2xl max-w-sm w-full border border-slate-800 shadow-2xl p-6 text-white text-center space-y-4"
+              className="bg-surface-raised rounded-3xl max-w-sm w-full border border-white/10 shadow-2xl p-6 text-white text-center space-y-4"
             >
-              <div className="w-14 h-14 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-2xl flex items-center justify-center mx-auto">
+              <div className="w-14 h-14 bg-violet-500/20 text-lavender-300 border border-violet-500/30 rounded-2xl flex items-center justify-center mx-auto">
                 <Sparkles className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="font-extrabold text-base text-white">
+                <h3 className="font-black text-base text-white font-display">
                   Session Ended by {peerWhoEnded || otherUser.name}
                 </h3>
-                <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
+                <p className="text-text-dim text-xs mt-1.5 leading-relaxed">
                   {peerWhoEnded || otherUser.name} concluded the classroom session for both participants.
                 </p>
               </div>
@@ -1818,7 +1816,7 @@ export default function LiveSessionRoomView({
                 onClick={async () => {
                   await handleSessionFinish();
                 }}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-md"
+                className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-2xl text-xs transition cursor-pointer shadow-lg shadow-violet-500/20 border-0"
               >
                 View Session Summary
               </button>
