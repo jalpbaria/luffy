@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { 
   Compass, LayoutDashboard, MessageSquare, Brain, User, 
@@ -26,6 +26,7 @@ import { GamificationToast, Badge as GamificationBadge } from './types';
 import { Navbar } from './components/Navbar';
 import { InitialAppLoader } from './components/motion';
 import { AmbientBackground } from './components/layout';
+import { PasswordResetModal } from './components/PasswordResetModal';
 import { supabase, mapSupabaseToProfile, mapProfileToSupabase, mapSupabaseToBooking, mapBookingToSupabase, mapSupabaseToNotification, mapNotificationToSupabase, mapSupabaseToReview, mapReviewToSupabase } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
 import { fallbackUsers } from './data/fallbackUsers';
@@ -64,10 +65,16 @@ export default function App() {
   
   // User specific data
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const bookingsRef = useRef<Booking[]>([]);
+  bookingsRef.current = bookings;
+
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [progress, setProgress] = useState<ProgressTrack[]>([]);
   const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
   const [allReviews, setAllReviews] = useState<Review[]>([]);
+
+  const currentUserRef = useRef<UserProfile | null>(null);
+  currentUserRef.current = currentUser;
 
   // Active live classroom session
   const [activeLiveSessionBooking, setActiveLiveSessionBooking] = useState<Booking | null>(null);
@@ -84,137 +91,8 @@ export default function App() {
   const [accountDeletedNotice, setAccountDeletedNotice] = useState('');
   const [showOnboardingTour, setShowOnboardingTour] = useState(false);
 
-  useEffect(() => {
-    if (currentUser && currentUser.hasSeenOnboarding === false) {
-      setShowOnboardingTour(true);
-    }
-  }, [currentUser?.id, currentUser?.hasSeenOnboarding]);
-
-  const handleCompleteOnboarding = async () => {
-    setShowOnboardingTour(false);
-    if (!currentUser) return;
-
-    const updatedUser = { ...currentUser, hasSeenOnboarding: true };
-    setCurrentUser(updatedUser);
-
-    try {
-      await supabase
-        .from('profiles')
-        .update({ has_seen_onboarding: true })
-        .eq('id', currentUser.id);
-    } catch (err) {
-      console.warn('Failed to update has_seen_onboarding in Supabase:', err);
-    }
-
-    setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
-  };
-
-  const handleStartLiveSession = async (booking: Booking) => {
-    if (!currentUser) {
-      alert('Please log in to join the live session.');
-      return;
-    }
-
-    // 1. Check user is actually the teacher or learner for this booking
-    const isParticipant = currentUser.id === booking.teacherId || currentUser.id === booking.learnerId;
-    if (!isParticipant) {
-      alert('Access Denied: You are not a participant in this booking session.');
-      return;
-    }
-
-    // 2. Check booking status (cancelled, completed, or unconfirmed)
-    if (booking.status === 'cancelled') {
-      alert('Cannot join: This session booking has been cancelled.');
-      return;
-    }
-
-    if (booking.status === 'completed') {
-      alert('This live classroom session has already been completed.');
-      return;
-    }
-
-    if (booking.status !== 'confirmed' && booking.status !== 'rescheduled') {
-      try {
-        const { data: latestData } = await supabase.from('bookings').select('*').eq('id', booking.id).single();
-        if (latestData) {
-          const freshBooking = mapSupabaseToBooking(latestData);
-          if (freshBooking.status === 'confirmed' || freshBooking.status === 'rescheduled') {
-            booking = freshBooking;
-          } else {
-            alert(`Cannot join: This booking status is currently "${freshBooking.status}". Only confirmed or rescheduled sessions can launch the live classroom.`);
-            return;
-          }
-        } else {
-          alert(`Cannot join: This booking status is currently "${booking.status}". Only confirmed or rescheduled sessions can launch the live classroom.`);
-          return;
-        }
-      } catch (e) {
-        alert(`Cannot join: This booking status is currently "${booking.status}". Only confirmed or rescheduled sessions can launch the live classroom.`);
-        return;
-      }
-    }
-
-    // 5. Check scheduled session time window (10 min before to 60 min after)
-    const gate = getSessionGateStatus(booking);
-    if (gate.status === 'too_early') {
-      alert(`This session starts at ${gate.formattedTime}. You can join 10 minutes before.`);
-      return;
-    }
-    if (gate.status === 'passed') {
-      alert("This session's scheduled time has passed.");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const session = await getOrCreateLiveSessionForBooking(booking);
-
-      if (session.status === 'cancelled') {
-        alert('Cannot join: The live session has been cancelled.');
-        return;
-      }
-
-      if (session.status === 'ended') {
-        alert('This live session has ended.');
-        return;
-      }
-
-      setActiveLiveSessionBooking(booking);
-      setActiveLiveSessionData(session);
-      setActiveTab('live-room');
-
-      // Send incoming call notification to the other participant
-      const otherParticipantId = booking.teacherId === currentUser.id ? booking.learnerId : booking.teacherId;
-      try {
-        const { error: notifErr } = await supabase.from('notifications').insert({
-          user_id: otherParticipantId,
-          title: `Incoming call from ${currentUser.name}`,
-          message: `${currentUser.name} started a live classroom session for your booking. Join now to connect.`,
-          type: 'call',
-          booking_id: booking.id,
-          read: false,
-          timestamp: new Date().toISOString()
-        });
-        if (notifErr) {
-          console.warn('[App] Failed to insert call notification for recipient:', notifErr.message);
-        }
-      } catch (notifErr) {
-        console.warn('[App] Error sending call notification:', notifErr);
-      }
-    } catch (err) {
-      console.error('Failed to launch live session:', err);
-      alert('Failed to connect to live classroom. Please check your network connection.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Password recovery modal state
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [resetError, setResetError] = useState('');
-  const [resetSuccess, setResetSuccess] = useState('');
-  const [isResetting, setIsResetting] = useState(false);
 
   const [userLoadError, setUserLoadError] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -289,8 +167,6 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         setShowPasswordResetModal(true);
-        setResetError('');
-        setResetSuccess('');
       }
     });
 
@@ -591,16 +467,145 @@ export default function App() {
     };
   }, [currentUser?.id]);
 
+  useEffect(() => {
+    if (currentUser && currentUser.hasSeenOnboarding === false) {
+      setShowOnboardingTour(true);
+    }
+  }, [currentUser?.id, currentUser?.hasSeenOnboarding]);
+
+  const handleCompleteOnboarding = async () => {
+    setShowOnboardingTour(false);
+    if (!currentUser) return;
+
+    const updatedUser = { ...currentUser, hasSeenOnboarding: true };
+    setCurrentUser(updatedUser);
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ has_seen_onboarding: true })
+        .eq('id', currentUser.id);
+    } catch (err) {
+      console.warn('Failed to update has_seen_onboarding in Supabase:', err);
+    }
+
+    setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+  };
+
+  const handleStartLiveSession = async (booking: Booking) => {
+    if (!currentUser) {
+      alert('Please log in to join the live session.');
+      return;
+    }
+
+    // 1. Check user is actually the teacher or learner for this booking
+    const isParticipant = currentUser.id === booking.teacherId || currentUser.id === booking.learnerId;
+    if (!isParticipant) {
+      alert('Access Denied: You are not a participant in this booking session.');
+      return;
+    }
+
+    // 2. Check booking status (cancelled, completed, or unconfirmed)
+    if (booking.status === 'cancelled') {
+      alert('Cannot join: This session booking has been cancelled.');
+      return;
+    }
+
+    if (booking.status === 'completed') {
+      alert('This live classroom session has already been completed.');
+      return;
+    }
+
+    if (booking.status !== 'confirmed' && booking.status !== 'rescheduled') {
+      try {
+        const { data: latestData } = await supabase.from('bookings').select('*').eq('id', booking.id).single();
+        if (latestData) {
+          const freshBooking = mapSupabaseToBooking(latestData);
+          if (freshBooking.status === 'confirmed' || freshBooking.status === 'rescheduled') {
+            booking = freshBooking;
+          } else {
+            alert(`Cannot join: This booking status is currently "${freshBooking.status}". Only confirmed or rescheduled sessions can launch the live classroom.`);
+            return;
+          }
+        } else {
+          alert(`Cannot join: This booking status is currently "${booking.status}". Only confirmed or rescheduled sessions can launch the live classroom.`);
+          return;
+        }
+      } catch (e) {
+        alert(`Cannot join: This booking status is currently "${booking.status}". Only confirmed or rescheduled sessions can launch the live classroom.`);
+        return;
+      }
+    }
+
+    // 5. Check scheduled session time window (10 min before to 60 min after)
+    const gate = getSessionGateStatus(booking);
+    if (gate.status === 'too_early') {
+      alert(`This session starts at ${gate.formattedTime}. You can join 10 minutes before.`);
+      return;
+    }
+    if (gate.status === 'passed') {
+      alert("This session's scheduled time has passed.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const session = await getOrCreateLiveSessionForBooking(booking);
+
+      if (session.status === 'cancelled') {
+        alert('Cannot join: The live session has been cancelled.');
+        return;
+      }
+
+      if (session.status === 'ended') {
+        alert('This live session has ended.');
+        return;
+      }
+
+      setActiveLiveSessionBooking(booking);
+      setActiveLiveSessionData(session);
+      setActiveTab('live-room');
+
+      // Send incoming call notification to the other participant
+      const otherParticipantId = booking.teacherId === currentUser.id ? booking.learnerId : booking.teacherId;
+      try {
+        const { error: notifErr } = await supabase.from('notifications').insert({
+          user_id: otherParticipantId,
+          title: `Incoming call from ${currentUser.name}`,
+          message: `${currentUser.name} started a live classroom session for your booking. Join now to connect.`,
+          type: 'call',
+          booking_id: booking.id,
+          read: false,
+          timestamp: new Date().toISOString()
+        });
+        if (notifErr) {
+          console.warn('[App] Failed to insert call notification for recipient:', notifErr.message);
+        }
+      } catch (notifErr) {
+        console.warn('[App] Error sending call notification:', notifErr);
+      }
+    } catch (err) {
+      console.error('Failed to launch live session:', err);
+      alert('Failed to connect to live classroom. Please check your network connection.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Periodic check (every 60 seconds) for 15-minute upcoming session reminders
   useEffect(() => {
     if (!currentUser?.id) return;
 
     const checkUpcomingSessionReminders = async () => {
+      const currentBookings = bookingsRef.current;
+      const user = currentUserRef.current;
+      if (!user?.id) return;
+
       const now = Date.now();
       const fifteenMinsMs = 15 * 60 * 1000;
 
       // 1. 15-minute before starting reminder
-      const upcomingToRemind = bookings.filter((b) => {
+      const upcomingToRemind = currentBookings.filter((b) => {
         if (b.status !== 'confirmed' && b.status !== 'rescheduled') return false;
         if (b.reminderSent) return false;
 
@@ -666,10 +671,10 @@ export default function App() {
         // Add to local state if applicable for current user
         setNotifications((prev) => {
           const newNotifs: AppNotification[] = [];
-          if (booking.teacherId === currentUser.id && !prev.some((n) => n.id === notifTeacher.id)) {
+          if (booking.teacherId === user.id && !prev.some((n) => n.id === notifTeacher.id)) {
             newNotifs.push(notifTeacher);
           }
-          if (booking.learnerId === currentUser.id && !prev.some((n) => n.id === notifLearner.id)) {
+          if (booking.learnerId === user.id && !prev.some((n) => n.id === notifLearner.id)) {
             newNotifs.push(notifLearner);
           }
           return newNotifs.length > 0 ? [...newNotifs, ...prev] : prev;
@@ -677,7 +682,7 @@ export default function App() {
       }
 
       // 2. Second reminder: "You can join now" notification when join window opens
-      const joinableToRemind = bookings.filter((b) => {
+      const joinableToRemind = currentBookings.filter((b) => {
         if (b.status !== 'confirmed' && b.status !== 'rescheduled') return false;
         if (b.joinReminderSent) return false;
 
@@ -734,10 +739,10 @@ export default function App() {
 
         setNotifications((prev) => {
           const newNotifs: AppNotification[] = [];
-          if (booking.teacherId === currentUser.id && !prev.some((n) => n.id === notifTeacher.id)) {
+          if (booking.teacherId === user.id && !prev.some((n) => n.id === notifTeacher.id)) {
             newNotifs.push(notifTeacher);
           }
-          if (booking.learnerId === currentUser.id && !prev.some((n) => n.id === notifLearner.id)) {
+          if (booking.learnerId === user.id && !prev.some((n) => n.id === notifLearner.id)) {
             newNotifs.push(notifLearner);
           }
           return newNotifs.length > 0 ? [...newNotifs, ...prev] : prev;
@@ -745,7 +750,7 @@ export default function App() {
       }
 
       // 3. Third check: Join window passed (status === 'passed')
-      const passedToEvaluate = bookings.filter((b) => {
+      const passedToEvaluate = currentBookings.filter((b) => {
         if (b.status !== 'confirmed' && b.status !== 'rescheduled') return false;
         const gate = getSessionGateStatus(b);
         return gate.status === 'passed';
@@ -764,7 +769,7 @@ export default function App() {
 
           if (hasBothJoined) {
             // Conclude as completed normally
-            await handleUpdateBookingStatus(booking.id, 'completed', currentUser.id);
+            await handleUpdateBookingStatus(booking.id, 'completed', user.id);
           } else {
             // Set is_no_show to true on booking
             await handleMarkNoShow(booking.id);
@@ -780,7 +785,7 @@ export default function App() {
     const interval = setInterval(checkUpcomingSessionReminders, 60000);
 
     return () => clearInterval(interval);
-  }, [currentUser?.id, bookings]);
+  }, [currentUser?.id]);
 
   const handleMarkNoShow = async (bookingId: string) => {
     try {
@@ -995,33 +1000,6 @@ export default function App() {
         success: false, 
         error: err.message || 'An unexpected error occurred while deleting your account.' 
       };
-    }
-  };
-
-  const handlePasswordUpdateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setResetError('');
-    setResetSuccess('');
-    setIsResetting(true);
-
-    if (newPassword.length < 6) {
-      setResetError('Password must be at least 6 characters long.');
-      setIsResetting(false);
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) {
-        setResetError(error.message);
-      } else {
-        setResetSuccess('Your password has been updated successfully!');
-        setNewPassword('');
-      }
-    } catch (err: any) {
-      setResetError(err.message || 'An error occurred. Please try again.');
-    } finally {
-      setIsResetting(false);
     }
   };
 
@@ -1619,24 +1597,27 @@ export default function App() {
   };
 
   // Contacts list (only users with confirmed bookings, message history, or session-initiated chat)
-  const contacts = allUsers.filter(u => {
-    if (!currentUser || u.id === currentUser.id) return false;
+  const contacts = useMemo(() => {
+    if (!currentUser) return [];
+    return allUsers.filter(u => {
+      if (u.id === currentUser.id) return false;
 
-    // 1. Confirmed or rescheduled booking between them and currentUser
-    const hasConfirmedBooking = bookings.some(
-      b => (b.status === 'confirmed' || b.status === 'rescheduled') &&
-        ((b.teacherId === currentUser.id && b.learnerId === u.id) ||
-         (b.learnerId === currentUser.id && b.teacherId === u.id))
-    );
+      // 1. Confirmed or rescheduled booking between them and currentUser
+      const hasConfirmedBooking = bookings.some(
+        b => (b.status === 'confirmed' || b.status === 'rescheduled') &&
+          ((b.teacherId === currentUser.id && b.learnerId === u.id) ||
+           (b.learnerId === currentUser.id && b.teacherId === u.id))
+      );
 
-    // 2. In message partner IDs
-    const hasMessaged = messagePartnerIds.has(u.id);
+      // 2. In message partner IDs
+      const hasMessaged = messagePartnerIds.has(u.id);
 
-    // 3. In session initiated chat IDs
-    const hasInitiatedChat = sessionInitiatedChatIds.has(u.id);
+      // 3. In session initiated chat IDs
+      const hasInitiatedChat = sessionInitiatedChatIds.has(u.id);
 
-    return hasConfirmedBooking || hasMessaged || hasInitiatedChat;
-  });
+      return hasConfirmedBooking || hasMessaged || hasInitiatedChat;
+    });
+  }, [allUsers, currentUser, bookings, messagePartnerIds, sessionInitiatedChatIds]);
 
   if (isLoading) {
     return (
@@ -1929,72 +1910,10 @@ export default function App() {
       )}
 
       {/* Password Reset Recovery Modal */}
-      {showPasswordResetModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
-          <div className="bg-zinc-900 rounded-[24px] max-w-sm w-full p-6 shadow-2xl border border-zinc-800 flex flex-col gap-4 text-left">
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-white">Set New Password</h3>
-              <p className="text-xs text-zinc-400">Please choose a secure new password for your account.</p>
-            </div>
-
-            {resetError && (
-              <div className="p-3 bg-rose-500/10 text-rose-300 border border-rose-500/20 rounded-xl flex items-start gap-2.5 text-xs">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
-                <p>{resetError}</p>
-              </div>
-            )}
-
-            {resetSuccess ? (
-              <div className="space-y-4">
-                <div className="p-3 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 rounded-xl flex items-start gap-2.5 text-xs">
-                  <Check className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
-                  <p>{resetSuccess}</p>
-                </div>
-                <button
-                  onClick={() => setShowPasswordResetModal(false)}
-                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs cursor-pointer border-0 shadow-lg shadow-indigo-600/20"
-                >
-                  Close & Sign In
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handlePasswordUpdateSubmit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">New Password</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="••••••••"
-                      required
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswordResetModal(false)}
-                    className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold rounded-xl text-xs cursor-pointer border-0"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isResetting}
-                    className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs cursor-pointer border-0 disabled:opacity-50 shadow-lg shadow-indigo-600/20"
-                  >
-                    {isResetting ? 'Saving...' : 'Update Password'}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+      <PasswordResetModal
+        isOpen={showPasswordResetModal}
+        onClose={() => setShowPasswordResetModal(false)}
+      />
 
       {/* New User Onboarding Tour Modal */}
       {showOnboardingTour && (

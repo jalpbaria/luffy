@@ -35,7 +35,7 @@ interface CreditsViewProps {
   onRefreshProfile?: () => void;
 }
 
-export function CreditsView({ currentUser, onRefreshProfile }: CreditsViewProps) {
+export const CreditsView = React.memo(function CreditsView({ currentUser, onRefreshProfile }: CreditsViewProps) {
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -416,7 +416,7 @@ export function CreditsView({ currentUser, onRefreshProfile }: CreditsViewProps)
       </div>
     </div>
   );
-}
+});
 
 export default CreditsView;
 

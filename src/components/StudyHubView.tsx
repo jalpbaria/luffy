@@ -431,7 +431,7 @@ const SYLLABUS_MODULES: SyllabusModule[] = [
   }
 ];
 
-export default function StudyHubView({ currentUser, onNavigateToExplore }: StudyHubViewProps) {
+const StudyHubView = React.memo(function StudyHubView({ currentUser, onNavigateToExplore }: StudyHubViewProps) {
   const [selectedModuleId, setSelectedModuleId] = useState<string>('js-dev');
   const [selectedLessonIndex, setSelectedLessonIndex] = useState<number>(0);
   const [completedLessons, setCompletedLessons] = useState<Record<string, boolean>>({});
@@ -1029,4 +1029,6 @@ export default function StudyHubView({ currentUser, onNavigateToExplore }: Study
 
     </div>
   );
-}
+});
+
+export default StudyHubView;

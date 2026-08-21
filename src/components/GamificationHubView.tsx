@@ -22,7 +22,7 @@ interface GamificationHubViewProps {
   onNavigateToExplore?: () => void;
 }
 
-export function GamificationHubView({
+export const GamificationHubView = React.memo(function GamificationHubView({
   currentUser,
   allUsers,
   bookings = [],
@@ -725,4 +725,4 @@ export function GamificationHubView({
 
     </div>
   );
-}
+});

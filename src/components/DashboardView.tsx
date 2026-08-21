@@ -54,10 +54,35 @@ function formatRelativeTime(dateStr?: string): string {
   return `${days}d ago`;
 }
 
+function LiveCountdownBadge({ startTimeMs, isLive }: { startTimeMs: number; isLive: boolean }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (isLive) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [isLive]);
+
+  if (isLive) {
+    return <span>LIVE NOW • ROOM OPEN</span>;
+  }
+
+  const diffMs = startTimeMs - now;
+  if (diffMs > 0) {
+    const totalSecs = Math.floor(diffMs / 1000);
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    return <span>{`${hrs.toString().padStart(2, '0')}h : ${mins.toString().padStart(2, '0')}m : ${secs.toString().padStart(2, '0')}s`}</span>;
+  }
+
+  return <span>SESSION IN PROGRESS</span>;
+}
+
 /* ==========================================================================
    Next Exchange Hero Widget (Focus / Session Card)
    ========================================================================== */
-export function NextExchangeSection({
+export const NextExchangeSection = React.memo(function NextExchangeSection({
   booking,
   currentUser,
   allUsers,
@@ -74,13 +99,6 @@ export function NextExchangeSection({
   onRescheduleBooking?: (booking: Booking) => void;
   onNavigateToExplore?: () => void;
 }) {
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   if (!booking) {
     return (
       <DashboardCard className="p-5 sm:p-6 relative overflow-hidden">
@@ -117,7 +135,6 @@ export function NextExchangeSection({
   const gate = getSessionGateStatus(booking);
   const startTimeIso = computeStartTime(booking.date, booking.timeSlot, booking.scheduledTime);
   const startTimeMs = new Date(startTimeIso).getTime();
-  const diffMs = startTimeMs - now;
   const isLive = gate.status === 'joinable';
 
   // Teacher & Learner details
@@ -133,20 +150,6 @@ export function NextExchangeSection({
   const partnerName = isCurrentUserTeacher ? learnerName : teacherName;
   const partnerAvatar = isCurrentUserTeacher ? learnerAvatar : teacherAvatar;
   const roleLabel = isCurrentUserTeacher ? 'Teaching' : 'Learning from';
-
-  // Live countdown formatting
-  let countdownDisplay = '';
-  if (isLive) {
-    countdownDisplay = 'LIVE NOW • ROOM OPEN';
-  } else if (diffMs > 0) {
-    const totalSecs = Math.floor(diffMs / 1000);
-    const hrs = Math.floor(totalSecs / 3600);
-    const mins = Math.floor((totalSecs % 3600) / 60);
-    const secs = totalSecs % 60;
-    countdownDisplay = `${hrs.toString().padStart(2, '0')}h : ${mins.toString().padStart(2, '0')}m : ${secs.toString().padStart(2, '0')}s`;
-  } else {
-    countdownDisplay = 'SESSION IN PROGRESS';
-  }
 
   return (
     <DashboardCard
@@ -187,7 +190,7 @@ export function NextExchangeSection({
             }`}
           >
             <Clock className={`w-3.5 h-3.5 ${isLive ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
-            <span>{countdownDisplay}</span>
+            <LiveCountdownBadge startTimeMs={startTimeMs} isLive={isLive} />
           </div>
         </div>
 
@@ -305,7 +308,7 @@ export function NextExchangeSection({
       </div>
     </DashboardCard>
   );
-}
+});
 
 /* ==========================================================================
    Dashboard View Props
@@ -334,7 +337,7 @@ export interface DashboardViewProps {
   allReviews?: Review[];
 }
 
-export default function DashboardView({
+const DashboardView = React.memo(function DashboardView({
   currentUser,
   bookings,
   notifications,
@@ -389,10 +392,10 @@ export default function DashboardView({
   const allUserMatches = useMemo(() => computeAllUserMatches(currentUser, allUsers), [currentUser, allUsers]);
   const recommendedPartners = useMemo(() => allUserMatches.slice(0, 4), [allUserMatches]);
 
-  // Live timer for bookings visibility
+  // Live timer for bookings visibility (checked once every 60 seconds)
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 10000);
+    const timer = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(timer);
   }, []);
 
@@ -510,7 +513,7 @@ export default function DashboardView({
     setReviewRating(5);
   };
 
-  const navItems = [
+  const navItems = useMemo(() => [
     {
       id: 'dashboard',
       label: 'Dashboard',
@@ -567,7 +570,7 @@ export default function DashboardView({
       active: false,
       onClick: () => onNavigateToProfile ? onNavigateToProfile() : onNavigateToTab?.('profile'),
     },
-  ];
+  ], [onNavigateToExplore, onNavigateToChat, onNavigateToTab, onNavigateToStudyHub, onNavigateToSkillPath, onNavigateToGamification, onNavigateToCredits, onNavigateToProfile]);
 
   const prefersReducedMotion = useReducedMotion();
 
@@ -1364,4 +1367,6 @@ export default function DashboardView({
 
     </div>
   );
-}
+});
+
+export default DashboardView;

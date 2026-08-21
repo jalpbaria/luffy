@@ -23,7 +23,7 @@ const CATEGORIES = [
   'Public Speaking', 'Business'
 ];
 
-export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLogout, onDeleteAccount, allReviews = [] }: ProfileViewProps) {
+const ProfileView = React.memo(function ProfileView({ currentUser, onSaveProfile, isSaving, onLogout, onDeleteAccount, allReviews = [] }: ProfileViewProps) {
   // Local state for profile form fields
   const [name, setName] = useState(currentUser?.name ?? '');
   const [avatar, setAvatar] = useState(currentUser?.avatar ?? '');
@@ -836,4 +836,6 @@ export default function ProfileView({ currentUser, onSaveProfile, isSaving, onLo
       )}
     </div>
   );
-}
+});
+
+export default ProfileView;

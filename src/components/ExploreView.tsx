@@ -56,7 +56,7 @@ const LEARNING_OPTIONS: { value: LearningOption; icon: string; desc: string }[] 
   { value: 'Project-Based Learning', icon: '🛠', desc: 'Build a practical, real-world project together' }
 ];
 
-export default function ExploreView({ 
+const ExploreView = React.memo(function ExploreView({ 
   currentUser, 
   users, 
   onBookSession, 
@@ -290,8 +290,8 @@ export default function ExploreView({
   }, [otherUsers, searchQuery, selectedCategory, selectedLevel, selectedLanguage, selectedAvailability, selectedTimeZone, matchFilter, matchMap]);
 
   // Unique languages and time zones across all users
-  const allLanguages = Array.from(new Set(otherUsers.flatMap(u => (u.languages ?? []).map(l => l.split(' ')[0]))));
-  const allTimeZones = Array.from(new Set(otherUsers.map(u => u.timeZone)));
+  const allLanguages = useMemo(() => Array.from(new Set(otherUsers.flatMap(u => (u.languages ?? []).map(l => l.split(' ')[0])))), [otherUsers]);
+  const allTimeZones = useMemo(() => Array.from(new Set(otherUsers.map(u => u.timeZone))), [otherUsers]);
 
   const handleOpenDetails = (teacher: UserProfile) => {
     setSelectedTeacher(teacher);
@@ -1224,4 +1224,6 @@ export default function ExploreView({
       </AnimatePresence>
     </div>
   );
-}
+});
+
+export default ExploreView;

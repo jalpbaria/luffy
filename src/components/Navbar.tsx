@@ -45,7 +45,7 @@ export interface NavbarProps {
   bookings?: Booking[];
 }
 
-export const Navbar: React.FC<NavbarProps> = ({
+export const Navbar: React.FC<NavbarProps> = React.memo(({
   activeTab,
   setActiveTab,
   currentUser,
@@ -777,4 +777,4 @@ export const Navbar: React.FC<NavbarProps> = ({
       </AnimatePresence>
     </>
   );
-};
+});

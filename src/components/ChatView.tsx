@@ -169,7 +169,7 @@ interface ChatViewProps {
   bookings: Booking[];
 }
 
-export default function ChatView({ currentUser, contacts, initialActiveContactId, bookings }: ChatViewProps) {
+const ChatView = React.memo(function ChatView({ currentUser, contacts, initialActiveContactId, bookings }: ChatViewProps) {
   const DEFAULT_USER_IDS = [
     'user-alex', 'user-sofia', 'user-marcus', 'user-elena', 'user-david',
     'user-maya', 'user-liam', 'user-yuki', 'user-zara', 'user-tyler'
@@ -2219,4 +2219,6 @@ export default function ChatView({ currentUser, contacts, initialActiveContactId
       </div>
     </div>
   );
-}
+});
+
+export default ChatView;

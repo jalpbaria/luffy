@@ -110,7 +110,7 @@ const POPULAR_SKILLS = [
   'Fullstack Web Architecture'
 ];
 
-export default function SkillPathView({ currentUser, onNavigateToExplore, onOpenStudyHub }: SkillPathViewProps) {
+const SkillPathView = React.memo(function SkillPathView({ currentUser, onNavigateToExplore, onOpenStudyHub }: SkillPathViewProps) {
   const [skill, setSkill] = useState('React & Next.js');
   const [currentLevel, setCurrentLevel] = useState('beginner');
   const [targetLevel, setTargetLevel] = useState('expert');
@@ -727,4 +727,6 @@ export default function SkillPathView({ currentUser, onNavigateToExplore, onOpen
       </section>
     </div>
   );
-}
+});
+
+export default SkillPathView;
