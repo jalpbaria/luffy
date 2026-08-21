@@ -35,7 +35,8 @@ import { calculateUserXP } from '../lib/gamification';
 import { getSessionGateStatus, computeStartTime } from '../lib/liveSessions';
 import { computeAllUserMatches } from '../lib/matchUtils';
 import { DashboardCard } from './DashboardCard';
-import { Button, Avatar, ProgressBar, EmptyState } from './ui';
+import { DashboardButton, DashboardTextLink } from './DashboardButton';
+import { ProgressBar } from './ui';
 import { motionTokens } from './motion/tokens';
 
 function formatRelativeTime(dateStr?: string): string {
@@ -86,19 +87,19 @@ export function NextExchangeSection({
           <div className="space-y-1.5 max-w-lg">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[var(--accent-purple,#A66CFF)]" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted,#96919F)]">
-                Focus Session • Scheduled Exchange
+              <span className="dashboard-section-label">
+                YOUR FOCUS TODAY • SCHEDULED EXCHANGE
               </span>
             </div>
-            <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary,#F5F2FA)] tracking-tight">
+            <h3 className="dashboard-content-title text-lg sm:text-xl font-bold">
               No live classroom scheduled for today
             </h3>
-            <p className="text-xs text-[var(--text-muted,#96919F)] leading-relaxed">
+            <p className="dashboard-metadata leading-relaxed">
               Your calendar is clear. Connect with a mentor or peer swapper to schedule your next 1-on-1 exchange session.
             </p>
           </div>
 
-          <Button
+          <DashboardButton
             variant="primary"
             size="sm"
             onClick={onNavigateToExplore}
@@ -106,7 +107,7 @@ export function NextExchangeSection({
             className="shrink-0"
           >
             Find Exchange Partner
-          </Button>
+          </DashboardButton>
         </div>
       </DashboardCard>
     );
@@ -169,16 +170,16 @@ export function NextExchangeSection({
               />
             </span>
             <span
-              className={`text-xs font-bold uppercase tracking-wider ${
+              className={`dashboard-section-label ${
                 isLive ? 'text-emerald-400' : 'text-[var(--text-muted,#96919F)]'
               }`}
             >
-              {isLive ? 'Active Live Session • Room Open' : 'Focus Session • Next Up'}
+              {isLive ? 'ACTIVE LIVE SESSION • ROOM OPEN' : 'YOUR FOCUS TODAY • SCHEDULED EXCHANGE'}
             </span>
           </div>
 
           <div
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-mono font-bold tracking-wider ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-mono tabular-nums font-bold tracking-wider ${
               isLive
                 ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
                 : 'bg-[var(--surface-elevated,#1B1722)] text-amber-300 border-[var(--border-subtle,rgba(255,255,255,0.08))]'
@@ -201,11 +202,11 @@ export function NextExchangeSection({
               </span>
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-bold text-[var(--text-primary,#F5F2FA)] tracking-tight">
+            <h2 className="dashboard-content-title text-xl sm:text-2xl font-bold">
               {booking.skillName}
             </h2>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-[var(--text-muted,#96919F)]">
+            <div className="dashboard-metadata flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-[var(--accent-purple,#A66CFF)]" />
                 <span>{gate.formattedDate}</span>
@@ -232,14 +233,14 @@ export function NextExchangeSection({
                 />
               </div>
               <div className="min-w-0">
-                <span className="text-[10px] font-bold text-[var(--accent-purple,#A66CFF)] uppercase tracking-wider block">
+                <span className="dashboard-section-label text-[10px] text-[var(--accent-purple,#A66CFF)] block">
                   {roleLabel}
                 </span>
-                <p className="text-xs font-bold text-[var(--text-primary,#F5F2FA)] truncate">{partnerName}</p>
+                <p className="dashboard-content-title text-xs font-bold truncate">{partnerName}</p>
               </div>
             </div>
 
-            <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+            <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 font-mono">
               <CheckCircle2 className="w-3 h-3" /> Confirmed
             </span>
           </div>
@@ -247,50 +248,50 @@ export function NextExchangeSection({
 
         {/* Action Controls */}
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[var(--border-subtle,rgba(255,255,255,0.08))]">
-          <p className="text-xs text-[var(--text-muted,#96919F)] font-medium text-center sm:text-left">
+          <p className="dashboard-metadata text-center sm:text-left">
             {isLive
               ? '🟢 Classroom is live! Click to join video & audio room.'
               : '🕒 Live classroom unlocks 10 minutes prior to scheduled start.'}
           </p>
 
           <div className="w-full sm:w-auto shrink-0 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
+            <DashboardButton
+              variant="secondary"
+              size="sm"
               onClick={() => onRescheduleBooking?.(booking)}
-              className="px-3 py-1.5 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] text-[var(--text-muted,#96919F)] hover:text-white font-semibold text-xs rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.08))] flex items-center justify-center gap-1 transition cursor-pointer"
+              leftIcon={<Calendar className="w-3 h-3 text-[var(--accent-purple,#A66CFF)]" />}
             >
-              <Calendar className="w-3 h-3 text-[var(--accent-purple,#A66CFF)]" />
-              <span>Reschedule</span>
-            </button>
+              Reschedule
+            </DashboardButton>
 
-            <button
-              type="button"
+            <DashboardButton
+              variant="secondary"
+              size="sm"
               onClick={() => onCancelBooking?.(booking)}
-              className="px-3 py-1.5 bg-[var(--surface-elevated,#1B1722)] hover:bg-rose-950/60 text-[var(--text-muted,#96919F)] hover:text-rose-300 font-semibold text-xs rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.08))] flex items-center justify-center gap-1 transition cursor-pointer"
+              leftIcon={<X className="w-3 h-3 text-rose-400" />}
             >
-              <X className="w-3 h-3 text-rose-400" />
-              <span>Cancel</span>
-            </button>
+              Cancel
+            </DashboardButton>
 
             {isLive ? (
-              <Button
+              <DashboardButton
                 variant="primary"
                 size="sm"
                 onClick={() => onStartLiveSession?.(booking)}
-                leftIcon={<Video className="w-3.5 h-3.5 animate-pulse" />}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                leftIcon={<Video className="w-3.5 h-3.5" />}
+                rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
               >
-                Enter Classroom
-              </Button>
+                Join Classroom →
+              </DashboardButton>
             ) : (
-              <Button
+              <DashboardButton
                 variant="secondary"
                 size="sm"
                 onClick={() => onStartLiveSession?.(booking)}
                 leftIcon={<Video className="w-3.5 h-3.5 text-[var(--accent-purple,#A66CFF)]" />}
               >
                 Pre-Check Room
-              </Button>
+              </DashboardButton>
             )}
           </div>
         </div>
@@ -577,11 +578,11 @@ export default function DashboardView({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent-purple,#A66CFF)]" />
-            <span className="font-bold text-sm text-[var(--text-primary,#F5F2FA)] tracking-tight">
+            <span className="dashboard-section-label text-white">
               Dashboard Overview
             </span>
           </div>
-          <span className="hidden sm:inline-block text-xs text-[var(--text-muted,#96919F)] font-medium">
+          <span className="hidden sm:inline-block dashboard-metadata">
             • Peer Skill Exchange 2026
           </span>
         </div>
@@ -590,7 +591,7 @@ export default function DashboardView({
           {/* Quick Wallet Credits Pill */}
           <button
             onClick={() => onNavigateToCredits ? onNavigateToCredits() : onNavigateToTab?.('credits')}
-            className="px-2.5 py-1 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl text-xs font-bold text-amber-300 flex items-center gap-1.5 transition cursor-pointer"
+            className="px-2.5 py-1 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl text-xs font-bold text-amber-300 flex items-center gap-1.5 transition cursor-pointer font-mono tabular-nums"
           >
             <Coins className="w-3.5 h-3.5 text-amber-400" />
             <span>{currentUser.credits ?? 100} Credits</span>
@@ -599,7 +600,7 @@ export default function DashboardView({
           {/* Quick Streak Pill */}
           <button
             onClick={onNavigateToGamification}
-            className="px-2.5 py-1 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer"
+            className="px-2.5 py-1 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer font-mono tabular-nums"
           >
             <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
             <span>{currentUser.loginStreak ?? 7}d Streak</span>
@@ -628,8 +629,8 @@ export default function DashboardView({
             ================================================================== */}
         <aside className="lg:col-span-3 space-y-4">
           <DashboardCard className="p-3 space-y-1">
-            <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted,#96919F)]">
-              Navigation
+            <div className="dashboard-section-label px-3 py-2">
+              NAVIGATION
             </div>
             <nav className="space-y-1">
               {navItems.map((item) => {
@@ -639,10 +640,10 @@ export default function DashboardView({
                     key={item.id}
                     type="button"
                     onClick={item.onClick}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer border ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border ${
                       item.active
                         ? 'bg-[var(--surface-elevated,#1B1722)] text-[var(--accent-purple,#A66CFF)] border-[var(--accent-purple,#A66CFF)]/40 shadow-xs'
-                        : 'bg-transparent text-[var(--text-muted,#96919F)] hover:text-[var(--text-primary,#F5F2FA)] hover:bg-[var(--surface-elevated,#1B1722)]/50 border-transparent'
+                        : 'bg-transparent text-[var(--text-muted,#96919F)] hover:text-[var(--text-primary,#F5F2FA)] hover:bg-[var(--surface-elevated,#1B1722)]/50 border-transparent hover:-translate-y-0.5'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -660,6 +661,9 @@ export default function DashboardView({
 
           {/* User Profile Summary Card */}
           <DashboardCard className="p-4 space-y-3">
+            <div className="dashboard-section-label">
+              VOYAGER PROFILE
+            </div>
             <div className="flex items-center gap-3">
               <img
                 src={currentUser.avatar}
@@ -667,10 +671,10 @@ export default function DashboardView({
                 className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--border-subtle,rgba(255,255,255,0.08))]"
               />
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[var(--text-primary,#F5F2FA)] truncate">
+                <p className="dashboard-content-title text-xs font-bold truncate">
                   {currentUser.name}
                 </p>
-                <p className="text-[11px] text-[var(--text-muted,#96919F)] truncate">
+                <p className="dashboard-metadata text-[11px] truncate">
                   Lvl {userLevel} Voyager
                 </p>
               </div>
@@ -678,21 +682,22 @@ export default function DashboardView({
 
             <div className="space-y-1.5 pt-2 border-t border-[var(--border-subtle,rgba(255,255,255,0.08))] text-[11px]">
               <div className="flex items-center justify-between text-[var(--text-muted,#96919F)]">
-                <span>XP Level Progress</span>
-                <span className="font-semibold text-white">{xpProgressInLevel} / 400</span>
+                <span className="dashboard-metadata">XP Level Progress</span>
+                <span className="dashboard-stat-number text-xs text-white">{xpProgressInLevel} / 400</span>
               </div>
               <ProgressBar value={Math.round((xpProgressInLevel / 400) * 100)} color="violet" showPercentage={false} />
             </div>
 
             {onNavigateToProfile && (
-              <button
-                type="button"
+              <DashboardButton
+                variant="secondary"
+                size="sm"
                 onClick={onNavigateToProfile}
-                className="w-full py-1.5 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] text-[var(--accent-purple,#A66CFF)] hover:text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer border border-[var(--border-subtle,rgba(255,255,255,0.08))]"
+                className="w-full justify-center"
+                rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
               >
-                <span>Edit Profile</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+                Edit Profile
+              </DashboardButton>
             )}
           </DashboardCard>
         </aside>
@@ -705,36 +710,39 @@ export default function DashboardView({
           {/* A. GREETING CARD */}
           <DashboardCard className="p-5 sm:p-6 space-y-4">
             <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent-purple,#A66CFF)]">
-                  {greetingTime}, {currentUser.name}
+              <div className="space-y-1.5">
+                <span className="dashboard-section-label text-[var(--accent-purple,#A66CFF)] block">
+                  VOYAGER WELCOME
                 </span>
-                <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary,#F5F2FA)] tracking-tight">
-                  Exchange what you know. Learn what you don't.
+                <h1 className="dashboard-display">
+                  {greetingTime}, <span className="text-[var(--accent-purple,#A66CFF)]">{currentUser.name}</span>.
                 </h1>
-                <p className="text-xs text-[var(--text-muted,#96919F)] leading-relaxed pt-0.5">
+                <p className="dashboard-content-title text-sm sm:text-base text-[var(--text-primary,#F5F2FA)]/90 pt-0.5">
+                  Exchange what you know. Learn what you don't.
+                </p>
+                <p className="dashboard-metadata leading-relaxed">
                   Trade domain expertise for hands-on skills with peer swappers worldwide. No money required.
                 </p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5 pt-1">
-              <Button
+              <DashboardButton
                 variant="primary"
                 size="sm"
                 onClick={onNavigateToExplore}
                 rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
               >
                 Explore skills
-              </Button>
-              <Button
+              </DashboardButton>
+              <DashboardButton
                 variant="secondary"
                 size="sm"
                 onClick={onNavigateToSkillPath}
                 leftIcon={<Sparkles className="w-3.5 h-3.5 text-[var(--accent-purple,#A66CFF)]" />}
               >
                 View your path
-              </Button>
+              </DashboardButton>
             </div>
           </DashboardCard>
 
@@ -758,28 +766,23 @@ export default function DashboardView({
             <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-[var(--accent-purple,#A66CFF)]" />
-                <h3 className="font-bold text-sm text-[var(--text-primary,#F5F2FA)]">
-                  Active Learning Tracks
+                <h3 className="dashboard-section-label">
+                  ACTIVE LEARNING TRACKS
                 </h3>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onNavigateToSkillPath}
-                rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
-              >
+              <DashboardTextLink onClick={onNavigateToSkillPath}>
                 View All
-              </Button>
+              </DashboardTextLink>
             </div>
 
             {progress.length === 0 ? (
               <div className="py-4 text-center space-y-2">
-                <p className="text-xs text-[var(--text-muted,#96919F)]">
+                <p className="dashboard-metadata">
                   No active tracks started yet. Connect with a peer partner or browse customized AI learning roadmaps.
                 </p>
-                <Button variant="secondary" size="sm" onClick={onNavigateToExplore}>
+                <DashboardButton variant="secondary" size="sm" onClick={onNavigateToExplore}>
                   Start a Learning Track
-                </Button>
+                </DashboardButton>
               </div>
             ) : (
               <div className="space-y-3">
@@ -789,22 +792,19 @@ export default function DashboardView({
                     className="p-3 bg-[var(--surface-elevated,#1B1722)] rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-2"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <h4 className="font-bold text-xs text-[var(--text-primary,#F5F2FA)]">
+                      <h4 className="dashboard-content-title text-xs sm:text-sm font-semibold">
                         {prog.skillName}
                       </h4>
-                      <span className="text-[11px] font-bold text-[var(--accent-purple,#A66CFF)]">
+                      <span className="dashboard-stat-number text-xs text-[var(--accent-purple,#A66CFF)]">
                         {prog.completionPercentage}%
                       </span>
                     </div>
                     <ProgressBar value={prog.completionPercentage} color="violet" showPercentage={false} />
                     <div className="flex items-center justify-between text-[11px] text-[var(--text-muted,#96919F)] pt-1">
-                      <span>{prog.lessonsCompleted} of {prog.lessonsTotal} milestones completed</span>
-                      <button
-                        onClick={onNavigateToSkillPath}
-                        className="text-[var(--accent-purple,#A66CFF)] hover:underline font-semibold cursor-pointer"
-                      >
-                        Resume →
-                      </button>
+                      <span className="dashboard-metadata">{prog.lessonsCompleted} of {prog.lessonsTotal} milestones completed</span>
+                      <DashboardTextLink onClick={onNavigateToSkillPath}>
+                        Resume
+                      </DashboardTextLink>
                     </div>
                   </div>
                 ))}
@@ -817,28 +817,23 @@ export default function DashboardView({
             <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-[var(--accent-purple,#A66CFF)]" />
-                <h3 className="font-bold text-sm text-[var(--text-primary,#F5F2FA)]">
-                  People worth learning from
+                <h3 className="dashboard-section-label">
+                  PEOPLE WORTH LEARNING FROM
                 </h3>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onNavigateToExplore}
-                rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
-              >
+              <DashboardTextLink onClick={onNavigateToExplore}>
                 Explore All
-              </Button>
+              </DashboardTextLink>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {recommendedPartners.map(({ user, matchScore, isPerfectMatch }) => {
+              {recommendedPartners.map(({ user, matchScore }) => {
                 const primarySkill = user.skillsOffered?.[0]?.name || 'Specialist';
                 const matchPct = Math.min(99, Math.max(78, Math.round((matchScore || 0.85) * 100)));
                 return (
                   <div
                     key={user.id}
-                    className="p-3 bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.06))] rounded-xl flex flex-col justify-between gap-3 hover:border-[var(--accent-purple,#A66CFF)]/40 transition-colors"
+                    className="p-3 bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.06))] rounded-xl flex flex-col justify-between gap-3 hover:border-[var(--accent-purple,#A66CFF)]/40 transition-all duration-200 hover:-translate-y-0.5"
                   >
                     <div className="flex items-start gap-2.5">
                       <img
@@ -848,30 +843,30 @@ export default function DashboardView({
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
-                          <p className="text-xs font-bold text-[var(--text-primary,#F5F2FA)] truncate">
+                          <p className="dashboard-content-title text-xs font-bold truncate">
                             {user.name}
                           </p>
-                          <span className="text-[10px] font-bold text-[var(--accent-purple,#A66CFF)] shrink-0">
+                          <span className="dashboard-stat-number text-[11px] text-[var(--accent-purple,#A66CFF)] shrink-0">
                             {matchPct}%
                           </span>
                         </div>
-                        <p className="text-[11px] text-[var(--text-muted,#96919F)] truncate">{primarySkill}</p>
-                        <div className="flex items-center gap-1 text-[10px] text-amber-400 font-semibold mt-0.5">
+                        <p className="dashboard-metadata text-[11px] truncate">{primarySkill}</p>
+                        <div className="dashboard-metadata flex items-center gap-1 text-[10px] text-amber-400 font-semibold mt-0.5">
                           <Star className="w-3 h-3 fill-amber-400" />
-                          <span>{user.rating?.toFixed(1) || '4.9'}</span>
+                          <span className="font-mono text-amber-300">{user.rating?.toFixed(1) || '4.9'}</span>
                           <span className="text-[var(--text-muted,#96919F)]">({user.successfulExchanges || 5} swaps)</span>
                         </div>
                       </div>
                     </div>
 
-                    <Button
+                    <DashboardButton
                       variant="secondary"
                       size="sm"
                       onClick={onNavigateToExplore}
-                      className="w-full justify-center text-xs py-1"
+                      className="w-full justify-center text-xs py-1.5"
                     >
                       Propose Exchange
-                    </Button>
+                    </DashboardButton>
                   </div>
                 );
               })}
@@ -892,24 +887,24 @@ export default function DashboardView({
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-bold text-xs text-[var(--text-primary,#F5F2FA)]">
-                  Mentor Insights
+                <h3 className="dashboard-section-label">
+                  AI MENTOR INSIGHTS
                 </h3>
-                <p className="text-[10px] text-[var(--text-muted,#96919F)]">AI-powered recommendations</p>
+                <p className="dashboard-metadata text-[10px]">Real-time barter suggestions</p>
               </div>
             </div>
 
             <div className="bg-[var(--surface-elevated,#1B1722)] p-3 rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-1">
-              <p className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+              <p className="dashboard-content-title text-xs font-semibold text-amber-300 flex items-center gap-1.5">
                 <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
                 Daily Tip
               </p>
-              <p className="text-xs text-[var(--text-muted,#96919F)] leading-relaxed">
+              <p className="dashboard-metadata leading-relaxed text-[var(--text-muted,#96919F)]">
                 "Completing a peer barter in React or Product Design earns +50 XP towards your Level {userLevel + 1} badge."
               </p>
             </div>
 
-            <Button
+            <DashboardButton
               variant="secondary"
               size="sm"
               onClick={onNavigateToSkillPath}
@@ -917,7 +912,7 @@ export default function DashboardView({
               rightIcon={<ArrowUpRight className="w-3.5 h-3.5" />}
             >
               Browse AI Recommendations
-            </Button>
+            </DashboardButton>
           </DashboardCard>
 
           {/* B. RECENT ACTIVITY CARD */}
@@ -925,11 +920,11 @@ export default function DashboardView({
             <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-[var(--accent-purple,#A66CFF)]" />
-                <h3 className="font-bold text-xs text-[var(--text-primary,#F5F2FA)]">
-                  Recent Activity
+                <h3 className="dashboard-section-label">
+                  RECENT ACTIVITY
                 </h3>
               </div>
-              <span className="text-[10px] text-[var(--text-muted,#96919F)] font-medium">Community Swaps</span>
+              <span className="dashboard-section-label text-[10px]">COMMUNITY SWAPS</span>
             </div>
 
             <div className="space-y-2.5">
@@ -939,7 +934,7 @@ export default function DashboardView({
                   className="p-2.5 bg-[var(--surface-elevated,#1B1722)] rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-1 text-xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-[var(--text-primary,#F5F2FA)] truncate max-w-[120px]">
+                    <span className="dashboard-content-title text-xs font-semibold truncate max-w-[130px]">
                       {r.learnerName}
                     </span>
                     <div className="flex items-center text-amber-400">
@@ -948,11 +943,11 @@ export default function DashboardView({
                       ))}
                     </div>
                   </div>
-                  <p className="text-[11px] text-[var(--text-muted,#96919F)] truncate">
+                  <p className="dashboard-metadata truncate">
                     Session in <span className="text-[var(--accent-purple,#A66CFF)] font-medium">{r.skillName}</span>
                   </p>
                   {r.comment && (
-                    <p className="text-[11px] text-slate-300 italic line-clamp-1">
+                    <p className="dashboard-metadata text-slate-300 italic line-clamp-1">
                       "{r.comment}"
                     </p>
                   )}
@@ -967,28 +962,27 @@ export default function DashboardView({
             {/* 1. Skill Credits Card */}
             <DashboardCard className="p-4 space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
                     <Coins className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-[var(--text-muted,#96919F)] block leading-none">
-                      Skill Credits
+                    <span className="dashboard-section-label block">
+                      SKILL CREDITS
                     </span>
-                    <span className="text-base font-bold text-amber-300">
-                      {currentUser.credits ?? 100} Balance
+                    <span className="dashboard-stat-number text-xl sm:text-2xl text-amber-300 block">
+                      {currentUser.credits ?? 100} <span className="text-xs font-sans font-medium text-[var(--text-muted,#96919F)]">Credits</span>
                     </span>
                   </div>
                 </div>
 
-                <button
+                <DashboardTextLink
                   onClick={() => onNavigateToCredits ? onNavigateToCredits() : onNavigateToTab?.('credits')}
-                  className="px-2.5 py-1 text-xs font-semibold text-[var(--accent-purple,#A66CFF)] hover:underline cursor-pointer"
                 >
-                  Manage →
-                </button>
+                  Manage
+                </DashboardTextLink>
               </div>
-              <p className="text-[11px] text-[var(--text-muted,#96919F)] pt-1 border-t border-[var(--border-subtle,rgba(255,255,255,0.06))]">
+              <p className="dashboard-metadata text-[11px] pt-1 border-t border-[var(--border-subtle,rgba(255,255,255,0.06))]">
                 1 Credit = 1 Hour Peer Barter Session (No money needed)
               </p>
             </DashboardCard>
@@ -998,19 +992,23 @@ export default function DashboardView({
               <DashboardCard className="p-3 space-y-1">
                 <div className="flex items-center gap-1.5 text-[var(--accent-purple,#A66CFF)]">
                   <Zap className="w-3.5 h-3.5" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Experience</span>
+                  <span className="dashboard-section-label">EXPERIENCE</span>
                 </div>
-                <p className="text-base font-bold text-white">{xpPoints} XP</p>
-                <p className="text-[10px] text-[var(--text-muted,#96919F)]">Lvl {userLevel} Standing</p>
+                <p className="dashboard-stat-number text-xl sm:text-2xl text-white">
+                  {xpPoints} <span className="text-xs font-sans font-medium text-[var(--text-muted,#96919F)]">XP</span>
+                </p>
+                <p className="dashboard-metadata text-[10px]">Lvl {userLevel} Standing</p>
               </DashboardCard>
 
               <DashboardCard className="p-3 space-y-1">
                 <div className="flex items-center gap-1.5 text-amber-400">
                   <Flame className="w-3.5 h-3.5 fill-amber-400" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Streak</span>
+                  <span className="dashboard-section-label text-amber-400">STREAK</span>
                 </div>
-                <p className="text-base font-bold text-white">{currentUser.loginStreak ?? 7} Days</p>
-                <p className="text-[10px] text-[var(--text-muted,#96919F)]">Best: {currentUser.longestStreak ?? 14}d</p>
+                <p className="dashboard-stat-number text-xl sm:text-2xl text-white">
+                  {currentUser.loginStreak ?? 7} <span className="text-xs font-sans font-medium text-[var(--text-muted,#96919F)]">Days</span>
+                </p>
+                <p className="dashboard-metadata text-[10px]">Best: {currentUser.longestStreak ?? 14}d</p>
               </DashboardCard>
             </div>
 
@@ -1019,29 +1017,30 @@ export default function DashboardView({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-amber-400" />
-                  <h4 className="font-bold text-xs text-[var(--text-primary,#F5F2FA)]">
-                    Voyager Standing
+                  <h4 className="dashboard-section-label text-white">
+                    LEADERBOARD
                   </h4>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-500/30">
+                <span className="dashboard-stat-number text-[11px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-500/30">
                   Top 12%
                 </span>
               </div>
 
-              <p className="text-xs text-[var(--text-muted,#96919F)]">
+              <p className="dashboard-metadata leading-relaxed">
                 Participate in weekly barter quests to climb rank and unlock verified skill credentials.
               </p>
 
               {onNavigateToGamification && (
-                <button
-                  type="button"
+                <DashboardButton
+                  variant="secondary"
+                  size="sm"
                   onClick={onNavigateToGamification}
-                  className="w-full py-1.5 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] text-[var(--accent-purple,#A66CFF)] hover:text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer border border-[var(--border-subtle,rgba(255,255,255,0.08))]"
+                  className="w-full justify-center"
+                  leftIcon={<Trophy className="w-3.5 h-3.5 text-amber-400" />}
+                  rightIcon={<ChevronRight className="w-3 h-3" />}
                 >
-                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                  <span>View Quests & Leaderboard</span>
-                  <ChevronRight className="w-3 h-3" />
-                </button>
+                  View Full Rankings
+                </DashboardButton>
               )}
             </DashboardCard>
 
@@ -1068,8 +1067,8 @@ export default function DashboardView({
             >
               <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
                 <div>
-                  <h3 className="font-bold text-[var(--text-primary,#F5F2FA)] text-sm">Rate your session</h3>
-                  <p className="text-[var(--text-muted,#96919F)] text-xs mt-0.5">Review for {reviewBooking.teacherName}</p>
+                  <h3 className="dashboard-content-title font-bold text-sm">Rate your session</h3>
+                  <p className="dashboard-metadata text-xs mt-0.5">Review for {reviewBooking.teacherName}</p>
                 </div>
                 <button
                   onClick={() => setReviewBooking(null)}
@@ -1108,12 +1107,12 @@ export default function DashboardView({
                 </div>
 
                 <div className="pt-2 flex justify-end gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => setReviewBooking(null)}>
+                  <DashboardButton variant="ghost" size="sm" onClick={() => setReviewBooking(null)}>
                     Cancel
-                  </Button>
-                  <Button variant="primary" size="sm" type="submit">
+                  </DashboardButton>
+                  <DashboardButton variant="primary" size="sm" type="submit">
                     Submit Review
-                  </Button>
+                  </DashboardButton>
                 </div>
               </form>
             </motion.div>
@@ -1138,8 +1137,8 @@ export default function DashboardView({
                     <AlertCircle className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-sm">Cancel Session</h3>
-                    <p className="text-[var(--text-muted,#96919F)] text-xs">Confirm cancellation</p>
+                    <h3 className="dashboard-content-title font-bold text-white text-sm">Cancel Session</h3>
+                    <p className="dashboard-metadata text-xs">Confirm cancellation</p>
                   </div>
                 </div>
                 <button
@@ -1152,10 +1151,10 @@ export default function DashboardView({
 
               <div className="space-y-3 text-xs">
                 <div className="bg-[var(--surface-elevated,#1B1722)] p-3 rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-1">
-                  <p className="font-bold text-white">
+                  <p className="dashboard-content-title text-xs font-bold text-white">
                     Cancel exchange for {cancelBookingModal.skillName}?
                   </p>
-                  <p className="text-[var(--text-muted,#96919F)] text-[11px]">
+                  <p className="dashboard-metadata text-[11px]">
                     Scheduled for {cancelBookingModal.date} ({cancelBookingModal.timeSlot})
                   </p>
                 </div>
@@ -1184,16 +1183,12 @@ export default function DashboardView({
                 </div>
 
                 <div className="pt-2 flex justify-end gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => setCancelBookingModal(null)}>
+                  <DashboardButton variant="ghost" size="sm" onClick={() => setCancelBookingModal(null)}>
                     Keep Session
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={handleCancelSubmit}
-                    className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition cursor-pointer border-0"
-                  >
+                  </DashboardButton>
+                  <DashboardButton variant="danger" size="sm" onClick={handleCancelSubmit}>
                     Confirm Cancel
-                  </button>
+                  </DashboardButton>
                 </div>
               </div>
             </motion.div>
@@ -1218,8 +1213,8 @@ export default function DashboardView({
                     <Calendar className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-sm">Propose New Time</h3>
-                    <p className="text-[var(--text-muted,#96919F)] text-xs">Reschedule session</p>
+                    <h3 className="dashboard-content-title font-bold text-white text-sm">Propose New Time</h3>
+                    <p className="dashboard-metadata text-xs">Reschedule session</p>
                   </div>
                 </div>
                 <button
@@ -1251,10 +1246,10 @@ export default function DashboardView({
                         key={slot}
                         type="button"
                         onClick={() => setRescheduleSlot(slot)}
-                        className={`py-1.5 px-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                        className={`py-1.5 px-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 cursor-pointer ${
                           rescheduleSlot === slot
-                            ? 'bg-[var(--accent-purple,#A66CFF)] text-white border-[var(--accent-purple-bright,#C04DFF)] shadow-xs'
-                            : 'bg-[var(--surface-elevated,#1B1722)] text-[var(--text-muted,#96919F)] border-[var(--border-subtle,rgba(255,255,255,0.08))] hover:bg-[#252030]'
+                            ? 'bg-[var(--accent-purple,#A66CFF)] text-[#0B0A0F] font-bold border-[var(--accent-purple-bright,#C04DFF)] shadow-xs -translate-y-0.5'
+                            : 'bg-[var(--surface-elevated,#1B1722)] text-[var(--text-muted,#96919F)] border-[var(--border-subtle,rgba(255,255,255,0.08))] hover:bg-[#252030] hover:text-white'
                         }`}
                       >
                         {slot}
@@ -1274,12 +1269,12 @@ export default function DashboardView({
                 </div>
 
                 <div className="pt-2 flex justify-end gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => setRescheduleBookingModal(null)}>
+                  <DashboardButton variant="ghost" size="sm" onClick={() => setRescheduleBookingModal(null)}>
                     Cancel
-                  </Button>
-                  <Button variant="primary" size="sm" type="submit">
+                  </DashboardButton>
+                  <DashboardButton variant="primary" size="sm" type="submit">
                     Send Proposed Time
-                  </Button>
+                  </DashboardButton>
                 </div>
               </form>
             </motion.div>

@@ -116,6 +116,59 @@
   color: var(--text-primary);
 }
 
+/* Dashboard Typography Hierarchy Scoped Classes */
+.dashboard-display {
+  font-family: var(--font-display, "Plus Jakarta Sans", sans-serif);
+  font-size: 1.5rem;
+  line-height: 1.25;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--text-primary, #F5F2FA);
+}
+@media (min-width: 640px) {
+  .dashboard-display {
+    font-size: 1.875rem;
+    line-height: 1.2;
+  }
+}
+
+.dashboard-section-label {
+  font-size: 0.6875rem; /* 11px */
+  line-height: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #96919F);
+}
+
+.dashboard-content-title {
+  font-size: 1rem; /* 16px */
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text-primary, #F5F2FA);
+}
+@media (min-width: 640px) {
+  .dashboard-content-title {
+    font-size: 1.125rem; /* 18px */
+  }
+}
+
+.dashboard-metadata {
+  font-size: 0.75rem; /* 12px */
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--text-muted, #96919F);
+}
+
+.dashboard-stat-number {
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #FFFFFF;
+}
+
 .dashboard-card {
   background-color: var(--surface, #15131A);
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
