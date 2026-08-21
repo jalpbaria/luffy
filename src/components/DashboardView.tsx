@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
+  LayoutDashboard,
+  Compass,
+  MessageSquare,
+  BookOpen,
+  Sparkles,
+  User,
   Calendar,
   Clock,
   Star,
   Check,
   X,
-  BookOpen,
   Trophy,
   Video,
-  Sparkles,
-  Compass,
   Users,
   Flame,
   Zap,
@@ -18,42 +21,21 @@ import {
   ArrowRight,
   Lightbulb,
   TrendingUp,
-  Play,
-  Bot,
   Activity,
-  AlertTriangle,
-  CheckCircle2,
   Coins,
   ArrowUpRight,
-  ShieldAlert,
   ChevronRight,
-  MessageSquare,
   AlertCircle,
-  CheckCircle,
+  CheckCircle2,
+  RefreshCw,
+  Search,
 } from 'lucide-react';
 import { UserProfile, Booking, AppNotification, ProgressTrack, Review } from '../types';
 import { calculateUserXP } from '../lib/gamification';
 import { getSessionGateStatus, computeStartTime } from '../lib/liveSessions';
 import { computeAllUserMatches } from '../lib/matchUtils';
-import {
-  Button,
-  Card,
-  SurfaceCard,
-  EditorialCard,
-  Badge,
-  Avatar,
-  ProgressBar,
-  EmptyState,
-  AmbientOrb,
-  RevealText,
-  FadeUp,
-  MagneticButton,
-  PinnedHorizontalScroll,
-  Spotlight,
-  AnimatedCounter,
-  HoverCard,
-} from './ui';
-import { supabase, mapSupabaseToBooking } from '../lib/supabase';
+import { DashboardCard } from './DashboardCard';
+import { Button, Avatar, ProgressBar, EmptyState } from './ui';
 import { motionTokens } from './motion/tokens';
 
 function formatRelativeTime(dateStr?: string): string {
@@ -64,14 +46,14 @@ function formatRelativeTime(dateStr?: string): string {
   if (diffSecs < 60) return `${diffSecs}s ago`;
   const mins = Math.floor(diffSecs / 60);
   if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
+  const hours = Math.floor(diffSecs / 60);
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
 }
 
 /* ==========================================================================
-   Next Exchange Hero Component
+   Next Exchange Hero Widget (Focus / Session Card)
    ========================================================================== */
 export function NextExchangeSection({
   booking,
@@ -99,33 +81,34 @@ export function NextExchangeSection({
 
   if (!booking) {
     return (
-      <SurfaceCard className="p-6 sm:p-8 relative overflow-hidden group">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2 max-w-xl">
+      <DashboardCard className="p-5 sm:p-6 relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+          <div className="space-y-1.5 max-w-lg">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-violet-400/60" />
-              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                Next Scheduled Exchange
+              <span className="w-2 h-2 rounded-full bg-[var(--accent-purple,#A66CFF)]" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted,#96919F)]">
+                Focus Session • Scheduled Exchange
               </span>
             </div>
-            <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary,#F5F2FA)] tracking-tight">
               No live classroom scheduled for today
             </h3>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+            <p className="text-xs text-[var(--text-muted,#96919F)] leading-relaxed">
               Your calendar is clear. Connect with a mentor or peer swapper to schedule your next 1-on-1 exchange session.
             </p>
           </div>
 
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             onClick={onNavigateToExplore}
-            leftIcon={<Compass className="w-4 h-4" />}
+            leftIcon={<Compass className="w-3.5 h-3.5" />}
+            className="shrink-0"
           >
             Find Exchange Partner
           </Button>
         </div>
-      </SurfaceCard>
+      </DashboardCard>
     );
   }
 
@@ -164,50 +147,41 @@ export function NextExchangeSection({
   }
 
   return (
-    <div
-      className={`relative rounded-3xl p-6 sm:p-8 transition-all duration-500 overflow-hidden border ${
-        isLive
-          ? 'bg-gradient-to-br from-[#131E1E] via-[#0E151A] to-[#090A0F] border-emerald-500/50 shadow-[0_0_50px_rgba(16,185,129,0.25)]'
-          : 'bg-[#12131A] border-white/[0.1] shadow-[0_16px_40px_rgba(0,0,0,0.6)]'
+    <DashboardCard
+      className={`p-5 sm:p-6 transition-all duration-300 relative overflow-hidden ${
+        isLive ? 'border-emerald-500/50 bg-[#121A16]' : ''
       }`}
     >
-      {/* Dynamic atmospheric radiance */}
-      {isLive ? (
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
-      ) : (
-        <div className="absolute top-0 right-0 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
-      )}
-
-      <div className="relative z-10 space-y-6">
+      <div className="space-y-4">
         {/* Top Meta Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
-          <div className="flex items-center gap-2.5">
-            <span className="relative flex h-3 w-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
               <span
                 className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
                   isLive ? 'bg-emerald-400' : 'bg-amber-400'
                 }`}
               />
               <span
-                className={`relative inline-flex rounded-full h-3 w-3 ${
+                className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
                   isLive ? 'bg-emerald-500' : 'bg-amber-500'
                 }`}
               />
             </span>
             <span
               className={`text-xs font-bold uppercase tracking-wider ${
-                isLive ? 'text-emerald-300' : 'text-slate-300'
+                isLive ? 'text-emerald-400' : 'text-[var(--text-muted,#96919F)]'
               }`}
             >
-              {isLive ? 'Classroom Ready • Active Live Session' : 'Next Scheduled Exchange'}
+              {isLive ? 'Active Live Session • Room Open' : 'Focus Session • Next Up'}
             </span>
           </div>
 
           <div
-            className={`flex items-center gap-2 px-3.5 py-1 rounded-full border text-xs font-mono font-bold tracking-wider ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-mono font-bold tracking-wider ${
               isLive
-                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
-                : 'bg-[#181924] text-amber-300 border-white/[0.08]'
+                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                : 'bg-[var(--surface-elevated,#1B1722)] text-amber-300 border-[var(--border-subtle,rgba(255,255,255,0.08))]'
             }`}
           >
             <Clock className={`w-3.5 h-3.5 ${isLive ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
@@ -215,128 +189,120 @@ export function NextExchangeSection({
           </div>
         </div>
 
-        {/* Core Session Details Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          
-          {/* Skill Title & Meta */}
-          <div className="lg:col-span-7 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-violet-950/70 border border-violet-500/30 text-violet-300 rounded-full text-[11px] font-bold">
+        {/* Core Session Details */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+          <div className="md:col-span-7 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2.5 py-0.5 bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.08))] text-[var(--accent-purple,#A66CFF)] rounded-full text-[11px] font-bold">
                 {booking.category || 'Skill Barter'}
               </span>
-              <span className="px-3 py-1 bg-white/[0.06] border border-white/[0.08] text-slate-300 rounded-full text-[11px] font-semibold">
+              <span className="px-2.5 py-0.5 bg-white/[0.04] border border-[var(--border-subtle,rgba(255,255,255,0.08))] text-[var(--text-muted,#96919F)] rounded-full text-[11px] font-medium">
                 {booking.learningOption || '1-on-1 Session'}
               </span>
             </div>
 
-            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
+            <h2 className="text-xl sm:text-2xl font-bold text-[var(--text-primary,#F5F2FA)] tracking-tight">
               {booking.skillName}
             </h2>
 
-            <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-400 pt-1">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-violet-400" />
+            <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-[var(--text-muted,#96919F)]">
+              <div className="flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-[var(--accent-purple,#A66CFF)]" />
                 <span>{gate.formattedDate}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-violet-400" />
+              <div className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-[var(--accent-purple,#A66CFF)]" />
                 <span>{gate.formattedTime} ({booking.timeSlot})</span>
               </div>
             </div>
           </div>
 
-          {/* Overlapping Avatar & Partner Display */}
-          <div className="lg:col-span-5 bg-[#181924]/90 backdrop-blur-md border border-white/[0.08] rounded-2xl p-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="flex -space-x-3 shrink-0">
+          <div className="md:col-span-5 bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl p-3.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex -space-x-2.5 shrink-0">
                 <img
                   src={currentUser.avatar}
                   alt={currentUser.name}
-                  className="w-11 h-11 rounded-full object-cover ring-2 ring-[#12131A]"
+                  className="w-9 h-9 rounded-full object-cover ring-2 ring-[var(--surface,#15131A)]"
                 />
                 <img
                   src={partnerAvatar}
                   alt={partnerName}
-                  className="w-11 h-11 rounded-full object-cover ring-2 ring-violet-500"
+                  className="w-9 h-9 rounded-full object-cover ring-2 ring-[var(--accent-purple,#A66CFF)]"
                 />
               </div>
               <div className="min-w-0">
-                <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wider block">
+                <span className="text-[10px] font-bold text-[var(--accent-purple,#A66CFF)] uppercase tracking-wider block">
                   {roleLabel}
                 </span>
-                <p className="text-sm font-bold text-white truncate">{partnerName}</p>
-                <p className="text-[11px] text-slate-400 truncate">Peer Swapper</p>
+                <p className="text-xs font-bold text-[var(--text-primary,#F5F2FA)] truncate">{partnerName}</p>
               </div>
             </div>
 
-            <div className="shrink-0 text-right">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-300 border border-emerald-500/30">
-                <CheckCircle2 className="w-3 h-3" /> Confirmed
-              </span>
-            </div>
+            <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" /> Confirmed
+            </span>
           </div>
-
         </div>
 
         {/* Action Controls */}
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/[0.08]">
-          <p className="text-xs text-slate-400 font-medium text-center sm:text-left">
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[var(--border-subtle,rgba(255,255,255,0.08))]">
+          <p className="text-xs text-[var(--text-muted,#96919F)] font-medium text-center sm:text-left">
             {isLive
-              ? '🟢 Classroom is live! Click below to enter camera & audio room.'
+              ? '🟢 Classroom is live! Click to join video & audio room.'
               : '🕒 Live classroom unlocks 10 minutes prior to scheduled start.'}
           </p>
 
-          <div className="w-full sm:w-auto shrink-0 flex flex-wrap items-center gap-2.5">
+          <div className="w-full sm:w-auto shrink-0 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => onRescheduleBooking?.(booking)}
-              className="px-3.5 py-2 bg-[#181924] hover:bg-[#202230] text-slate-300 hover:text-white font-semibold text-xs rounded-xl border border-white/[0.08] flex items-center justify-center gap-1.5 transition cursor-pointer"
+              className="px-3 py-1.5 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] text-[var(--text-muted,#96919F)] hover:text-white font-semibold text-xs rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.08))] flex items-center justify-center gap-1 transition cursor-pointer"
             >
-              <Calendar className="w-3.5 h-3.5 text-violet-400" />
-              <span>Propose New Time</span>
+              <Calendar className="w-3 h-3 text-[var(--accent-purple,#A66CFF)]" />
+              <span>Reschedule</span>
             </button>
 
             <button
               type="button"
               onClick={() => onCancelBooking?.(booking)}
-              className="px-3.5 py-2 bg-[#181924] hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 font-semibold text-xs rounded-xl border border-white/[0.08] flex items-center justify-center gap-1.5 transition cursor-pointer"
+              className="px-3 py-1.5 bg-[var(--surface-elevated,#1B1722)] hover:bg-rose-950/60 text-[var(--text-muted,#96919F)] hover:text-rose-300 font-semibold text-xs rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.08))] flex items-center justify-center gap-1 transition cursor-pointer"
             >
-              <X className="w-3.5 h-3.5 text-rose-400" />
+              <X className="w-3 h-3 text-rose-400" />
               <span>Cancel</span>
             </button>
 
             {isLive ? (
               <Button
                 variant="primary"
-                size="md"
+                size="sm"
                 onClick={() => onStartLiveSession?.(booking)}
-                leftIcon={<Video className="w-4 h-4 animate-pulse" />}
-                className="bg-emerald-600 hover:bg-emerald-500 shadow-[0_0_24px_rgba(16,185,129,0.4)]"
+                leftIcon={<Video className="w-3.5 h-3.5 animate-pulse" />}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white"
               >
-                Enter Live Classroom
+                Enter Classroom
               </Button>
             ) : (
               <Button
                 variant="secondary"
-                size="md"
+                size="sm"
                 onClick={() => onStartLiveSession?.(booking)}
-                leftIcon={<Video className="w-4 h-4 text-violet-400" />}
+                leftIcon={<Video className="w-3.5 h-3.5 text-[var(--accent-purple,#A66CFF)]" />}
               >
-                Pre-Check Camera Room
+                Pre-Check Room
               </Button>
             )}
           </div>
         </div>
-
       </div>
-    </div>
+    </DashboardCard>
   );
 }
 
 /* ==========================================================================
-   Dashboard View Main Component
+   Dashboard View Props
    ========================================================================== */
-interface DashboardViewProps {
+export interface DashboardViewProps {
   currentUser: UserProfile;
   bookings: Booking[];
   notifications: AppNotification[];
@@ -350,6 +316,13 @@ interface DashboardViewProps {
   onNavigateToExplore?: () => void;
   onNavigateToGamification?: () => void;
   onNavigateToSkillPath?: () => void;
+  onNavigateToChat?: (partnerId?: string) => void;
+  onNavigateToStudyHub?: () => void;
+  onNavigateToCredits?: () => void;
+  onNavigateToProfile?: () => void;
+  onNavigateToTab?: (tab: string) => void;
+  onLogout?: () => void;
+  onSync?: () => void;
   allReviews?: Review[];
 }
 
@@ -367,9 +340,16 @@ export default function DashboardView({
   onNavigateToExplore,
   onNavigateToGamification,
   onNavigateToSkillPath,
+  onNavigateToChat,
+  onNavigateToStudyHub,
+  onNavigateToCredits,
+  onNavigateToProfile,
+  onNavigateToTab,
+  onLogout,
+  onSync,
   allReviews = [],
 }: DashboardViewProps) {
-  // Modals for Cancellation, Rescheduling, and Reviews
+  // Modals state
   const [cancelBookingModal, setCancelBookingModal] = useState<Booking | null>(null);
   const [cancelReasonPreset, setCancelReasonPreset] = useState<string>('');
   const [cancelReasonCustom, setCancelReasonCustom] = useState<string>('');
@@ -384,9 +364,6 @@ export default function DashboardView({
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
 
-  // Active secondary tab for progressive disclosure
-  const [secondaryTab, setSecondaryTab] = useState<'pipeline' | 'tracks' | 'community'>('pipeline');
-
   // Time-aware greeting
   const greetingTime = useMemo(() => {
     const hour = new Date().getHours();
@@ -398,10 +375,11 @@ export default function DashboardView({
   // Gamification Metrics
   const xpPoints = useMemo(() => calculateUserXP(currentUser), [currentUser]);
   const userLevel = useMemo(() => Math.max(1, Math.floor(xpPoints / 400) + 1), [xpPoints]);
+  const xpProgressInLevel = useMemo(() => (xpPoints % 400), [xpPoints]);
 
-  // Matches for "People worth learning from"
+  // Matches for recommended partners
   const allUserMatches = useMemo(() => computeAllUserMatches(currentUser, allUsers), [currentUser, allUsers]);
-  const recommendedPartners = useMemo(() => allUserMatches.slice(0, 8), [allUserMatches]);
+  const recommendedPartners = useMemo(() => allUserMatches.slice(0, 4), [allUserMatches]);
 
   // Live timer for bookings visibility
   const [now, setNow] = useState(Date.now());
@@ -427,7 +405,7 @@ export default function DashboardView({
     });
   }, [bookings, currentUser.id, now]);
 
-  // Find next upcoming session in next 24h
+  // Find next upcoming session
   const nextUpcomingSession = useMemo(() => {
     const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
     const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -452,7 +430,7 @@ export default function DashboardView({
     return userUpcoming[0] || null;
   }, [userBookings, now]);
 
-  // Handlers for cancel / reschedule / review
+  // Cancellation handler
   const handleCancelSubmit = () => {
     if (!cancelBookingModal) return;
     const reasonCombined = [cancelReasonPreset, cancelReasonCustom].filter(Boolean).join(' - ') || 'No reason specified';
@@ -476,6 +454,7 @@ export default function DashboardView({
     setCancelReasonCustom('');
   };
 
+  // Reschedule handler
   const handleRescheduleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!rescheduleBookingModal || !rescheduleDate) return;
@@ -499,6 +478,7 @@ export default function DashboardView({
     setRescheduleNote('');
   };
 
+  // Review handler
   const submitReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewBooking) return;
@@ -522,525 +502,560 @@ export default function DashboardView({
     setReviewRating(5);
   };
 
+  const navItems = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      active: true,
+      onClick: () => {},
+    },
+    {
+      id: 'explore',
+      label: 'Explore Skills',
+      icon: Compass,
+      active: false,
+      onClick: onNavigateToExplore,
+    },
+    {
+      id: 'chat',
+      label: 'Messages',
+      icon: MessageSquare,
+      active: false,
+      onClick: () => onNavigateToChat ? onNavigateToChat() : onNavigateToTab?.('chat'),
+    },
+    {
+      id: 'study-hub',
+      label: 'Study Hub',
+      icon: BookOpen,
+      active: false,
+      onClick: () => onNavigateToStudyHub ? onNavigateToStudyHub() : onNavigateToTab?.('study-hub'),
+    },
+    {
+      id: 'skill-path',
+      label: 'AI Skill Path',
+      icon: Sparkles,
+      active: false,
+      onClick: onNavigateToSkillPath,
+    },
+    {
+      id: 'gamification',
+      label: 'Quests & Rewards',
+      icon: Trophy,
+      active: false,
+      onClick: onNavigateToGamification,
+    },
+    {
+      id: 'credits',
+      label: 'Skill Credits',
+      icon: Coins,
+      active: false,
+      onClick: () => onNavigateToCredits ? onNavigateToCredits() : onNavigateToTab?.('credits'),
+    },
+    {
+      id: 'profile',
+      label: 'My Profile',
+      icon: User,
+      active: false,
+      onClick: () => onNavigateToProfile ? onNavigateToProfile() : onNavigateToTab?.('profile'),
+    },
+  ];
+
   return (
-    <div id="dashboard-view-root" className="space-y-12 pb-16">
-      
+    <div
+      id="dashboard-view-root"
+      className="dashboard-theme w-full min-h-screen text-[var(--text-primary,#F5F2FA)] relative"
+    >
+      {/* Restrained subtle violet ambient background glow */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-[var(--accent-purple,#A66CFF)]/5 rounded-full blur-[100px] pointer-events-none -z-10" />
+      <div className="absolute bottom-10 right-10 w-80 h-80 bg-[var(--accent-purple-bright,#C04DFF)]/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+
       {/* ====================================================================
-          1. LARGE EDITORIAL HERO SECTION
+          TOP NAVIGATION BAR (Compact / Dense)
           ==================================================================== */}
-      <section className="relative rounded-[32px] bg-[#12131A] border border-white/[0.08] p-8 sm:p-12 lg:p-14 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.7)]">
-        {/* Ambient violet glow backdrop */}
-        <AmbientOrb tone="violet" size="xl" cursorReactive className="-top-24 -left-24 opacity-70" />
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          
-          {/* Main Editorial Text */}
-          <div className="lg:col-span-8 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/[0.06] border border-white/[0.1] rounded-full text-xs font-semibold text-violet-300">
-              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-              <span>SkillSwap 2026 • Peer Barter Academy</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-[1.12]">
-              <RevealText delay={0.05} staggerDelay={0.03}>
-                Exchange what you know.
-              </RevealText>
-              <br className="hidden sm:inline" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-purple-200 to-indigo-300">
-                Learn what you don't.
-              </span>
-            </h1>
-
-            <FadeUp delay={0.2} duration={0.45}>
-              <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-2xl">
-                Trade your domain expertise for hands-on skills with creators and swappers worldwide. No money required — pure collaborative learning. {greetingTime}, <span className="text-slate-200 font-semibold">{currentUser.name}</span>.
-              </p>
-            </FadeUp>
-
-            {/* Primary Hero Actions */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <MagneticButton delay={0.3} duration={0.4}>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={onNavigateToExplore}
-                  rightIcon={<ArrowRight className="w-4 h-4" />}
-                >
-                  Explore skills
-                </Button>
-              </MagneticButton>
-
-              <MagneticButton delay={0.38} duration={0.4}>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  onClick={onNavigateToSkillPath}
-                  leftIcon={<Sparkles className="w-4 h-4 text-violet-400" />}
-                >
-                  View your path
-                </Button>
-              </MagneticButton>
-            </div>
+      <header className="w-full mb-5 bg-[var(--surface,#15131A)] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent-purple,#A66CFF)]" />
+            <span className="font-bold text-sm text-[var(--text-primary,#F5F2FA)] tracking-tight">
+              Dashboard Overview
+            </span>
           </div>
+          <span className="hidden sm:inline-block text-xs text-[var(--text-muted,#96919F)] font-medium">
+            • Peer Skill Exchange 2026
+          </span>
+        </div>
 
-          {/* Side Rep / Quick Glance Pill */}
-          <div className="lg:col-span-4 bg-[#181924]/90 backdrop-blur-md border border-white/[0.08] rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Current Standing
-                </span>
-                <span className="text-base font-bold text-white">
+        <div className="flex items-center gap-2.5">
+          {/* Quick Wallet Credits Pill */}
+          <button
+            onClick={() => onNavigateToCredits ? onNavigateToCredits() : onNavigateToTab?.('credits')}
+            className="px-2.5 py-1 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl text-xs font-bold text-amber-300 flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <Coins className="w-3.5 h-3.5 text-amber-400" />
+            <span>{currentUser.credits ?? 100} Credits</span>
+          </button>
+
+          {/* Quick Streak Pill */}
+          <button
+            onClick={onNavigateToGamification}
+            className="px-2.5 py-1 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+            <span>{currentUser.loginStreak ?? 7}d Streak</span>
+          </button>
+
+          {/* Sync status / action */}
+          {onSync && (
+            <button
+              onClick={onSync}
+              title="Sync state with cloud"
+              className="p-1.5 text-[var(--text-muted,#96919F)] hover:text-white bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl transition cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* ====================================================================
+          3-PART GRID LAYOUT: SIDEBAR (Left) + MAIN (Center) + INSIGHTS (Right)
+          ==================================================================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        
+        {/* ==================================================================
+            1. SIDEBAR COLUMN (Left - 2.5 / 12 on large screens)
+            ================================================================== */}
+        <aside className="lg:col-span-3 space-y-4">
+          <DashboardCard className="p-3 space-y-1">
+            <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted,#96919F)]">
+              Navigation
+            </div>
+            <nav className="space-y-1">
+              {navItems.map((item) => {
+                const IconComponent = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={item.onClick}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer border ${
+                      item.active
+                        ? 'bg-[var(--surface-elevated,#1B1722)] text-[var(--accent-purple,#A66CFF)] border-[var(--accent-purple,#A66CFF)]/40 shadow-xs'
+                        : 'bg-transparent text-[var(--text-muted,#96919F)] hover:text-[var(--text-primary,#F5F2FA)] hover:bg-[var(--surface-elevated,#1B1722)]/50 border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <IconComponent className={`w-4 h-4 ${item.active ? 'text-[var(--accent-purple,#A66CFF)]' : 'text-[var(--text-muted,#96919F)]'}`} />
+                      <span>{item.label}</span>
+                    </div>
+                    {item.active && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-purple,#A66CFF)]" />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </DashboardCard>
+
+          {/* User Profile Summary Card */}
+          <DashboardCard className="p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <img
+                src={currentUser.avatar}
+                alt={currentUser.name}
+                className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--border-subtle,rgba(255,255,255,0.08))]"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-[var(--text-primary,#F5F2FA)] truncate">
+                  {currentUser.name}
+                </p>
+                <p className="text-[11px] text-[var(--text-muted,#96919F)] truncate">
                   Lvl {userLevel} Voyager
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-xl font-bold text-amber-300">
-                  <AnimatedCounter value={currentUser.credits ?? 100} />
-                </span>
-                <span className="text-[10px] text-slate-400 block font-medium">Credits Wallet</span>
+                </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5 text-xs">
-              <div className="bg-[#12131A] p-3 rounded-xl border border-white/[0.04]">
-                <span className="text-[10px] font-medium text-slate-400 uppercase block">Active Streak</span>
-                <span className="text-sm font-bold text-white flex items-center gap-1 mt-0.5">
-                  <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                  {currentUser.loginStreak ?? 7} Days
-                </span>
+            <div className="space-y-1.5 pt-2 border-t border-[var(--border-subtle,rgba(255,255,255,0.08))] text-[11px]">
+              <div className="flex items-center justify-between text-[var(--text-muted,#96919F)]">
+                <span>XP Level Progress</span>
+                <span className="font-semibold text-white">{xpProgressInLevel} / 400</span>
               </div>
-
-              <div className="bg-[#12131A] p-3 rounded-xl border border-white/[0.04]">
-                <span className="text-[10px] font-medium text-slate-400 uppercase block">Swaps Done</span>
-                <span className="text-sm font-bold text-violet-300 flex items-center gap-1 mt-0.5">
-                  <GraduationCap className="w-3.5 h-3.5 text-violet-400" />
-                  {currentUser.successfulExchanges || 0}
-                </span>
-              </div>
+              <ProgressBar value={Math.round((xpProgressInLevel / 400) * 100)} color="violet" showPercentage={false} />
             </div>
 
-            {onNavigateToGamification && (
+            {onNavigateToProfile && (
               <button
-                onClick={onNavigateToGamification}
-                className="w-full py-2 bg-white/[0.04] hover:bg-white/[0.08] text-violet-300 hover:text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer border border-white/[0.06]"
+                type="button"
+                onClick={onNavigateToProfile}
+                className="w-full py-1.5 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] text-[var(--accent-purple,#A66CFF)] hover:text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer border border-[var(--border-subtle,rgba(255,255,255,0.08))]"
               >
-                <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                <span>Rewards & Leaderboard</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                <span>Edit Profile</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             )}
-          </div>
+          </DashboardCard>
+        </aside>
 
-        </div>
-      </section>
-
-      {/* ====================================================================
-          2. NEXT EXCHANGE SECTION
-          ==================================================================== */}
-      <section className="space-y-3">
-        <NextExchangeSection
-          booking={nextUpcomingSession}
-          currentUser={currentUser}
-          allUsers={allUsers}
-          onStartLiveSession={onStartLiveSession}
-          onCancelBooking={(b) => setCancelBookingModal(b)}
-          onRescheduleBooking={(b) => {
-            setRescheduleBookingModal(b);
-            setRescheduleDate(b.date || new Date().toISOString().split('T')[0]);
-            setRescheduleSlot(b.timeSlot || 'Afternoon');
-          }}
-          onNavigateToExplore={onNavigateToExplore}
-        />
-      </section>
-
-      {/* ====================================================================
-          3. PEOPLE WORTH LEARNING FROM (HORIZONTAL CAROUSEL / SCROLL)
-          ==================================================================== */}
-      <section className="space-y-4">
-        <PinnedHorizontalScroll
-          scrollDistanceMultiplier={2.2}
-          header={
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-                  <Users className="w-5 h-5 text-violet-400" />
-                  People worth learning from
-                </h2>
-                <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
-                  High-affinity peer swappers tailored to your target skills
+        {/* ==================================================================
+            2. MAIN CONTENT COLUMN (Center - 5.5 / 12 on large screens)
+            ================================================================== */}
+        <main className="lg:col-span-5 space-y-5">
+          
+          {/* A. GREETING CARD */}
+          <DashboardCard className="p-5 sm:p-6 space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent-purple,#A66CFF)]">
+                  {greetingTime}, {currentUser.name}
+                </span>
+                <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary,#F5F2FA)] tracking-tight">
+                  Exchange what you know. Learn what you don't.
+                </h1>
+                <p className="text-xs text-[var(--text-muted,#96919F)] leading-relaxed pt-0.5">
+                  Trade domain expertise for hands-on skills with peer swappers worldwide. No money required.
                 </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={onNavigateToExplore}
+                rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+              >
+                Explore skills
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onNavigateToSkillPath}
+                leftIcon={<Sparkles className="w-3.5 h-3.5 text-[var(--accent-purple,#A66CFF)]" />}
+              >
+                View your path
+              </Button>
+            </div>
+          </DashboardCard>
+
+          {/* B. FOCUS / SESSION CARD */}
+          <NextExchangeSection
+            booking={nextUpcomingSession}
+            currentUser={currentUser}
+            allUsers={allUsers}
+            onStartLiveSession={onStartLiveSession}
+            onCancelBooking={(b) => setCancelBookingModal(b)}
+            onRescheduleBooking={(b) => {
+              setRescheduleBookingModal(b);
+              setRescheduleDate(b.date || new Date().toISOString().split('T')[0]);
+              setRescheduleSlot(b.timeSlot || 'Afternoon');
+            }}
+            onNavigateToExplore={onNavigateToExplore}
+          />
+
+          {/* C. LEARNING PATH / ACTIVE TRACKS CARD */}
+          <DashboardCard className="p-5 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-[var(--accent-purple,#A66CFF)]" />
+                <h3 className="font-bold text-sm text-[var(--text-primary,#F5F2FA)]">
+                  Active Learning Tracks
+                </h3>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onNavigateToSkillPath}
+                rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
+              >
+                View All
+              </Button>
+            </div>
+
+            {progress.length === 0 ? (
+              <div className="py-4 text-center space-y-2">
+                <p className="text-xs text-[var(--text-muted,#96919F)]">
+                  No active tracks started yet. Connect with a peer partner or browse customized AI learning roadmaps.
+                </p>
+                <Button variant="secondary" size="sm" onClick={onNavigateToExplore}>
+                  Start a Learning Track
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {progress.slice(0, 3).map((prog, idx) => (
+                  <div
+                    key={`${prog.userId}-${prog.skillName}-${idx}`}
+                    className="p-3 bg-[var(--surface-elevated,#1B1722)] rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="font-bold text-xs text-[var(--text-primary,#F5F2FA)]">
+                        {prog.skillName}
+                      </h4>
+                      <span className="text-[11px] font-bold text-[var(--accent-purple,#A66CFF)]">
+                        {prog.completionPercentage}%
+                      </span>
+                    </div>
+                    <ProgressBar value={prog.completionPercentage} color="violet" showPercentage={false} />
+                    <div className="flex items-center justify-between text-[11px] text-[var(--text-muted,#96919F)] pt-1">
+                      <span>{prog.lessonsCompleted} of {prog.lessonsTotal} milestones completed</span>
+                      <button
+                        onClick={onNavigateToSkillPath}
+                        className="text-[var(--accent-purple,#A66CFF)] hover:underline font-semibold cursor-pointer"
+                      >
+                        Resume →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DashboardCard>
+
+          {/* D. RECOMMENDED PARTNERS ("People worth learning from") */}
+          <DashboardCard className="p-5 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-[var(--accent-purple,#A66CFF)]" />
+                <h3 className="font-bold text-sm text-[var(--text-primary,#F5F2FA)]">
+                  People worth learning from
+                </h3>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onNavigateToExplore}
-                rightIcon={<ChevronRight className="w-4 h-4" />}
+                rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
               >
-                See all
+                Explore All
               </Button>
             </div>
-          }
-        >
-          {recommendedPartners.map(({ user, isPerfectMatch, matchScore }) => {
-            const primarySkill = user.skillsOffered?.[0]?.name || 'Domain Specialist';
-            const teachesList = user.skillsOffered?.map((s) => s.name).slice(0, 2).join(', ') || 'Custom Skills';
-            const wantsList = user.skillsWanted?.map((s) => s.name).slice(0, 2).join(', ') || 'Design / Code';
-            const matchPercentage = Math.min(99, Math.max(78, Math.round((matchScore || 0.85) * 100)));
 
-            return (
-              <div key={user.id} className="w-[320px] sm:w-[360px] shrink-0">
-                <Spotlight
-                  spotlightColor="rgba(139, 92, 246, 0.15)"
-                  className="h-full bg-[#12131A] border border-white/[0.08] hover:border-violet-500/40 rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 shadow-lg group select-none"
-                >
-                  <div className="space-y-4">
-                    
-                    {/* Header: Portrait & Affinity Badge */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="relative">
-                        <img
-                          src={user.avatar}
-                          alt={user.name}
-                          className="w-14 h-14 rounded-2xl object-cover ring-2 ring-white/[0.1] group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full ring-2 ring-[#12131A]" />
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="px-2.5 py-1 bg-violet-950/80 text-violet-300 border border-violet-500/30 rounded-full text-[10px] font-bold tracking-wide">
-                          {matchPercentage}% Match
-                        </span>
-                        {isPerfectMatch && (
-                          <span className="text-[9px] font-bold text-emerald-400 flex items-center gap-0.5">
-                            <Sparkles className="w-2.5 h-2.5" /> Mutual Match
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {recommendedPartners.map(({ user, matchScore, isPerfectMatch }) => {
+                const primarySkill = user.skillsOffered?.[0]?.name || 'Specialist';
+                const matchPct = Math.min(99, Math.max(78, Math.round((matchScore || 0.85) * 100)));
+                return (
+                  <div
+                    key={user.id}
+                    className="p-3 bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.06))] rounded-xl flex flex-col justify-between gap-3 hover:border-[var(--accent-purple,#A66CFF)]/40 transition-colors"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--border-subtle,rgba(255,255,255,0.08))] shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <p className="text-xs font-bold text-[var(--text-primary,#F5F2FA)] truncate">
+                            {user.name}
+                          </p>
+                          <span className="text-[10px] font-bold text-[var(--accent-purple,#A66CFF)] shrink-0">
+                            {matchPct}%
                           </span>
-                        )}
+                        </div>
+                        <p className="text-[11px] text-[var(--text-muted,#96919F)] truncate">{primarySkill}</p>
+                        <div className="flex items-center gap-1 text-[10px] text-amber-400 font-semibold mt-0.5">
+                          <Star className="w-3 h-3 fill-amber-400" />
+                          <span>{user.rating?.toFixed(1) || '4.9'}</span>
+                          <span className="text-[var(--text-muted,#96919F)]">({user.successfulExchanges || 5} swaps)</span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Name & Primary Skill */}
-                    <div>
-                      <h3 className="text-base font-bold text-white group-hover:text-violet-300 transition-colors">
-                        {user.name}
-                      </h3>
-                      <p className="text-xs text-slate-400 font-medium mt-0.5">{primarySkill}</p>
-
-                      <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold mt-1">
-                        <Star className="w-3.5 h-3.5 fill-amber-400" />
-                        <span>{user.rating?.toFixed(1) || '4.9'}</span>
-                        <span className="text-slate-500 font-normal">
-                          ({user.successfulExchanges || 8} swaps)
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Teaches vs Wants Breakdown */}
-                    <div className="space-y-2 pt-2 border-t border-white/[0.06] text-xs">
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                          Teaches
-                        </span>
-                        <p className="text-slate-200 font-medium truncate">{teachesList}</p>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wider block">
-                          Wants to learn
-                        </span>
-                        <p className="text-violet-300 font-medium truncate">{wantsList}</p>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Magnetic / Action Button */}
-                  <div className="pt-4 mt-2">
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={onNavigateToExplore}
-                      className="w-full justify-center group-hover:bg-violet-600 group-hover:text-white group-hover:border-violet-500 transition-all"
-                      rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                      className="w-full justify-center text-xs py-1"
                     >
                       Propose Exchange
                     </Button>
                   </div>
-                </Spotlight>
+                );
+              })}
+            </div>
+          </DashboardCard>
+
+        </main>
+
+        {/* ==================================================================
+            3. INSIGHTS & METRICS COLUMN (Right - 4 / 12 on large screens)
+            ================================================================== */}
+        <aside className="lg:col-span-4 space-y-4">
+          
+          {/* A. MENTOR INSIGHTS CARD */}
+          <DashboardCard className="p-4 sm:p-5 space-y-3">
+            <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
+              <div className="w-7 h-7 rounded-lg bg-[var(--surface-elevated,#1B1722)] border border-[var(--accent-purple,#A66CFF)]/30 flex items-center justify-center text-[var(--accent-purple,#A66CFF)]">
+                <Sparkles className="w-4 h-4" />
               </div>
-            );
-          })}
-        </PinnedHorizontalScroll>
-      </section>
-
-      {/* ====================================================================
-          4. PROGRESSIVE DISCLOSURE: SECONDARY SECTIONS
-          ==================================================================== */}
-      <section className="space-y-6 pt-4 border-t border-white/[0.08]">
-        
-        {/* Navigation Tabs for Secondary Insights */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-2 bg-[#12131A] p-1.5 rounded-2xl border border-white/[0.08]">
-            <button
-              onClick={() => setSecondaryTab('pipeline')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border-0 ${
-                secondaryTab === 'pipeline'
-                  ? 'bg-[#181924] text-white shadow-xs border border-white/[0.1]'
-                  : 'text-slate-400 hover:text-white bg-transparent'
-              }`}
-            >
-              Exchange Pipeline ({userBookings.length})
-            </button>
-            <button
-              onClick={() => setSecondaryTab('tracks')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border-0 ${
-                secondaryTab === 'tracks'
-                  ? 'bg-[#181924] text-white shadow-xs border border-white/[0.1]'
-                  : 'text-slate-400 hover:text-white bg-transparent'
-              }`}
-            >
-              Learning Tracks ({progress.length})
-            </button>
-            <button
-              onClick={() => setSecondaryTab('community')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border-0 ${
-                secondaryTab === 'community'
-                  ? 'bg-[#181924] text-white shadow-xs border border-white/[0.1]'
-                  : 'text-slate-400 hover:text-white bg-transparent'
-              }`}
-            >
-              Community Activity
-            </button>
-          </div>
-
-          <span className="text-xs text-slate-400 font-medium">
-            Progressive Insights
-          </span>
-        </div>
-
-        {/* Tab 1: Exchange Pipeline / Bookings Timeline */}
-        {secondaryTab === 'pipeline' && (
-          <div className="space-y-4">
-            {userBookings.length === 0 ? (
-              <EmptyState
-                preset="bookings"
-                title="Your timeline is wide open"
-                description="No upcoming sessions scheduled. Connect with a skill partner to schedule your next classroom."
-                actionText="Book a Session"
-                onAction={onNavigateToExplore}
-              />
-            ) : (
-              <SurfaceCard className="p-6 divide-y divide-white/[0.06]">
-                {userBookings.map((booking) => {
-                  const isTeacher = booking.teacherId === currentUser.id;
-                  const otherPartyName = isTeacher ? booking.learnerName : booking.teacherName;
-
-                  return (
-                    <div
-                      key={booking.id}
-                      className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                    >
-                      <div className="flex items-start gap-3.5">
-                        <div className="w-10 h-10 rounded-2xl bg-violet-950/60 border border-violet-500/25 flex items-center justify-center text-violet-400 font-bold shrink-0">
-                          <Video className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-white text-sm sm:text-base">
-                            {booking.skillName}
-                          </h4>
-                          <p className="text-slate-400 text-xs mt-0.5">
-                            With <span className="font-semibold text-slate-200">{otherPartyName}</span> • Option:{' '}
-                            <span className="text-violet-300 font-semibold">{booking.learningOption}</span>
-                          </p>
-                          <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5 text-slate-400" /> {booking.date}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5 text-slate-400" /> {booking.timeSlot}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
-                        {booking.status === 'completed' ? (
-                          <span className="px-3 py-1 bg-emerald-950/60 text-emerald-300 border border-emerald-500/25 rounded-full text-xs font-semibold flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Completed
-                          </span>
-                        ) : booking.status === 'cancelled' ? (
-                          <span className="px-3 py-1 bg-rose-950/60 text-rose-300 border border-rose-500/25 rounded-full text-xs font-semibold flex items-center gap-1">
-                            <X className="w-3.5 h-3.5 text-rose-400" /> Cancelled
-                          </span>
-                        ) : booking.status === 'pending' ? (
-                          <span className="px-3 py-1 bg-amber-950/60 text-amber-300 border border-amber-500/25 rounded-full text-xs font-semibold">
-                            Pending Confirmation
-                          </span>
-                        ) : (
-                          <span className="px-3 py-1 bg-violet-950/60 text-violet-300 border border-violet-500/25 rounded-full text-xs font-semibold">
-                            Confirmed
-                          </span>
-                        )}
-
-                        {booking.status !== 'cancelled' && booking.status !== 'completed' && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRescheduleBookingModal(booking);
-                                setRescheduleDate(booking.date || new Date().toISOString().split('T')[0]);
-                                setRescheduleSlot(booking.timeSlot || 'Afternoon');
-                              }}
-                              className="px-3 py-1.5 bg-[#181924] hover:bg-[#202230] text-slate-300 font-semibold text-xs rounded-xl border border-white/[0.08] transition cursor-pointer flex items-center gap-1.5"
-                            >
-                              <Calendar className="w-3.5 h-3.5 text-violet-400" />
-                              <span>Reschedule</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setCancelBookingModal(booking)}
-                              className="px-3 py-1.5 bg-[#181924] hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 font-semibold text-xs rounded-xl border border-white/[0.08] transition cursor-pointer flex items-center gap-1.5"
-                            >
-                              <X className="w-3.5 h-3.5 text-rose-400" />
-                              <span>Cancel</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </SurfaceCard>
-            )}
-          </div>
-        )}
-
-        {/* Tab 2: Learning Tracks & AI Guidance */}
-        {secondaryTab === 'tracks' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-7 space-y-4">
-              {progress.length === 0 ? (
-                <EmptyState
-                  preset="courses"
-                  title="Start your first skill track"
-                  description="No active skill tracks in progress. Connect with peer swappers to unlock customized learning roadmaps."
-                  actionText="Explore Skill Partners"
-                  onAction={onNavigateToExplore}
-                />
-              ) : (
-                progress.map((prog, idx) => (
-                  <SurfaceCard key={`${prog.userId}-${prog.skillName}-${idx}`} className="p-5 space-y-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-violet-950/60 border border-violet-500/25 flex items-center justify-center text-violet-400 font-bold">
-                          <BookOpen className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-white text-base">{prog.skillName}</h4>
-                          <span className="text-xs text-slate-400">
-                            {prog.lessonsCompleted} of {prog.lessonsTotal} milestones completed
-                          </span>
-                        </div>
-                      </div>
-                      <Badge variant="primary">{prog.completionPercentage}% Done</Badge>
-                    </div>
-
-                    <ProgressBar value={prog.completionPercentage} color="violet" showPercentage={false} />
-
-                    <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-xs">
-                      <span className="text-slate-400 font-medium flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-slate-500" /> ~25 mins left
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onNavigateToExplore}
-                        rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-                      >
-                        Resume Module
-                      </Button>
-                    </div>
-                  </SurfaceCard>
-                ))
-              )}
+              <div>
+                <h3 className="font-bold text-xs text-[var(--text-primary,#F5F2FA)]">
+                  Mentor Insights
+                </h3>
+                <p className="text-[10px] text-[var(--text-muted,#96919F)]">AI-powered recommendations</p>
+              </div>
             </div>
 
-            <div className="lg:col-span-5 bg-[#12131A] border border-white/[0.08] rounded-3xl p-6 space-y-4 shadow-xl">
-              <div className="flex items-center gap-3 pb-3 border-b border-white/[0.06]">
-                <div className="w-10 h-10 rounded-2xl bg-violet-950/80 border border-violet-500/30 flex items-center justify-center text-violet-300">
-                  <Bot className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white text-sm">AI Mentor Insight</h3>
-                  <p className="text-[11px] text-violet-300">Personalized peer recommendations</p>
-                </div>
-              </div>
-
-              <div className="bg-[#181924] p-4 rounded-2xl border border-white/[0.06] text-xs space-y-1.5">
-                <p className="font-bold text-amber-300 flex items-center gap-1.5">
-                  <Lightbulb className="w-4 h-4 text-amber-400" />
-                  Daily Tip
-                </p>
-                <p className="text-slate-300 leading-relaxed">
-                  "Completing a peer session in React or Design unlocks +50 XP towards your Level {userLevel + 1} milestone."
-                </p>
-              </div>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={onNavigateToExplore}
-                className="w-full justify-center"
-                rightIcon={<ArrowUpRight className="w-4 h-4" />}
-              >
-                Browse AI Matches
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Tab 3: Community Highlights */}
-        {secondaryTab === 'community' && (
-          <SurfaceCard className="p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Activity className="w-4 h-4 text-violet-400" />
-                Live Swapper Highlights
-              </h3>
-              <span className="text-xs text-slate-400">Global Peer Barter Community</span>
+            <div className="bg-[var(--surface-elevated,#1B1722)] p-3 rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-1">
+              <p className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                Daily Tip
+              </p>
+              <p className="text-xs text-[var(--text-muted,#96919F)] leading-relaxed">
+                "Completing a peer barter in React or Product Design earns +50 XP towards your Level {userLevel + 1} badge."
+              </p>
             </div>
 
-            <div className="space-y-3">
-              {allReviews.slice(0, 5).map((r) => (
-                <div key={r.id} className="flex items-start gap-3 p-3 bg-[#181924] rounded-2xl border border-white/[0.04]">
-                  <Avatar name={r.learnerName} size="sm" />
-                  <div className="flex-1 text-xs">
-                    <p className="text-slate-300 font-medium">
-                      <span className="font-bold text-white">{r.learnerName}</span> rated session in{' '}
-                      <span className="font-semibold text-violet-300">{r.skillName}</span>
-                    </p>
-                    <div className="flex items-center gap-1 text-amber-400 mt-1">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onNavigateToSkillPath}
+              className="w-full justify-center"
+              rightIcon={<ArrowUpRight className="w-3.5 h-3.5" />}
+            >
+              Browse AI Recommendations
+            </Button>
+          </DashboardCard>
+
+          {/* B. RECENT ACTIVITY CARD */}
+          <DashboardCard className="p-4 sm:p-5 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-[var(--accent-purple,#A66CFF)]" />
+                <h3 className="font-bold text-xs text-[var(--text-primary,#F5F2FA)]">
+                  Recent Activity
+                </h3>
+              </div>
+              <span className="text-[10px] text-[var(--text-muted,#96919F)] font-medium">Community Swaps</span>
+            </div>
+
+            <div className="space-y-2.5">
+              {allReviews.slice(0, 3).map((r) => (
+                <div
+                  key={r.id}
+                  className="p-2.5 bg-[var(--surface-elevated,#1B1722)] rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-1 text-xs"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[var(--text-primary,#F5F2FA)] truncate max-w-[120px]">
+                      {r.learnerName}
+                    </span>
+                    <div className="flex items-center text-amber-400">
                       {[...Array(r.rating || 5)].map((_, i) => (
-                        <Star key={i} className="w-3 h-3 fill-amber-400" />
+                        <Star key={i} className="w-2.5 h-2.5 fill-amber-400" />
                       ))}
-                      {r.comment && <span className="text-slate-400 ml-2 italic">"{r.comment}"</span>}
                     </div>
                   </div>
+                  <p className="text-[11px] text-[var(--text-muted,#96919F)] truncate">
+                    Session in <span className="text-[var(--accent-purple,#A66CFF)] font-medium">{r.skillName}</span>
+                  </p>
+                  {r.comment && (
+                    <p className="text-[11px] text-slate-300 italic line-clamp-1">
+                      "{r.comment}"
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
-          </SurfaceCard>
-        )}
+          </DashboardCard>
 
-      </section>
+          {/* C. BOTTOM-RIGHT STACK: SKILL CREDITS, XP + STREAK, LEADERBOARD */}
+          <div className="space-y-3">
+            
+            {/* 1. Skill Credits Card */}
+            <DashboardCard className="p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <Coins className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-[var(--text-muted,#96919F)] block leading-none">
+                      Skill Credits
+                    </span>
+                    <span className="text-base font-bold text-amber-300">
+                      {currentUser.credits ?? 100} Balance
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => onNavigateToCredits ? onNavigateToCredits() : onNavigateToTab?.('credits')}
+                  className="px-2.5 py-1 text-xs font-semibold text-[var(--accent-purple,#A66CFF)] hover:underline cursor-pointer"
+                >
+                  Manage →
+                </button>
+              </div>
+              <p className="text-[11px] text-[var(--text-muted,#96919F)] pt-1 border-t border-[var(--border-subtle,rgba(255,255,255,0.06))]">
+                1 Credit = 1 Hour Peer Barter Session (No money needed)
+              </p>
+            </DashboardCard>
+
+            {/* 2. XP & Streak Side-by-Side */}
+            <div className="grid grid-cols-2 gap-3">
+              <DashboardCard className="p-3 space-y-1">
+                <div className="flex items-center gap-1.5 text-[var(--accent-purple,#A66CFF)]">
+                  <Zap className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Experience</span>
+                </div>
+                <p className="text-base font-bold text-white">{xpPoints} XP</p>
+                <p className="text-[10px] text-[var(--text-muted,#96919F)]">Lvl {userLevel} Standing</p>
+              </DashboardCard>
+
+              <DashboardCard className="p-3 space-y-1">
+                <div className="flex items-center gap-1.5 text-amber-400">
+                  <Flame className="w-3.5 h-3.5 fill-amber-400" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Streak</span>
+                </div>
+                <p className="text-base font-bold text-white">{currentUser.loginStreak ?? 7} Days</p>
+                <p className="text-[10px] text-[var(--text-muted,#96919F)]">Best: {currentUser.longestStreak ?? 14}d</p>
+              </DashboardCard>
+            </div>
+
+            {/* 3. Leaderboard Card */}
+            <DashboardCard className="p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  <h4 className="font-bold text-xs text-[var(--text-primary,#F5F2FA)]">
+                    Voyager Standing
+                  </h4>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-500/30">
+                  Top 12%
+                </span>
+              </div>
+
+              <p className="text-xs text-[var(--text-muted,#96919F)]">
+                Participate in weekly barter quests to climb rank and unlock verified skill credentials.
+              </p>
+
+              {onNavigateToGamification && (
+                <button
+                  type="button"
+                  onClick={onNavigateToGamification}
+                  className="w-full py-1.5 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] text-[var(--accent-purple,#A66CFF)] hover:text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer border border-[var(--border-subtle,rgba(255,255,255,0.08))]"
+                >
+                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                  <span>View Quests & Leaderboard</span>
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              )}
+            </DashboardCard>
+
+          </div>
+
+        </aside>
+
+      </div>
 
       {/* ====================================================================
           MODALS: REVIEW, CANCEL, RESCHEDULE
           ==================================================================== */}
 
-      {/* Review & Ratings Modal */}
+      {/* Review Modal */}
       <AnimatePresence>
         {reviewBooking && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -1049,46 +1064,46 @@ export default function DashboardView({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={motionTokens.spring.snappy}
-              className="bg-[#12131A] rounded-3xl w-full max-w-md border border-white/[0.12] shadow-2xl overflow-hidden p-6 space-y-4"
+              className="bg-[var(--surface,#15131A)] rounded-2xl w-full max-w-md border border-[var(--border-subtle,rgba(255,255,255,0.12))] shadow-2xl overflow-hidden p-5 space-y-4"
             >
-              <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
                 <div>
-                  <h3 className="font-bold text-white text-base">Rate your session</h3>
-                  <p className="text-slate-400 text-xs mt-0.5">Review for {reviewBooking.teacherName}</p>
+                  <h3 className="font-bold text-[var(--text-primary,#F5F2FA)] text-sm">Rate your session</h3>
+                  <p className="text-[var(--text-muted,#96919F)] text-xs mt-0.5">Review for {reviewBooking.teacherName}</p>
                 </div>
                 <button
                   onClick={() => setReviewBooking(null)}
-                  className="p-1.5 rounded-full hover:bg-white/[0.08] text-slate-400 hover:text-white transition cursor-pointer border-0 bg-transparent"
+                  className="p-1 rounded-lg hover:bg-white/[0.08] text-[var(--text-muted,#96919F)] hover:text-white transition cursor-pointer border-0 bg-transparent"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
               <form onSubmit={submitReview} className="space-y-4 text-xs">
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-300">Rating (1 to 5 Stars)</label>
-                  <div className="flex items-center gap-2">
+                  <label className="block font-bold text-[var(--text-primary,#F5F2FA)]">Rating</label>
+                  <div className="flex items-center gap-1.5">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         key={star}
                         type="button"
                         onClick={() => setReviewRating(star)}
-                        className="text-2xl transition hover:scale-110 cursor-pointer border-0 bg-transparent"
+                        className="transition hover:scale-110 cursor-pointer border-0 bg-transparent p-0.5"
                       >
-                        <Star className={`w-7 h-7 ${star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-slate-600'}`} />
+                        <Star className={`w-6 h-6 ${star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-slate-600'}`} />
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-300">Written Feedback</label>
+                  <label className="block font-bold text-[var(--text-primary,#F5F2FA)]">Written Feedback</label>
                   <textarea
                     rows={3}
                     value={reviewComment}
                     onChange={(e) => setReviewComment(e.target.value)}
                     placeholder="Describe how helpful the peer session was..."
-                    className="w-full bg-[#181924] border border-white/[0.1] rounded-2xl p-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-violet-500 text-xs"
+                    className="w-full bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.1))] rounded-xl p-3 text-white placeholder:text-[var(--text-muted,#96919F)] focus:outline-none focus:border-[var(--accent-purple,#A66CFF)] text-xs"
                   />
                 </div>
 
@@ -1115,42 +1130,42 @@ export default function DashboardView({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={motionTokens.spring.snappy}
-              className="bg-[#12131A] rounded-3xl w-full max-w-md border border-white/[0.12] shadow-2xl overflow-hidden p-6 space-y-4"
+              className="bg-[var(--surface,#15131A)] rounded-2xl w-full max-w-md border border-[var(--border-subtle,rgba(255,255,255,0.12))] shadow-2xl overflow-hidden p-5 space-y-4"
             >
-              <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-rose-950/80 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
-                    <AlertCircle className="w-5 h-5" />
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-rose-950/80 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
+                    <AlertCircle className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-base">Cancel Session</h3>
-                    <p className="text-slate-400 text-xs">Confirm cancellation</p>
+                    <h3 className="font-bold text-white text-sm">Cancel Session</h3>
+                    <p className="text-[var(--text-muted,#96919F)] text-xs">Confirm cancellation</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setCancelBookingModal(null)}
-                  className="p-1.5 rounded-full hover:bg-white/[0.08] text-slate-400 hover:text-white transition cursor-pointer border-0 bg-transparent"
+                  className="p-1 rounded-lg hover:bg-white/[0.08] text-[var(--text-muted,#96919F)] hover:text-white transition cursor-pointer border-0 bg-transparent"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="space-y-4 text-xs">
-                <div className="bg-[#181924] p-4 rounded-2xl border border-white/[0.06] space-y-1">
+              <div className="space-y-3 text-xs">
+                <div className="bg-[var(--surface-elevated,#1B1722)] p-3 rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-1">
                   <p className="font-bold text-white">
                     Cancel exchange for {cancelBookingModal.skillName}?
                   </p>
-                  <p className="text-slate-400 text-[11px]">
+                  <p className="text-[var(--text-muted,#96919F)] text-[11px]">
                     Scheduled for {cancelBookingModal.date} ({cancelBookingModal.timeSlot})
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block font-bold text-slate-300">Reason (Optional)</label>
+                <div className="space-y-1.5">
+                  <label className="block font-bold text-[var(--text-primary,#F5F2FA)]">Reason (Optional)</label>
                   <select
                     value={cancelReasonPreset}
                     onChange={(e) => setCancelReasonPreset(e.target.value)}
-                    className="w-full bg-[#181924] border border-white/[0.1] rounded-2xl px-3 py-2.5 text-white focus:outline-none focus:border-violet-500 text-xs font-medium cursor-pointer"
+                    className="w-full bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.1))] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[var(--accent-purple,#A66CFF)] text-xs cursor-pointer"
                   >
                     <option value="">Select reason...</option>
                     <option value="Schedule conflict">Schedule conflict</option>
@@ -1164,18 +1179,18 @@ export default function DashboardView({
                     value={cancelReasonCustom}
                     onChange={(e) => setCancelReasonCustom(e.target.value)}
                     placeholder="Additional note for peer..."
-                    className="w-full bg-[#181924] border border-white/[0.1] rounded-2xl p-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-violet-500 text-xs"
+                    className="w-full bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.1))] rounded-xl p-2.5 text-white placeholder:text-[var(--text-muted,#96919F)] focus:outline-none focus:border-[var(--accent-purple,#A66CFF)] text-xs"
                   />
                 </div>
 
-                <div className="pt-2 flex justify-end gap-2.5">
+                <div className="pt-2 flex justify-end gap-2">
                   <Button variant="ghost" size="sm" onClick={() => setCancelBookingModal(null)}>
                     Keep Session
                   </Button>
                   <button
                     type="button"
                     onClick={handleCancelSubmit}
-                    className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition cursor-pointer border-0"
+                    className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition cursor-pointer border-0"
                   >
                     Confirm Cancel
                   </button>
@@ -1195,51 +1210,51 @@ export default function DashboardView({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={motionTokens.spring.snappy}
-              className="bg-[#12131A] rounded-3xl w-full max-w-md border border-white/[0.12] shadow-2xl overflow-hidden p-6 space-y-4"
+              className="bg-[var(--surface,#15131A)] rounded-2xl w-full max-w-md border border-[var(--border-subtle,rgba(255,255,255,0.12))] shadow-2xl overflow-hidden p-5 space-y-4"
             >
-              <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-violet-950/80 text-violet-400 border border-violet-500/30 flex items-center justify-center shrink-0">
-                    <Calendar className="w-5 h-5" />
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--surface-elevated,#1B1722)] text-[var(--accent-purple,#A66CFF)] border border-[var(--accent-purple,#A66CFF)]/30 flex items-center justify-center shrink-0">
+                    <Calendar className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-base">Propose New Time</h3>
-                    <p className="text-slate-400 text-xs">Reschedule session</p>
+                    <h3 className="font-bold text-white text-sm">Propose New Time</h3>
+                    <p className="text-[var(--text-muted,#96919F)] text-xs">Reschedule session</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setRescheduleBookingModal(null)}
-                  className="p-1.5 rounded-full hover:bg-white/[0.08] text-slate-400 hover:text-white transition cursor-pointer border-0 bg-transparent"
+                  className="p-1 rounded-lg hover:bg-white/[0.08] text-[var(--text-muted,#96919F)] hover:text-white transition cursor-pointer border-0 bg-transparent"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleRescheduleSubmit} className="space-y-4 text-xs">
-                <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-300">New Date</label>
+              <form onSubmit={handleRescheduleSubmit} className="space-y-3 text-xs">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[var(--text-primary,#F5F2FA)]">New Date</label>
                   <input
                     type="date"
                     required
                     min={new Date().toISOString().split('T')[0]}
                     value={rescheduleDate}
                     onChange={(e) => setRescheduleDate(e.target.value)}
-                    className="w-full bg-[#181924] border border-white/[0.1] rounded-2xl p-3 text-white focus:outline-none focus:border-violet-500 text-xs"
+                    className="w-full bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.1))] rounded-xl p-2.5 text-white focus:outline-none focus:border-[var(--accent-purple,#A66CFF)] text-xs"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-300">Time Slot</label>
+                <div className="space-y-1">
+                  <label className="block font-bold text-[var(--text-primary,#F5F2FA)]">Time Slot</label>
                   <div className="grid grid-cols-3 gap-2">
                     {(['Morning', 'Afternoon', 'Evening'] as const).map((slot) => (
                       <button
                         key={slot}
                         type="button"
                         onClick={() => setRescheduleSlot(slot)}
-                        className={`py-2 px-3 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                        className={`py-1.5 px-2.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
                           rescheduleSlot === slot
-                            ? 'bg-violet-600 text-white border-violet-500 shadow-xs'
-                            : 'bg-[#181924] text-slate-400 border-white/[0.08] hover:bg-[#202230]'
+                            ? 'bg-[var(--accent-purple,#A66CFF)] text-white border-[var(--accent-purple-bright,#C04DFF)] shadow-xs'
+                            : 'bg-[var(--surface-elevated,#1B1722)] text-[var(--text-muted,#96919F)] border-[var(--border-subtle,rgba(255,255,255,0.08))] hover:bg-[#252030]'
                         }`}
                       >
                         {slot}
@@ -1248,17 +1263,17 @@ export default function DashboardView({
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-300">Start Time</label>
+                <div className="space-y-1">
+                  <label className="block font-bold text-[var(--text-primary,#F5F2FA)]">Start Time</label>
                   <input
                     type="time"
                     value={rescheduleTime}
                     onChange={(e) => setRescheduleTime(e.target.value)}
-                    className="w-full bg-[#181924] border border-white/[0.1] rounded-2xl p-3 text-white focus:outline-none focus:border-violet-500 text-xs"
+                    className="w-full bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.1))] rounded-xl p-2.5 text-white focus:outline-none focus:border-[var(--accent-purple,#A66CFF)] text-xs"
                   />
                 </div>
 
-                <div className="pt-2 flex justify-end gap-2.5">
+                <div className="pt-2 flex justify-end gap-2">
                   <Button variant="ghost" size="sm" onClick={() => setRescheduleBookingModal(null)}>
                     Cancel
                   </Button>

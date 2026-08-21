@@ -1733,6 +1733,19 @@ export default function App() {
                 onNavigateToExplore={() => setActiveTab('explore')}
                 onNavigateToGamification={() => setActiveTab('gamification')}
                 onNavigateToSkillPath={() => setActiveTab('skill-path')}
+                onNavigateToChat={(partnerId) => {
+                  if (partnerId) {
+                    setSessionInitiatedChatIds((prev) => new Set(prev).add(partnerId));
+                    setInitialActiveContactId(partnerId);
+                  }
+                  setActiveTab('chat');
+                }}
+                onNavigateToStudyHub={() => setActiveTab('study-hub')}
+                onNavigateToCredits={() => setActiveTab('credits')}
+                onNavigateToProfile={() => setActiveTab('profile')}
+                onNavigateToTab={(tab) => setActiveTab(tab as any)}
+                onLogout={handleLogout}
+                onSync={syncAllState}
                 allReviews={allReviews}
               />
             )}
