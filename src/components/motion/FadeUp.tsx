@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, HTMLMotionProps } from 'motion/react';
+import { motion, HTMLMotionProps, useReducedMotion } from 'motion/react';
 
 export interface FadeUpProps extends Omit<HTMLMotionProps<'div'>, 'children'> {
   children: React.ReactNode;
@@ -21,6 +21,16 @@ export const FadeUp: React.FC<FadeUpProps> = ({
   className = '',
   ...props
 }) => {
+  const prefersReducedMotion = useReducedMotion();
+
+  if (prefersReducedMotion) {
+    return (
+      <div className={className} {...(props as React.HTMLAttributes<HTMLDivElement>)}>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: distance, filter: 'blur(3px)' }}

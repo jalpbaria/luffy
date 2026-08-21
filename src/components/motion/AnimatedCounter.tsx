@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { motion, useSpring, useTransform, useMotionValue } from 'motion/react';
+import { motion, useSpring, useTransform, useMotionValue, useReducedMotion } from 'motion/react';
 
 export interface AnimatedCounterProps {
   /** Target numeric value */
@@ -24,11 +24,12 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
   suffix = '',
   decimals = 0,
   className = '',
-  stiffness = 100,
-  damping = 18,
+  stiffness = 60,
+  damping = 16,
 }) => {
-  const motionVal = useMotionValue<number>(value);
-  const springVal = useSpring(motionVal, { stiffness, damping, mass: 0.8 });
+  const prefersReducedMotion = useReducedMotion();
+  const motionVal = useMotionValue<number>(prefersReducedMotion ? value : 0);
+  const springVal = useSpring(motionVal, { stiffness, damping, mass: 0.6 });
   const displayVal = useTransform(springVal, (current: number) => {
     const num = typeof current === 'number' ? current : Number(current) || 0;
     const formatted = decimals > 0 ? num.toFixed(decimals) : Math.round(num).toLocaleString();
@@ -36,8 +37,22 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
   });
 
   useEffect(() => {
-    motionVal.set(value);
-  }, [value, motionVal]);
+    if (prefersReducedMotion) {
+      motionVal.set(value);
+    } else {
+      // Trigger smooth spring animation up to target value
+      motionVal.set(0);
+      const frame = requestAnimationFrame(() => {
+        motionVal.set(value);
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [value, motionVal, prefersReducedMotion]);
+
+  if (prefersReducedMotion) {
+    const formatted = decimals > 0 ? value.toFixed(decimals) : Math.round(value).toLocaleString();
+    return <span className={className}>{`${prefix}${formatted}${suffix}`}</span>;
+  }
 
   return <motion.span className={className}>{displayVal}</motion.span>;
 };

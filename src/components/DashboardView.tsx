@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
   LayoutDashboard,
   Compass,
@@ -36,7 +36,8 @@ import { getSessionGateStatus, computeStartTime } from '../lib/liveSessions';
 import { computeAllUserMatches } from '../lib/matchUtils';
 import { DashboardCard } from './DashboardCard';
 import { DashboardButton, DashboardTextLink } from './DashboardButton';
-import { ProgressBar } from './ui';
+import { ProgressBar, CircularProgress } from './ui';
+import { RevealText, MagneticButton, AnimatedCounter, FadeUp } from './motion';
 import { motionTokens } from './motion/tokens';
 
 function formatRelativeTime(dateStr?: string): string {
@@ -274,15 +275,21 @@ export function NextExchangeSection({
             </DashboardButton>
 
             {isLive ? (
-              <DashboardButton
-                variant="primary"
-                size="sm"
+              <MagneticButton
+                glow={true}
+                glowTone="violet"
+                maxDisplacement={5}
                 onClick={() => onStartLiveSession?.(booking)}
-                leftIcon={<Video className="w-3.5 h-3.5" />}
-                rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
               >
-                Join Classroom →
-              </DashboardButton>
+                <DashboardButton
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<Video className="w-3.5 h-3.5" />}
+                  rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                >
+                  Join Classroom →
+                </DashboardButton>
+              </MagneticButton>
             ) : (
               <DashboardButton
                 variant="secondary"
@@ -562,62 +569,98 @@ export default function DashboardView({
     },
   ];
 
+  const prefersReducedMotion = useReducedMotion();
+
   return (
     <div
       id="dashboard-view-root"
       className="dashboard-theme w-full min-h-screen text-[var(--text-primary,#F5F2FA)] relative"
     >
-      {/* Restrained subtle violet ambient background glow */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-[var(--accent-purple,#A66CFF)]/5 rounded-full blur-[100px] pointer-events-none -z-10" />
-      <div className="absolute bottom-10 right-10 w-80 h-80 bg-[var(--accent-purple-bright,#C04DFF)]/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+      {/* Restrained subtle violet ambient background glow with slow drifting movement */}
+      <motion.div
+        animate={
+          prefersReducedMotion
+            ? undefined
+            : {
+                x: [0, 20, -15, 0],
+                y: [0, -15, 10, 0],
+                scale: [1, 1.04, 0.98, 1],
+              }
+        }
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+        className="absolute top-0 left-1/4 w-96 h-96 bg-[var(--accent-purple,#A66CFF)]/5 rounded-full blur-[100px] pointer-events-none -z-10"
+      />
+      <motion.div
+        animate={
+          prefersReducedMotion
+            ? undefined
+            : {
+                x: [0, -18, 14, 0],
+                y: [0, 18, -10, 0],
+                scale: [1, 0.97, 1.03, 1],
+              }
+        }
+        transition={{
+          duration: 24,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+        className="absolute bottom-10 right-10 w-80 h-80 bg-[var(--accent-purple-bright,#C04DFF)]/5 rounded-full blur-[120px] pointer-events-none -z-10"
+      />
 
       {/* ====================================================================
           TOP NAVIGATION BAR (Compact / Dense)
           ==================================================================== */}
-      <header className="w-full mb-5 bg-[var(--surface,#15131A)] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent-purple,#A66CFF)]" />
-            <span className="dashboard-section-label text-white">
-              Dashboard Overview
+      <FadeUp delay={0.0} distance={10}>
+        <header className="w-full mb-5 bg-[var(--surface,#15131A)] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent-purple,#A66CFF)]" />
+              <span className="dashboard-section-label text-white">
+                Dashboard Overview
+              </span>
+            </div>
+            <span className="hidden sm:inline-block dashboard-metadata">
+              • Peer Skill Exchange 2026
             </span>
           </div>
-          <span className="hidden sm:inline-block dashboard-metadata">
-            • Peer Skill Exchange 2026
-          </span>
-        </div>
 
-        <div className="flex items-center gap-2.5">
-          {/* Quick Wallet Credits Pill */}
-          <button
-            onClick={() => onNavigateToCredits ? onNavigateToCredits() : onNavigateToTab?.('credits')}
-            className="px-2.5 py-1 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl text-xs font-bold text-amber-300 flex items-center gap-1.5 transition cursor-pointer font-mono tabular-nums"
-          >
-            <Coins className="w-3.5 h-3.5 text-amber-400" />
-            <span>{currentUser.credits ?? 100} Credits</span>
-          </button>
-
-          {/* Quick Streak Pill */}
-          <button
-            onClick={onNavigateToGamification}
-            className="px-2.5 py-1 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer font-mono tabular-nums"
-          >
-            <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-            <span>{currentUser.loginStreak ?? 7}d Streak</span>
-          </button>
-
-          {/* Sync status / action */}
-          {onSync && (
+          <div className="flex items-center gap-2.5">
+            {/* Quick Wallet Credits Pill */}
             <button
-              onClick={onSync}
-              title="Sync state with cloud"
-              className="p-1.5 text-[var(--text-muted,#96919F)] hover:text-white bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl transition cursor-pointer"
+              onClick={() => onNavigateToCredits ? onNavigateToCredits() : onNavigateToTab?.('credits')}
+              className="px-2.5 py-1 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl text-xs font-bold text-amber-300 flex items-center gap-1.5 transition cursor-pointer font-mono tabular-nums"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <Coins className="w-3.5 h-3.5 text-amber-400" />
+              <span><AnimatedCounter value={currentUser.credits ?? 100} /> Credits</span>
             </button>
-          )}
-        </div>
-      </header>
+
+            {/* Quick Streak Pill */}
+            <button
+              onClick={onNavigateToGamification}
+              className="px-2.5 py-1 bg-[var(--surface-elevated,#1B1722)] hover:bg-[#252030] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer font-mono tabular-nums"
+            >
+              <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              <span><AnimatedCounter value={currentUser.loginStreak ?? 7} />d Streak</span>
+            </button>
+
+            {/* Sync status / action */}
+            {onSync && (
+              <button
+                onClick={onSync}
+                title="Sync state with cloud"
+                className="p-1.5 text-[var(--text-muted,#96919F)] hover:text-white bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.08))] rounded-xl transition cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </header>
+      </FadeUp>
 
       {/* ====================================================================
           3-PART GRID LAYOUT: SIDEBAR (Left) + MAIN (Center) + INSIGHTS (Right)
@@ -628,78 +671,84 @@ export default function DashboardView({
             1. SIDEBAR COLUMN (Left - 2.5 / 12 on large screens)
             ================================================================== */}
         <aside className="lg:col-span-3 space-y-4">
-          <DashboardCard className="p-3 space-y-1">
-            <div className="dashboard-section-label px-3 py-2">
-              NAVIGATION
-            </div>
-            <nav className="space-y-1">
-              {navItems.map((item) => {
-                const IconComponent = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={item.onClick}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border ${
-                      item.active
-                        ? 'bg-[var(--surface-elevated,#1B1722)] text-[var(--accent-purple,#A66CFF)] border-[var(--accent-purple,#A66CFF)]/40 shadow-xs'
-                        : 'bg-transparent text-[var(--text-muted,#96919F)] hover:text-[var(--text-primary,#F5F2FA)] hover:bg-[var(--surface-elevated,#1B1722)]/50 border-transparent hover:-translate-y-0.5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <IconComponent className={`w-4 h-4 ${item.active ? 'text-[var(--accent-purple,#A66CFF)]' : 'text-[var(--text-muted,#96919F)]'}`} />
-                      <span>{item.label}</span>
-                    </div>
-                    {item.active && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-purple,#A66CFF)]" />
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-          </DashboardCard>
+          <FadeUp delay={0.06} distance={12}>
+            <DashboardCard className="p-3 space-y-1">
+              <div className="dashboard-section-label px-3 py-2">
+                NAVIGATION
+              </div>
+              <nav className="space-y-1">
+                {navItems.map((item) => {
+                  const IconComponent = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={item.onClick}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border ${
+                        item.active
+                          ? 'bg-[var(--surface-elevated,#1B1722)] text-[var(--accent-purple,#A66CFF)] border-[var(--accent-purple,#A66CFF)]/40 shadow-xs'
+                          : 'bg-transparent text-[var(--text-muted,#96919F)] hover:text-[var(--text-primary,#F5F2FA)] hover:bg-[var(--surface-elevated,#1B1722)]/50 border-transparent hover:-translate-y-0.5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <IconComponent className={`w-4 h-4 ${item.active ? 'text-[var(--accent-purple,#A66CFF)]' : 'text-[var(--text-muted,#96919F)]'}`} />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.active && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-purple,#A66CFF)]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </DashboardCard>
+          </FadeUp>
 
           {/* User Profile Summary Card */}
-          <DashboardCard className="p-4 space-y-3">
-            <div className="dashboard-section-label">
-              VOYAGER PROFILE
-            </div>
-            <div className="flex items-center gap-3">
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
-                className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--border-subtle,rgba(255,255,255,0.08))]"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="dashboard-content-title text-xs font-bold truncate">
-                  {currentUser.name}
-                </p>
-                <p className="dashboard-metadata text-[11px] truncate">
-                  Lvl {userLevel} Voyager
-                </p>
+          <FadeUp delay={0.12} distance={12}>
+            <DashboardCard className="p-4 space-y-3">
+              <div className="dashboard-section-label">
+                VOYAGER PROFILE
               </div>
-            </div>
-
-            <div className="space-y-1.5 pt-2 border-t border-[var(--border-subtle,rgba(255,255,255,0.08))] text-[11px]">
-              <div className="flex items-center justify-between text-[var(--text-muted,#96919F)]">
-                <span className="dashboard-metadata">XP Level Progress</span>
-                <span className="dashboard-stat-number text-xs text-white">{xpProgressInLevel} / 400</span>
+              <div className="flex items-center gap-3">
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--border-subtle,rgba(255,255,255,0.08))]"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="dashboard-content-title text-xs font-bold truncate">
+                    {currentUser.name}
+                  </p>
+                  <p className="dashboard-metadata text-[11px] truncate">
+                    Lvl {userLevel} Voyager
+                  </p>
+                </div>
               </div>
-              <ProgressBar value={Math.round((xpProgressInLevel / 400) * 100)} color="violet" showPercentage={false} />
-            </div>
 
-            {onNavigateToProfile && (
-              <DashboardButton
-                variant="secondary"
-                size="sm"
-                onClick={onNavigateToProfile}
-                className="w-full justify-center"
-                rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
-              >
-                Edit Profile
-              </DashboardButton>
-            )}
-          </DashboardCard>
+              <div className="space-y-1.5 pt-2 border-t border-[var(--border-subtle,rgba(255,255,255,0.08))] text-[11px]">
+                <div className="flex items-center justify-between text-[var(--text-muted,#96919F)]">
+                  <span className="dashboard-metadata">XP Level Progress</span>
+                  <span className="dashboard-stat-number text-xs text-white">
+                    <AnimatedCounter value={xpProgressInLevel} /> / 400
+                  </span>
+                </div>
+                <ProgressBar value={Math.round((xpProgressInLevel / 400) * 100)} color="violet" showPercentage={false} />
+              </div>
+
+              {onNavigateToProfile && (
+                <DashboardButton
+                  variant="secondary"
+                  size="sm"
+                  onClick={onNavigateToProfile}
+                  className="w-full justify-center"
+                  rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
+                >
+                  Edit Profile
+                </DashboardButton>
+              )}
+            </DashboardCard>
+          </FadeUp>
         </aside>
 
         {/* ==================================================================
@@ -708,170 +757,195 @@ export default function DashboardView({
         <main className="lg:col-span-5 space-y-5">
           
           {/* A. GREETING CARD */}
-          <DashboardCard className="p-5 sm:p-6 space-y-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1.5">
-                <span className="dashboard-section-label text-[var(--accent-purple,#A66CFF)] block">
-                  VOYAGER WELCOME
-                </span>
-                <h1 className="dashboard-display">
-                  {greetingTime}, <span className="text-[var(--accent-purple,#A66CFF)]">{currentUser.name}</span>.
-                </h1>
-                <p className="dashboard-content-title text-sm sm:text-base text-[var(--text-primary,#F5F2FA)]/90 pt-0.5">
-                  Exchange what you know. Learn what you don't.
-                </p>
-                <p className="dashboard-metadata leading-relaxed">
-                  Trade domain expertise for hands-on skills with peer swappers worldwide. No money required.
-                </p>
+          <FadeUp delay={0.14} distance={14}>
+            <DashboardCard className="p-5 sm:p-6 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1.5">
+                  <span className="dashboard-section-label text-[var(--accent-purple,#A66CFF)] block">
+                    VOYAGER WELCOME
+                  </span>
+                  <h1 className="dashboard-display">
+                    <RevealText
+                      text={`${greetingTime}, ${currentUser.name}.`}
+                      delay={0.15}
+                      staggerDelay={0.035}
+                    />
+                  </h1>
+                  <p className="dashboard-content-title text-sm sm:text-base text-[var(--text-primary,#F5F2FA)]/90 pt-0.5">
+                    Exchange what you know. Learn what you don't.
+                  </p>
+                  <p className="dashboard-metadata leading-relaxed">
+                    Trade domain expertise for hands-on skills with peer swappers worldwide. No money required.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2.5 pt-1">
-              <DashboardButton
-                variant="primary"
-                size="sm"
-                onClick={onNavigateToExplore}
-                rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-              >
-                Explore skills
-              </DashboardButton>
-              <DashboardButton
-                variant="secondary"
-                size="sm"
-                onClick={onNavigateToSkillPath}
-                leftIcon={<Sparkles className="w-3.5 h-3.5 text-[var(--accent-purple,#A66CFF)]" />}
-              >
-                View your path
-              </DashboardButton>
-            </div>
-          </DashboardCard>
-
-          {/* B. FOCUS / SESSION CARD */}
-          <NextExchangeSection
-            booking={nextUpcomingSession}
-            currentUser={currentUser}
-            allUsers={allUsers}
-            onStartLiveSession={onStartLiveSession}
-            onCancelBooking={(b) => setCancelBookingModal(b)}
-            onRescheduleBooking={(b) => {
-              setRescheduleBookingModal(b);
-              setRescheduleDate(b.date || new Date().toISOString().split('T')[0]);
-              setRescheduleSlot(b.timeSlot || 'Afternoon');
-            }}
-            onNavigateToExplore={onNavigateToExplore}
-          />
-
-          {/* C. LEARNING PATH / ACTIVE TRACKS CARD */}
-          <DashboardCard className="p-5 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-[var(--accent-purple,#A66CFF)]" />
-                <h3 className="dashboard-section-label">
-                  ACTIVE LEARNING TRACKS
-                </h3>
-              </div>
-              <DashboardTextLink onClick={onNavigateToSkillPath}>
-                View All
-              </DashboardTextLink>
-            </div>
-
-            {progress.length === 0 ? (
-              <div className="py-4 text-center space-y-2">
-                <p className="dashboard-metadata">
-                  No active tracks started yet. Connect with a peer partner or browse customized AI learning roadmaps.
-                </p>
-                <DashboardButton variant="secondary" size="sm" onClick={onNavigateToExplore}>
-                  Start a Learning Track
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                <DashboardButton
+                  variant="primary"
+                  size="sm"
+                  onClick={onNavigateToExplore}
+                  rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                >
+                  Explore skills
+                </DashboardButton>
+                <DashboardButton
+                  variant="secondary"
+                  size="sm"
+                  onClick={onNavigateToSkillPath}
+                  leftIcon={<Sparkles className="w-3.5 h-3.5 text-[var(--accent-purple,#A66CFF)]" />}
+                >
+                  View your path
                 </DashboardButton>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {progress.slice(0, 3).map((prog, idx) => (
-                  <div
-                    key={`${prog.userId}-${prog.skillName}-${idx}`}
-                    className="p-3 bg-[var(--surface-elevated,#1B1722)] rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-2"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="dashboard-content-title text-xs sm:text-sm font-semibold">
-                        {prog.skillName}
-                      </h4>
-                      <span className="dashboard-stat-number text-xs text-[var(--accent-purple,#A66CFF)]">
-                        {prog.completionPercentage}%
-                      </span>
-                    </div>
-                    <ProgressBar value={prog.completionPercentage} color="violet" showPercentage={false} />
-                    <div className="flex items-center justify-between text-[11px] text-[var(--text-muted,#96919F)] pt-1">
-                      <span className="dashboard-metadata">{prog.lessonsCompleted} of {prog.lessonsTotal} milestones completed</span>
-                      <DashboardTextLink onClick={onNavigateToSkillPath}>
-                        Resume
-                      </DashboardTextLink>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </DashboardCard>
+            </DashboardCard>
+          </FadeUp>
 
-          {/* D. RECOMMENDED PARTNERS ("People worth learning from") */}
-          <DashboardCard className="p-5 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-[var(--accent-purple,#A66CFF)]" />
-                <h3 className="dashboard-section-label">
-                  PEOPLE WORTH LEARNING FROM
-                </h3>
-              </div>
-              <DashboardTextLink onClick={onNavigateToExplore}>
-                Explore All
-              </DashboardTextLink>
-            </div>
+          {/* B. FOCUS / SESSION CARD */}
+          <FadeUp delay={0.2} distance={14}>
+            <NextExchangeSection
+              booking={nextUpcomingSession}
+              currentUser={currentUser}
+              allUsers={allUsers}
+              onStartLiveSession={onStartLiveSession}
+              onCancelBooking={(b) => setCancelBookingModal(b)}
+              onRescheduleBooking={(b) => {
+                setRescheduleBookingModal(b);
+                setRescheduleDate(b.date || new Date().toISOString().split('T')[0]);
+                setRescheduleSlot(b.timeSlot || 'Afternoon');
+              }}
+              onNavigateToExplore={onNavigateToExplore}
+            />
+          </FadeUp>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {recommendedPartners.map(({ user, matchScore }) => {
-                const primarySkill = user.skillsOffered?.[0]?.name || 'Specialist';
-                const matchPct = Math.min(99, Math.max(78, Math.round((matchScore || 0.85) * 100)));
-                return (
-                  <div
-                    key={user.id}
-                    className="p-3 bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.06))] rounded-xl flex flex-col justify-between gap-3 hover:border-[var(--accent-purple,#A66CFF)]/40 transition-all duration-200 hover:-translate-y-0.5"
-                  >
-                    <div className="flex items-start gap-2.5">
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--border-subtle,rgba(255,255,255,0.08))] shrink-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-1">
-                          <p className="dashboard-content-title text-xs font-bold truncate">
-                            {user.name}
-                          </p>
-                          <span className="dashboard-stat-number text-[11px] text-[var(--accent-purple,#A66CFF)] shrink-0">
-                            {matchPct}%
-                          </span>
+          {/* C. LEARNING PATH / ACTIVE TRACKS CARD */}
+          <FadeUp delay={0.26} distance={14}>
+            <DashboardCard className="p-5 space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-[var(--accent-purple,#A66CFF)]" />
+                  <h3 className="dashboard-section-label">
+                    ACTIVE LEARNING TRACKS
+                  </h3>
+                </div>
+                <DashboardTextLink onClick={onNavigateToSkillPath}>
+                  View All
+                </DashboardTextLink>
+              </div>
+
+              {progress.length === 0 ? (
+                <div className="py-4 text-center space-y-2">
+                  <p className="dashboard-metadata">
+                    No active tracks started yet. Connect with a peer partner or browse customized AI learning roadmaps.
+                  </p>
+                  <DashboardButton variant="secondary" size="sm" onClick={onNavigateToExplore}>
+                    Start a Learning Track
+                  </DashboardButton>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {progress.slice(0, 3).map((prog, idx) => (
+                    <div
+                      key={`${prog.userId}-${prog.skillName}-${idx}`}
+                      className="p-3 bg-[var(--surface-elevated,#1B1722)] rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <CircularProgress
+                            value={prog.completionPercentage}
+                            size={36}
+                            strokeWidth={3.5}
+                            color="#A66CFF"
+                          />
+                          <div className="min-w-0">
+                            <h4 className="dashboard-content-title text-xs sm:text-sm font-semibold truncate">
+                              {prog.skillName}
+                            </h4>
+                            <span className="dashboard-metadata text-[10px] block">
+                              {prog.lessonsCompleted} of {prog.lessonsTotal} milestones
+                            </span>
+                          </div>
                         </div>
-                        <p className="dashboard-metadata text-[11px] truncate">{primarySkill}</p>
-                        <div className="dashboard-metadata flex items-center gap-1 text-[10px] text-amber-400 font-semibold mt-0.5">
-                          <Star className="w-3 h-3 fill-amber-400" />
-                          <span className="font-mono text-amber-300">{user.rating?.toFixed(1) || '4.9'}</span>
-                          <span className="text-[var(--text-muted,#96919F)]">({user.successfulExchanges || 5} swaps)</span>
-                        </div>
+                        <span className="dashboard-stat-number text-xs text-[var(--accent-purple,#A66CFF)] shrink-0 font-bold">
+                          <AnimatedCounter value={prog.completionPercentage} suffix="%" />
+                        </span>
+                      </div>
+                      <ProgressBar value={prog.completionPercentage} color="violet" showPercentage={false} />
+                      <div className="flex items-center justify-between text-[11px] text-[var(--text-muted,#96919F)] pt-0.5">
+                        <span className="dashboard-metadata">{prog.lessonsTotal - prog.lessonsCompleted} milestones remaining</span>
+                        <DashboardTextLink onClick={onNavigateToSkillPath}>
+                          Resume
+                        </DashboardTextLink>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </DashboardCard>
+          </FadeUp>
 
-                    <DashboardButton
-                      variant="secondary"
-                      size="sm"
-                      onClick={onNavigateToExplore}
-                      className="w-full justify-center text-xs py-1.5"
+          {/* D. RECOMMENDED PARTNERS ("People worth learning from") */}
+          <FadeUp delay={0.32} distance={14}>
+            <DashboardCard className="p-5 space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[var(--accent-purple,#A66CFF)]" />
+                  <h3 className="dashboard-section-label">
+                    PEOPLE WORTH LEARNING FROM
+                  </h3>
+                </div>
+                <DashboardTextLink onClick={onNavigateToExplore}>
+                  Explore All
+                </DashboardTextLink>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {recommendedPartners.map(({ user, matchScore }) => {
+                  const primarySkill = user.skillsOffered?.[0]?.name || 'Specialist';
+                  const matchPct = Math.min(99, Math.max(78, Math.round((matchScore || 0.85) * 100)));
+                  return (
+                    <div
+                      key={user.id}
+                      className="p-3 bg-[var(--surface-elevated,#1B1722)] border border-[var(--border-subtle,rgba(255,255,255,0.06))] rounded-xl flex flex-col justify-between gap-3 hover:border-[var(--accent-purple,#A66CFF)]/40 transition-all duration-200 hover:-translate-y-0.5"
                     >
-                      Propose Exchange
-                    </DashboardButton>
-                  </div>
-                );
-              })}
-            </div>
-          </DashboardCard>
+                      <div className="flex items-start gap-2.5">
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--border-subtle,rgba(255,255,255,0.08))] shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="dashboard-content-title text-xs font-bold truncate">
+                              {user.name}
+                            </p>
+                            <span className="dashboard-stat-number text-[11px] text-[var(--accent-purple,#A66CFF)] shrink-0 font-bold">
+                              <AnimatedCounter value={matchPct} suffix="%" />
+                            </span>
+                          </div>
+                          <p className="dashboard-metadata text-[11px] truncate">{primarySkill}</p>
+                          <div className="dashboard-metadata flex items-center gap-1 text-[10px] text-amber-400 font-semibold mt-0.5">
+                            <Star className="w-3 h-3 fill-amber-400" />
+                            <span className="font-mono text-amber-300">{user.rating?.toFixed(1) || '4.9'}</span>
+                            <span className="text-[var(--text-muted,#96919F)]">({user.successfulExchanges || 5} swaps)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <DashboardButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={onNavigateToExplore}
+                        className="w-full justify-center text-xs py-1.5"
+                      >
+                        Propose Exchange
+                      </DashboardButton>
+                    </div>
+                  );
+                })}
+              </div>
+            </DashboardCard>
+          </FadeUp>
 
         </main>
 
@@ -881,170 +955,176 @@ export default function DashboardView({
         <aside className="lg:col-span-4 space-y-4">
           
           {/* A. MENTOR INSIGHTS CARD */}
-          <DashboardCard className="p-4 sm:p-5 space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
-              <div className="w-7 h-7 rounded-lg bg-[var(--surface-elevated,#1B1722)] border border-[var(--accent-purple,#A66CFF)]/30 flex items-center justify-center text-[var(--accent-purple,#A66CFF)]">
-                <Sparkles className="w-4 h-4" />
+          <FadeUp delay={0.36} distance={14}>
+            <DashboardCard className="p-4 sm:p-5 space-y-3">
+              <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
+                <div className="w-7 h-7 rounded-lg bg-[var(--surface-elevated,#1B1722)] border border-[var(--accent-purple,#A66CFF)]/30 flex items-center justify-center text-[var(--accent-purple,#A66CFF)]">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="dashboard-section-label">
+                    AI MENTOR INSIGHTS
+                  </h3>
+                  <p className="dashboard-metadata text-[10px]">Real-time barter suggestions</p>
+                </div>
               </div>
-              <div>
-                <h3 className="dashboard-section-label">
-                  AI MENTOR INSIGHTS
-                </h3>
-                <p className="dashboard-metadata text-[10px]">Real-time barter suggestions</p>
+
+              <div className="bg-[var(--surface-elevated,#1B1722)] p-3 rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-1">
+                <p className="dashboard-content-title text-xs font-semibold text-amber-300 flex items-center gap-1.5">
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                  Daily Tip
+                </p>
+                <p className="dashboard-metadata leading-relaxed text-[var(--text-muted,#96919F)]">
+                  "Completing a peer barter in React or Product Design earns +50 XP towards your Level {userLevel + 1} badge."
+                </p>
               </div>
-            </div>
 
-            <div className="bg-[var(--surface-elevated,#1B1722)] p-3 rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-1">
-              <p className="dashboard-content-title text-xs font-semibold text-amber-300 flex items-center gap-1.5">
-                <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-                Daily Tip
-              </p>
-              <p className="dashboard-metadata leading-relaxed text-[var(--text-muted,#96919F)]">
-                "Completing a peer barter in React or Product Design earns +50 XP towards your Level {userLevel + 1} badge."
-              </p>
-            </div>
-
-            <DashboardButton
-              variant="secondary"
-              size="sm"
-              onClick={onNavigateToSkillPath}
-              className="w-full justify-center"
-              rightIcon={<ArrowUpRight className="w-3.5 h-3.5" />}
-            >
-              Browse AI Recommendations
-            </DashboardButton>
-          </DashboardCard>
+              <DashboardButton
+                variant="secondary"
+                size="sm"
+                onClick={onNavigateToSkillPath}
+                className="w-full justify-center"
+                rightIcon={<ArrowUpRight className="w-3.5 h-3.5" />}
+              >
+                Browse AI Recommendations
+              </DashboardButton>
+            </DashboardCard>
+          </FadeUp>
 
           {/* B. RECENT ACTIVITY CARD */}
-          <DashboardCard className="p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[var(--accent-purple,#A66CFF)]" />
-                <h3 className="dashboard-section-label">
-                  RECENT ACTIVITY
-                </h3>
-              </div>
-              <span className="dashboard-section-label text-[10px]">COMMUNITY SWAPS</span>
-            </div>
-
-            <div className="space-y-2.5">
-              {allReviews.slice(0, 3).map((r) => (
-                <div
-                  key={r.id}
-                  className="p-2.5 bg-[var(--surface-elevated,#1B1722)] rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-1 text-xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="dashboard-content-title text-xs font-semibold truncate max-w-[130px]">
-                      {r.learnerName}
-                    </span>
-                    <div className="flex items-center text-amber-400">
-                      {[...Array(r.rating || 5)].map((_, i) => (
-                        <Star key={i} className="w-2.5 h-2.5 fill-amber-400" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="dashboard-metadata truncate">
-                    Session in <span className="text-[var(--accent-purple,#A66CFF)] font-medium">{r.skillName}</span>
-                  </p>
-                  {r.comment && (
-                    <p className="dashboard-metadata text-slate-300 italic line-clamp-1">
-                      "{r.comment}"
-                    </p>
-                  )}
+          <FadeUp delay={0.42} distance={14}>
+            <DashboardCard className="p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle,rgba(255,255,255,0.08))]">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-[var(--accent-purple,#A66CFF)]" />
+                  <h3 className="dashboard-section-label">
+                    RECENT ACTIVITY
+                  </h3>
                 </div>
-              ))}
-            </div>
-          </DashboardCard>
+                <span className="dashboard-section-label text-[10px]">COMMUNITY SWAPS</span>
+              </div>
+
+              <div className="space-y-2.5">
+                {allReviews.slice(0, 3).map((r) => (
+                  <div
+                    key={r.id}
+                    className="p-2.5 bg-[var(--surface-elevated,#1B1722)] rounded-xl border border-[var(--border-subtle,rgba(255,255,255,0.06))] space-y-1 text-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="dashboard-content-title text-xs font-semibold truncate max-w-[130px]">
+                        {r.learnerName}
+                      </span>
+                      <div className="flex items-center text-amber-400">
+                        {[...Array(r.rating || 5)].map((_, i) => (
+                          <Star key={i} className="w-2.5 h-2.5 fill-amber-400" />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="dashboard-metadata truncate">
+                      Session in <span className="text-[var(--accent-purple,#A66CFF)] font-medium">{r.skillName}</span>
+                    </p>
+                    {r.comment && (
+                      <p className="dashboard-metadata text-slate-300 italic line-clamp-1">
+                        "{r.comment}"
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </DashboardCard>
+          </FadeUp>
 
           {/* C. BOTTOM-RIGHT STACK: SKILL CREDITS, XP + STREAK, LEADERBOARD */}
-          <div className="space-y-3">
-            
-            {/* 1. Skill Credits Card */}
-            <DashboardCard className="p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-                    <Coins className="w-4 h-4" />
+          <FadeUp delay={0.48} distance={14}>
+            <div className="space-y-3">
+              
+              {/* 1. Skill Credits Card */}
+              <DashboardCard className="p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                      <Coins className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="dashboard-section-label block">
+                        SKILL CREDITS
+                      </span>
+                      <span className="dashboard-stat-number text-xl sm:text-2xl text-amber-300 block">
+                        <AnimatedCounter value={currentUser.credits ?? 100} /> <span className="text-xs font-sans font-medium text-[var(--text-muted,#96919F)]">Credits</span>
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="dashboard-section-label block">
-                      SKILL CREDITS
-                    </span>
-                    <span className="dashboard-stat-number text-xl sm:text-2xl text-amber-300 block">
-                      {currentUser.credits ?? 100} <span className="text-xs font-sans font-medium text-[var(--text-muted,#96919F)]">Credits</span>
-                    </span>
-                  </div>
-                </div>
 
-                <DashboardTextLink
-                  onClick={() => onNavigateToCredits ? onNavigateToCredits() : onNavigateToTab?.('credits')}
-                >
-                  Manage
-                </DashboardTextLink>
+                  <DashboardTextLink
+                    onClick={() => onNavigateToCredits ? onNavigateToCredits() : onNavigateToTab?.('credits')}
+                  >
+                    Manage
+                  </DashboardTextLink>
+                </div>
+                <p className="dashboard-metadata text-[11px] pt-1 border-t border-[var(--border-subtle,rgba(255,255,255,0.06))]">
+                  1 Credit = 1 Hour Peer Barter Session (No money needed)
+                </p>
+              </DashboardCard>
+
+              {/* 2. XP & Streak Side-by-Side */}
+              <div className="grid grid-cols-2 gap-3">
+                <DashboardCard className="p-3 space-y-1">
+                  <div className="flex items-center gap-1.5 text-[var(--accent-purple,#A66CFF)]">
+                    <Zap className="w-3.5 h-3.5" />
+                    <span className="dashboard-section-label">EXPERIENCE</span>
+                  </div>
+                  <p className="dashboard-stat-number text-xl sm:text-2xl text-white">
+                    <AnimatedCounter value={xpPoints} /> <span className="text-xs font-sans font-medium text-[var(--text-muted,#96919F)]">XP</span>
+                  </p>
+                  <p className="dashboard-metadata text-[10px]">Lvl {userLevel} Standing</p>
+                </DashboardCard>
+
+                <DashboardCard className="p-3 space-y-1">
+                  <div className="flex items-center gap-1.5 text-amber-400">
+                    <Flame className="w-3.5 h-3.5 fill-amber-400" />
+                    <span className="dashboard-section-label text-amber-400">STREAK</span>
+                  </div>
+                  <p className="dashboard-stat-number text-xl sm:text-2xl text-white">
+                    <AnimatedCounter value={currentUser.loginStreak ?? 7} /> <span className="text-xs font-sans font-medium text-[var(--text-muted,#96919F)]">Days</span>
+                  </p>
+                  <p className="dashboard-metadata text-[10px]">Best: {currentUser.longestStreak ?? 14}d</p>
+                </DashboardCard>
               </div>
-              <p className="dashboard-metadata text-[11px] pt-1 border-t border-[var(--border-subtle,rgba(255,255,255,0.06))]">
-                1 Credit = 1 Hour Peer Barter Session (No money needed)
-              </p>
-            </DashboardCard>
 
-            {/* 2. XP & Streak Side-by-Side */}
-            <div className="grid grid-cols-2 gap-3">
-              <DashboardCard className="p-3 space-y-1">
-                <div className="flex items-center gap-1.5 text-[var(--accent-purple,#A66CFF)]">
-                  <Zap className="w-3.5 h-3.5" />
-                  <span className="dashboard-section-label">EXPERIENCE</span>
+              {/* 3. Leaderboard Card */}
+              <DashboardCard className="p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                    <h4 className="dashboard-section-label text-white">
+                      LEADERBOARD
+                    </h4>
+                  </div>
+                  <span className="dashboard-stat-number text-[11px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-500/30">
+                    Top 12%
+                  </span>
                 </div>
-                <p className="dashboard-stat-number text-xl sm:text-2xl text-white">
-                  {xpPoints} <span className="text-xs font-sans font-medium text-[var(--text-muted,#96919F)]">XP</span>
+
+                <p className="dashboard-metadata leading-relaxed">
+                  Participate in weekly barter quests to climb rank and unlock verified skill credentials.
                 </p>
-                <p className="dashboard-metadata text-[10px]">Lvl {userLevel} Standing</p>
+
+                {onNavigateToGamification && (
+                  <DashboardButton
+                    variant="secondary"
+                    size="sm"
+                    onClick={onNavigateToGamification}
+                    className="w-full justify-center"
+                    leftIcon={<Trophy className="w-3.5 h-3.5 text-amber-400" />}
+                    rightIcon={<ChevronRight className="w-3 h-3" />}
+                  >
+                    View Full Rankings
+                  </DashboardButton>
+                )}
               </DashboardCard>
 
-              <DashboardCard className="p-3 space-y-1">
-                <div className="flex items-center gap-1.5 text-amber-400">
-                  <Flame className="w-3.5 h-3.5 fill-amber-400" />
-                  <span className="dashboard-section-label text-amber-400">STREAK</span>
-                </div>
-                <p className="dashboard-stat-number text-xl sm:text-2xl text-white">
-                  {currentUser.loginStreak ?? 7} <span className="text-xs font-sans font-medium text-[var(--text-muted,#96919F)]">Days</span>
-                </p>
-                <p className="dashboard-metadata text-[10px]">Best: {currentUser.longestStreak ?? 14}d</p>
-              </DashboardCard>
             </div>
-
-            {/* 3. Leaderboard Card */}
-            <DashboardCard className="p-4 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-amber-400" />
-                  <h4 className="dashboard-section-label text-white">
-                    LEADERBOARD
-                  </h4>
-                </div>
-                <span className="dashboard-stat-number text-[11px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-500/30">
-                  Top 12%
-                </span>
-              </div>
-
-              <p className="dashboard-metadata leading-relaxed">
-                Participate in weekly barter quests to climb rank and unlock verified skill credentials.
-              </p>
-
-              {onNavigateToGamification && (
-                <DashboardButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={onNavigateToGamification}
-                  className="w-full justify-center"
-                  leftIcon={<Trophy className="w-3.5 h-3.5 text-amber-400" />}
-                  rightIcon={<ChevronRight className="w-3 h-3" />}
-                >
-                  View Full Rankings
-                </DashboardButton>
-              )}
-            </DashboardCard>
-
-          </div>
+          </FadeUp>
 
         </aside>
 

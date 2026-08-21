@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Zap } from 'lucide-react';
 
 export interface ProgressBarProps {
@@ -21,6 +21,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   height = 'md',
   className = '',
 }) => {
+  const prefersReducedMotion = useReducedMotion();
   const percentage = Math.min(100, Math.max(0, Math.round((value / max) * 100)));
 
   const colorClasses = {
@@ -47,12 +48,19 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         </div>
       )}
       <div className={`w-full bg-[#12131A] rounded-full overflow-hidden p-0.5 border border-white/[0.08] ${heightClasses}`}>
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${percentage}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          className={`h-full rounded-full ${colorClasses}`}
-        />
+        {prefersReducedMotion ? (
+          <div
+            style={{ width: `${percentage}%` }}
+            className={`h-full rounded-full ${colorClasses}`}
+          />
+        ) : (
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${percentage}%` }}
+            transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+            className={`h-full rounded-full ${colorClasses}`}
+          />
+        )}
       </div>
     </div>
   );
@@ -71,6 +79,7 @@ export const XPProgress: React.FC<XPProgressProps> = ({
   level,
   className = '',
 }) => {
+  const prefersReducedMotion = useReducedMotion();
   const percentage = Math.min(100, Math.round((currentXP / nextLevelXP) * 100));
 
   return (
@@ -91,12 +100,19 @@ export const XPProgress: React.FC<XPProgressProps> = ({
       </div>
 
       <div className="w-full bg-[#0E0F17] rounded-full h-2.5 overflow-hidden p-0.5 border border-white/[0.08]">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${percentage}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.3)]"
-        />
+        {prefersReducedMotion ? (
+          <div
+            style={{ width: `${percentage}%` }}
+            className="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+          />
+        ) : (
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${percentage}%` }}
+            transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+            className="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+          />
+        )}
       </div>
     </div>
   );
@@ -115,16 +131,17 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   value,
   size = 64,
   strokeWidth = 6,
-  color = '#8B5CF6',
+  color = '#A66CFF',
   label,
   className = '',
 }) => {
+  const prefersReducedMotion = useReducedMotion();
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (value / 100) * circumference;
 
   return (
-    <div className={`relative inline-flex items-center justify-center ${className}`}>
+    <div className={`relative inline-flex items-center justify-center shrink-0 ${className}`}>
       <svg width={size} height={size} className="transform -rotate-90">
         <circle
           cx={size / 2}
@@ -134,23 +151,37 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           strokeWidth={strokeWidth}
           fill="transparent"
         />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          strokeLinecap="round"
-          fill="transparent"
-        />
+        {prefersReducedMotion ? (
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            fill="transparent"
+          />
+        ) : (
+          <motion.circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            strokeLinecap="round"
+            fill="transparent"
+          />
+        )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="text-xs font-bold text-white">{Math.round(value)}%</span>
-        {label && <span className="text-[9px] text-slate-400 font-medium">{label}</span>}
+        <span className="text-xs font-bold text-white font-mono">{Math.round(value)}%</span>
+        {label && <span className="text-[9px] text-[var(--text-muted,#96919F)] font-medium">{label}</span>}
       </div>
     </div>
   );

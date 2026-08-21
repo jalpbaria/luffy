@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { motionTokens } from './tokens';
 
 export interface RevealTextProps {
@@ -30,8 +30,16 @@ export const RevealText: React.FC<RevealTextProps> = ({
   offsetY = 16,
   as: Component = 'span',
 }) => {
+  const prefersReducedMotion = useReducedMotion();
   const content = text || (typeof children === 'string' ? children : '');
   const words = content.trim().split(/\s+/).filter(Boolean);
+
+  if (prefersReducedMotion) {
+    if (!text && typeof children !== 'string') {
+      return <div className={className}>{children}</div>;
+    }
+    return <span className={className}>{content}</span>;
+  }
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -86,8 +94,7 @@ export const RevealText: React.FC<RevealTextProps> = ({
   return (
     <motion.span
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: '-40px' }}
+      animate="visible"
       variants={containerVariants}
       className={`inline-flex flex-wrap gap-x-[0.28em] gap-y-1 ${className}`}
     >
