@@ -308,46 +308,85 @@ const ProfileView = React.memo(function ProfileView({ currentUser, onSaveProfile
         <div className="absolute top-0 right-0 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-fuchsia-600/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 relative z-10">
-          <div className="relative group">
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden border-2 border-violet-500/40 shadow-xl bg-surface-base">
-              <img 
-                src={avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'} 
-                alt={name} 
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
-              />
-              {isUploadingAvatar && (
-                <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex flex-col items-center justify-center text-white gap-1 z-20">
-                  <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
-                  <span className="text-[10px] font-bold text-violet-200">Uploading...</span>
-                </div>
-              )}
-              {!isUploadingAvatar && (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isSaving}
-                  title="Change Avatar Photo"
-                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-1 cursor-pointer border-0 z-10"
-                >
-                  <Camera className="w-5 h-5 text-violet-300" />
-                  <span className="text-[10px] font-bold text-violet-100">Change</span>
-                </button>
-              )}
+        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-6 relative z-10 text-center sm:text-left">
+          {/* Avatar with tap-to-upload and visible Camera badge on both mobile and desktop */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="relative group cursor-pointer" onClick={() => !isUploadingAvatar && fileInputRef.current?.click()}>
+              <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden border-2 border-violet-500/40 shadow-xl bg-surface-base group-hover:border-violet-400 transition">
+                <img 
+                  src={avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'} 
+                  alt={name} 
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                />
+                
+                {isUploadingAvatar && (
+                  <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex flex-col items-center justify-center text-white gap-1 z-20">
+                    <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
+                    <span className="text-[10px] font-bold text-violet-200">Uploading...</span>
+                  </div>
+                )}
+
+                {/* Mobile visual badge on bottom of avatar */}
+                {!isUploadingAvatar && (
+                  <div className="sm:hidden absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent py-1.5 flex items-center justify-center gap-1 text-[10px] font-bold text-white">
+                    <Camera className="w-3 h-3 text-violet-300" />
+                    <span>Edit photo</span>
+                  </div>
+                )}
+
+                {/* Desktop hover overlay */}
+                {!isUploadingAvatar && (
+                  <div className="hidden sm:flex absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex-col items-center justify-center text-white gap-1 z-10">
+                    <Camera className="w-5 h-5 text-violet-300" />
+                    <span className="text-[10px] font-bold text-violet-100">Change</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Floating Camera Button Badge */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+                disabled={isUploadingAvatar || isSaving}
+                title="Change Avatar Photo"
+                className="absolute -bottom-2 -right-2 p-2 bg-violet-600 hover:bg-violet-500 active:scale-95 border-2 border-surface-base rounded-xl text-white shadow-xl z-20 cursor-pointer transition flex items-center justify-center disabled:opacity-50"
+              >
+                <Camera className="w-4 h-4 text-white" />
+              </button>
             </div>
-            <div className="absolute -bottom-2 -right-2 p-1.5 bg-violet-600 border-2 border-surface-base rounded-xl text-white shadow-md z-20">
-              <Award className="w-4 h-4" />
-            </div>
+
+            {/* Dedicated Mobile "Change Photo" text button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingAvatar || isSaving}
+              className="sm:hidden inline-flex items-center gap-1.5 px-3 py-1 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 rounded-full text-[11px] font-bold transition active:scale-95 cursor-pointer mt-1"
+            >
+              {isUploadingAvatar ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Uploading...</span>
+                </>
+              ) : (
+                <>
+                  <Camera className="w-3 h-3 text-violet-400" />
+                  <span>Change Photo</span>
+                </>
+              )}
+            </button>
           </div>
 
-          <div className="space-y-2 flex-1">
+          <div className="space-y-2 flex-1 flex flex-col items-center sm:items-start">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-lavender-300">
               <User className="w-3.5 h-3.5 text-violet-400" />
               <span>SkillSwap Identity</span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-3">
               <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight font-display">
                 {name || 'Swapper Profile'}
               </h1>
@@ -358,7 +397,7 @@ const ProfileView = React.memo(function ProfileView({ currentUser, onSaveProfile
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploadingAvatar || isSaving}
-                className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded-full text-xs font-medium transition cursor-pointer border border-white/15 disabled:opacity-50"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded-full text-xs font-medium transition cursor-pointer border border-white/15 disabled:opacity-50"
               >
                 {isUploadingAvatar ? (
                   <>
@@ -374,7 +413,7 @@ const ProfileView = React.memo(function ProfileView({ currentUser, onSaveProfile
               </button>
             </div>
 
-            <p className="text-text-sub text-xs sm:text-sm max-w-2xl leading-relaxed">
+            <p className="text-text-sub text-xs sm:text-sm max-w-2xl leading-relaxed text-center sm:text-left">
               {bio || 'Passionate skill exchanger building collaborative mastery.'}
             </p>
           </div>
@@ -459,7 +498,7 @@ const ProfileView = React.memo(function ProfileView({ currentUser, onSaveProfile
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingAvatar || isSaving}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs shadow-lg shadow-violet-600/20 transition cursor-pointer border-0 shrink-0"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs shadow-lg shadow-violet-600/20 transition cursor-pointer border-0 shrink-0"
                 >
                   {isUploadingAvatar ? (
                     <>
