@@ -944,12 +944,13 @@ const ExploreView = React.memo(function ExploreView({
 
       {/* 5. TEACHER PROFILE DETAIL OVERLAY & BOOKING MODAL */}
       <ProfileDetailModal
-        teacher={selectedTeacher}
+        user={selectedTeacher}
+        isOpen={selectedTeacher !== null}
         currentUser={currentUser}
         allReviews={allReviews}
         onClose={() => setSelectedTeacher(null)}
         onOpenChat={onOpenChat}
-        onBookSession={({
+        onBookSession={(
           teacher,
           skill,
           option,
@@ -958,7 +959,7 @@ const ExploreView = React.memo(function ExploreView({
           notes,
           scheduledTime,
           swapRole
-        }) => {
+        ) => {
           onBookSession(teacher, skill, option, date, slot, notes, scheduledTime, swapRole);
         }}
         onOpenStudyHub={handleOpenStudyHub}
