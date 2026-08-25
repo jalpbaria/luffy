@@ -137,6 +137,9 @@ const SkillPathView = React.memo(function SkillPathView({ currentUser, onNavigat
     restDelta: 0.001
   });
 
+  // Animated filled beam tracking scroll progress
+  const spineHeight = useTransform(smoothProgress, [0, 1], ['0%', '100%']);
+
   // Calculate active stage based on scroll progress
   useEffect(() => {
     const unsubscribe = scrollYProgress.on('change', (v) => {
@@ -458,6 +461,35 @@ const SkillPathView = React.memo(function SkillPathView({ currentUser, onNavigat
                 </button>
               </div>
 
+              {/* Level Selector Row */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1 border-t border-white/5">
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-[11px] font-bold text-text-dim uppercase tracking-wider shrink-0">I am:</span>
+                  <select
+                    value={currentLevel}
+                    onChange={(e) => setCurrentLevel(e.target.value)}
+                    className="w-full sm:w-auto bg-surface-raised border border-white/10 text-white rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-violet-500 cursor-pointer"
+                  >
+                    <option value="beginner">Beginner (No experience)</option>
+                    <option value="intermediate">Intermediate (Core basics down)</option>
+                    <option value="advanced">Advanced (Production experience)</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-[11px] font-bold text-text-dim uppercase tracking-wider shrink-0">Goal:</span>
+                  <select
+                    value={targetLevel}
+                    onChange={(e) => setTargetLevel(e.target.value)}
+                    className="w-full sm:w-auto bg-surface-raised border border-white/10 text-white rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-violet-500 cursor-pointer"
+                  >
+                    <option value="intermediate">Intermediate Mastery</option>
+                    <option value="expert">Expert & Architecture Mastery</option>
+                    <option value="mentor">Verified Mentor Level</option>
+                  </select>
+                </div>
+              </div>
+
               {/* Popular Skill Badges */}
               <div className="flex items-center justify-center flex-wrap gap-2 pt-1">
                 <span className="text-[11px] font-medium text-text-dim uppercase tracking-wider">Explore:</span>
@@ -534,7 +566,7 @@ const SkillPathView = React.memo(function SkillPathView({ currentUser, onNavigat
           <motion.div 
             className="w-full bg-gradient-to-b from-violet-500 via-purple-400 to-emerald-400 shadow-[0_0_12px_rgba(139,92,246,0.8)]"
             style={{ 
-              height: useTransform(smoothProgress, [0, 1], ['0%', '100%']),
+              height: spineHeight,
               originY: 0
             }}
           />
