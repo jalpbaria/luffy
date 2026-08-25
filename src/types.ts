@@ -121,6 +121,10 @@ export interface Review {
   teacherId: string;
   learnerId: string;
   learnerName: string;
+  reviewerId?: string;
+  revieweeId?: string;
+  reviewerRole?: 'learner' | 'teacher';
+  revieweeName?: string;
   skillName: string;
   rating: number; // 1-5
   teachingQuality?: number; // 1-5

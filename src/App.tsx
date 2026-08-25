@@ -1446,34 +1446,40 @@ export default function App() {
       // 2. Update local reviews state immediately
       setAllReviews(prev => [newReview, ...prev]);
 
-      // Fetch the teacher profile first to make sure we have up-to-date count and rating
-      const { data: teacherProfile, error: fetchErr } = await supabase
+      // Determine reviewee profile ID and reviewer display name
+      const targetUserId = reviewData.revieweeId || reviewData.teacherId;
+      const authorName = reviewData.reviewerRole === 'teacher' 
+        ? (reviewData.revieweeName === reviewData.learnerName ? currentUser?.name || 'Your teacher' : reviewData.learnerName)
+        : reviewData.learnerName;
+
+      // Fetch the reviewee profile first to make sure we have up-to-date count and rating
+      const { data: targetProfile, error: fetchErr } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', reviewData.teacherId)
+        .eq('id', targetUserId)
         .single();
       
-      if (!fetchErr && teacherProfile) {
-        const currentCount = teacherProfile.reviews_count || 0;
-        const currentRating = typeof teacherProfile.rating === 'number' ? teacherProfile.rating : parseFloat(teacherProfile.rating || '5.0');
+      if (!fetchErr && targetProfile) {
+        const currentCount = targetProfile.reviews_count || 0;
+        const currentRating = typeof targetProfile.rating === 'number' ? targetProfile.rating : parseFloat(targetProfile.rating || '5.0');
         const newCount = currentCount + 1;
         const newRating = Number(((currentRating * currentCount + reviewData.rating) / newCount).toFixed(1));
 
-        // Update the teacher profile in Supabase
+        // Update the reviewee profile in Supabase
         await supabase
           .from('profiles')
           .update({
             reviews_count: newCount,
             rating: newRating
           })
-          .eq('id', reviewData.teacherId);
+          .eq('id', targetUserId);
       }
 
       // Also insert review notification to Supabase
       await supabase.from('notifications').insert({
-        user_id: reviewData.teacherId,
+        user_id: targetUserId,
         title: 'New Review Received!',
-        message: `${reviewData.learnerName} left you a ${reviewData.rating}-star review for ${reviewData.skillName || 'your session'}: "${reviewData.comment.substring(0, 40)}..."`,
+        message: `${authorName} left you a ${reviewData.rating}-star review for ${reviewData.skillName || 'your session'}: "${reviewData.comment.substring(0, 40)}..."`,
         type: 'match',
         read: false,
         timestamp: new Date().toISOString()

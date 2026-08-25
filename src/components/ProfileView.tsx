@@ -910,7 +910,7 @@ const ProfileView = React.memo(function ProfileView({ currentUser, onSaveProfile
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-              Student Reviews & Ratings Received ({allReviews.filter(r => r.teacherId === currentUser.id).length})
+              Reviews & Ratings Received ({allReviews.filter(r => r.revieweeId ? r.revieweeId === currentUser.id : r.teacherId === currentUser.id).length})
             </h3>
             <span className="text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg flex items-center gap-1">
               ★ {currentUser.rating?.toFixed(1) || '5.0'} Aggregate Rating
@@ -919,14 +919,14 @@ const ProfileView = React.memo(function ProfileView({ currentUser, onSaveProfile
 
           {(() => {
             const userReviews = allReviews
-              .filter(r => r.teacherId === currentUser.id)
+              .filter(r => r.revieweeId ? r.revieweeId === currentUser.id : r.teacherId === currentUser.id)
               .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
             if (userReviews.length === 0) {
               return (
                 <EmptyState
                   preset="certificates"
-                  title="No Student Reviews Yet"
+                  title="No Reviews Yet"
                   description="Complete skill-swap barter sessions with peers to receive verified feedback, star ratings, and testimonials!"
                 />
               );
@@ -934,34 +934,45 @@ const ProfileView = React.memo(function ProfileView({ currentUser, onSaveProfile
 
             return (
               <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                {userReviews.map((rev) => (
-                  <div key={rev.id} className="p-4 bg-surface-raised border border-white/5 rounded-2xl text-xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white">{rev.learnerName}</span>
-                        {rev.skillName && (
-                          <span className="px-2 py-0.5 bg-violet-500/20 text-lavender-300 border border-violet-500/30 rounded-md font-semibold text-[10px]">
-                            {rev.skillName}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex items-center text-amber-400">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-3.5 h-3.5 ${i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-zinc-700'}`}
-                            />
-                          ))}
+                {userReviews.map((rev) => {
+                  const authorName = rev.reviewerRole === 'teacher' 
+                    ? 'Teacher Feedback' 
+                    : (rev.learnerName || 'Peer Learner');
+
+                  return (
+                    <div key={rev.id} className="p-4 bg-surface-raised border border-white/5 rounded-2xl text-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white">{authorName}</span>
+                          {rev.reviewerRole && (
+                            <span className="px-1.5 py-0.5 bg-white/5 text-text-dim border border-white/10 rounded text-[9px] uppercase font-bold tracking-wider">
+                              {rev.reviewerRole === 'teacher' ? 'From Teacher' : 'From Learner'}
+                            </span>
+                          )}
+                          {rev.skillName && (
+                            <span className="px-2 py-0.5 bg-violet-500/20 text-lavender-300 border border-violet-500/30 rounded-md font-semibold text-[10px]">
+                              {rev.skillName}
+                            </span>
+                          )}
                         </div>
-                        <span className="text-[10px] text-text-dim ml-1">
-                          {new Date(rev.createdAt).toLocaleDateString()}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex items-center text-amber-400">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`w-3.5 h-3.5 ${i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-zinc-700'}`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-[10px] text-text-dim ml-1">
+                            {new Date(rev.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
+                      <p className="text-text-sub italic leading-relaxed">{rev.comment || 'No written feedback provided.'}</p>
                     </div>
-                    <p className="text-text-sub italic leading-relaxed">{rev.comment || 'No written feedback provided.'}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })()}
