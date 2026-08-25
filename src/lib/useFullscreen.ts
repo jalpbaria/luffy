@@ -113,6 +113,37 @@ export function useFullscreen(targetRef?: RefObject<HTMLElement | null>) {
     };
   }, [targetRef, isFallback]);
 
+  // Ensure fullscreen is cleanly exited when the component unmounts
+  useEffect(() => {
+    return () => {
+      try {
+        const hasNativeFullscreen = !!(
+          document.fullscreenElement ||
+          (document as any).webkitFullscreenElement ||
+          (document as any).mozFullScreenElement ||
+          (document as any).msFullscreenElement
+        );
+
+        if (hasNativeFullscreen) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          } else if ((document as any).webkitExitFullscreen) {
+            (document as any).webkitExitFullscreen();
+          } else if ((document as any).mozCancelFullScreen) {
+            (document as any).mozCancelFullScreen();
+          } else if ((document as any).msExitFullscreen) {
+            (document as any).msExitFullscreen();
+          }
+        }
+      } catch (err) {
+        console.warn('[useFullscreen] Error cleaning up fullscreen on unmount:', err);
+      } finally {
+        setIsFullscreen(false);
+        setIsFallback(false);
+      }
+    };
+  }, []);
+
   return { isFullscreen, isFallback, toggleFullscreen, enterFullscreen, exitFullscreen };
 }
 

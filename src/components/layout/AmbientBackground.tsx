@@ -22,7 +22,7 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({
       {showNoise && <NoiseOverlay opacity={0.032} />}
 
       {/* App Content */}
-      <div className="relative z-10">{children}</div>
+      <div className="relative z-10 flex-1 flex flex-col w-full">{children}</div>
     </div>
   );
 };

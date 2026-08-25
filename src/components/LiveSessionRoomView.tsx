@@ -151,7 +151,7 @@ export default function LiveSessionRoomView({
   const videoStageRef = useRef<HTMLDivElement | null>(null);
 
   // Fullscreen hook integration
-  const { isFullscreen, isFallback, toggleFullscreen } = useFullscreen(videoStageRef);
+  const { isFullscreen, isFallback, toggleFullscreen, exitFullscreen } = useFullscreen(videoStageRef);
 
   const isFallbackFullscreen = isFullscreen && (isFallback || (typeof document !== 'undefined' && !document.fullscreenElement && !(document as any).webkitFullscreenElement));
 
@@ -214,13 +214,26 @@ export default function LiveSessionRoomView({
       });
   }, [liveSession.id]);
 
-  // Sync remote stream to video element when entering classroom or when stream is ready
+  // Sync local & remote streams to video elements when entering classroom or when layout/devices change
   useEffect(() => {
-    if (!inLobby && remoteVideoRef.current && remoteStreamRef.current) {
-      remoteVideoRef.current.srcObject = remoteStreamRef.current;
-      remoteVideoRef.current.play().catch(e => console.warn('[LiveSessionRoomView] Remote video play warning:', e));
+    if (!inLobby) {
+      if (localVideoRef.current) {
+        const streamToAttach = isScreenSharing && screenStreamRef.current 
+          ? screenStreamRef.current 
+          : localStreamRef.current;
+
+        if (streamToAttach && localVideoRef.current.srcObject !== streamToAttach) {
+          localVideoRef.current.srcObject = streamToAttach;
+          localVideoRef.current.play().catch(e => console.warn('[LiveSessionRoomView] Local video play warning:', e));
+        }
+      }
+
+      if (remoteVideoRef.current && remoteStreamRef.current && remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
+        remoteVideoRef.current.srcObject = remoteStreamRef.current;
+        remoteVideoRef.current.play().catch(e => console.warn('[LiveSessionRoomView] Remote video play warning:', e));
+      }
     }
-  }, [inLobby]);
+  }, [inLobby, isCameraOn, isScreenSharing, isFullscreen, isFallbackFullscreen]);
 
   // 1. Initialize & Verify Local Devices (Camera & Microphone)
   const initLobbyMedia = async () => {
@@ -318,6 +331,9 @@ export default function LiveSessionRoomView({
   }, []);
 
   const cleanupMediaAndConnections = () => {
+    // Unconditionally exit fullscreen mode if active
+    exitFullscreen();
+
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(t => t.stop());
       localStreamRef.current = null;
@@ -1435,7 +1451,18 @@ export default function LiveSessionRoomView({
             {/* Local Video Stream Preview (Picture-in-Picture) */}
             <div className="absolute bottom-4 right-4 w-40 sm:w-52 aspect-video bg-surface-base rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl z-20 group">
               <video
-                ref={localVideoRef}
+                ref={(el) => {
+                  localVideoRef.current = el;
+                  if (el) {
+                    const streamToAttach = isScreenSharing && screenStreamRef.current 
+                      ? screenStreamRef.current 
+                      : localStreamRef.current;
+                    if (streamToAttach && el.srcObject !== streamToAttach) {
+                      el.srcObject = streamToAttach;
+                      el.play().catch(() => {});
+                    }
+                  }
+                }}
                 autoPlay
                 playsInline
                 muted
