@@ -5,12 +5,11 @@ import {
   CheckCircle2, ArrowUpRight, Lightbulb,
   Sparkles, Search, Compass, Globe, Video, Award, GraduationCap,
   ChevronRight, ChevronLeft, Play, Check, Code, FileText, 
-  Target, Send, Bookmark, LayoutGrid, RotateCcw, Bot, HelpCircle,
+  Target, Send, Bookmark, LayoutGrid, RotateCcw, HelpCircle,
   Clock, Share2, Sparkle, Laptop, CheckSquare
 } from 'lucide-react';
 import { UserProfile, Skill } from '../types';
 import { FREE_CATEGORY_RESOURCES, CategoryResource } from '../data/freeResources';
-import { AICoachPanel } from './AICoachPanel';
 import { triggerCelebrationConfetti } from '../lib/gamification';
 import { Spotlight } from './motion/Spotlight';
 import { FadeUp } from './motion/FadeUp';
@@ -436,7 +435,7 @@ const StudyHubView = React.memo(function StudyHubView({ currentUser, onNavigateT
   const [selectedLessonIndex, setSelectedLessonIndex] = useState<number>(0);
   const [completedLessons, setCompletedLessons] = useState<Record<string, boolean>>({});
   const [exerciseScratchpad, setExerciseScratchpad] = useState<string>('');
-  const [mobileActiveTab, setMobileActiveTab] = useState<'syllabus' | 'lesson' | 'coach'>('lesson');
+  const [mobileActiveTab, setMobileActiveTab] = useState<'syllabus' | 'lesson'>('lesson');
   const [showResourcesDirectoryModal, setShowResourcesDirectoryModal] = useState<boolean>(false);
   const [resourceSearch, setResourceSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -581,28 +580,15 @@ const StudyHubView = React.memo(function StudyHubView({ currentUser, onNavigateT
           <BookOpen className="w-3.5 h-3.5" />
           <span>Lesson Workspace</span>
         </button>
-
-        <button
-          type="button"
-          onClick={() => setMobileActiveTab('coach')}
-          className={`flex-1 py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
-            mobileActiveTab === 'coach'
-              ? 'bg-violet-600 text-white shadow-md'
-              : 'text-text-sub hover:text-white'
-          }`}
-        >
-          <Bot className="w-3.5 h-3.5" />
-          <span>AI Coach</span>
-        </button>
       </div>
 
-      {/* 3. THREE-COLUMN IMMERSIVE LEARNING WORKSPACE */}
+      {/* 3. TWO-COLUMN IMMERSIVE LEARNING WORKSPACE */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* ======================================================== */}
         {/* COLUMN 1: LEFT - LEARNING PATH / SYLLABUS NAVIGATION */}
         {/* ======================================================== */}
-        <div className={`lg:col-span-3 space-y-4 ${
+        <div className={`lg:col-span-4 space-y-4 ${
           mobileActiveTab === 'syllabus' ? 'block' : 'hidden lg:block'
         }`}>
           {/* Module Switcher Dropdown */}
@@ -727,7 +713,7 @@ const StudyHubView = React.memo(function StudyHubView({ currentUser, onNavigateT
         {/* ======================================================== */}
         {/* COLUMN 2: CENTER - CURRENT LESSON / PROJECT WORKSPACE */}
         {/* ======================================================== */}
-        <div className={`lg:col-span-6 space-y-6 ${
+        <div className={`lg:col-span-8 space-y-6 ${
           mobileActiveTab === 'lesson' ? 'block' : 'hidden lg:block'
         }`}>
           <Spotlight className="bg-surface-base border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
@@ -842,25 +828,6 @@ const StudyHubView = React.memo(function StudyHubView({ currentUser, onNavigateT
                   className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-xs font-mono text-white placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-violet-500"
                 />
               </div>
-
-              {/* Bridge to AI Coach */}
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-[11px] text-text-dim">
-                  Need an exercise review or hints?
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.innerWidth < 1024) {
-                      setMobileActiveTab('coach');
-                    }
-                  }}
-                  className="text-xs font-bold text-violet-400 hover:text-lavender-200 flex items-center gap-1 cursor-pointer bg-transparent border-0"
-                >
-                  <span>Ask AI Coach</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
             </div>
 
             {/* 5. Key Takeaways Checklist */}
@@ -901,22 +868,6 @@ const StudyHubView = React.memo(function StudyHubView({ currentUser, onNavigateT
               </button>
             </div>
           </Spotlight>
-        </div>
-
-        {/* ======================================================== */}
-        {/* COLUMN 3: RIGHT - INTEGRATED AI COACH */}
-        {/* ======================================================== */}
-        <div className={`lg:col-span-3 h-[600px] lg:h-[720px] sticky top-6 ${
-          mobileActiveTab === 'coach' ? 'block' : 'hidden lg:block'
-        }`}>
-          <AICoachPanel
-            currentTopic={activeModule.title}
-            category={activeModule.category}
-            currentLessonTitle={activeLesson.title}
-            currentLessonObjective={activeLesson.objective}
-            currentUser={currentUser}
-            className="h-full"
-          />
         </div>
 
       </div>
