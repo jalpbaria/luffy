@@ -320,20 +320,51 @@ const SkillPathView = React.memo(function SkillPathView({ currentUser, onNavigat
   async function refinePath() {
     if (!path || !instruction.trim()) return;
 
-    if (path.id.startsWith('path-')) {
-      setError("AI refinement isn't available for this locally generated roadmap. Try regenerating it with the AI agent.");
-      return;
-    }
-
     setLoading(true);
     setError('');
+    let targetPathId = path.id;
+
     try {
+      // If the roadmap was generated via local fallback, auto-persist it to learning_paths first
+      if (targetPathId.startsWith('path-')) {
+        const { data: insertedRow, error: insertErr } = await supabase
+          .from('learning_paths')
+          .insert({
+            user_id: currentUser?.id || null,
+            skill: path.skill || skill,
+            current_level: path.currentLevel || currentLevel,
+            target_level: path.targetLevel || targetLevel,
+            path_json: {
+              skill: path.skill || skill,
+              currentLevel: path.currentLevel || currentLevel,
+              targetLevel: path.targetLevel || targetLevel,
+              steps: path.steps
+            }
+          })
+          .select('id')
+          .single();
+
+        if (insertErr || !insertedRow?.id) {
+          throw new Error(insertErr?.message || 'Could not save local roadmap to database before refining.');
+        }
+
+        targetPathId = insertedRow.id;
+        // Update local state with real persisted UUID
+        setPath(prev => prev ? { ...prev, id: targetPathId } : null);
+      }
+
       const { data, error: fnError } = await supabase.functions.invoke('learning-path-agent', {
-        body: { action: 'refine', learningPathId: path.id, instruction },
+        body: { action: 'refine', learningPathId: targetPathId, instruction },
       });
       if (fnError) throw fnError;
       if (data && Array.isArray((data as any).steps)) {
-        setPath(data as LearningPath);
+        setPath({
+          id: (data as any).id || targetPathId,
+          skill: (data as any).skill || path.skill,
+          currentLevel: (data as any).currentLevel || path.currentLevel,
+          targetLevel: (data as any).targetLevel || path.targetLevel,
+          steps: (data as any).steps
+        });
       } else {
         throw new Error('Refinement response did not contain updated milestone steps.');
       }
@@ -700,7 +731,7 @@ const SkillPathView = React.memo(function SkillPathView({ currentUser, onNavigat
                   <span>Refine Roadmap with Natural Language</span>
                 </label>
                 <span className="text-[11px] text-text-muted">
-                  {isFallbackPath ? 'Local preview roadmap' : 'Add project types, adjust pace, or prioritize free tutorials'}
+                  {isFallbackPath ? 'Local roadmap (will auto-save on refinement)' : 'Add project types, adjust pace, or prioritize free tutorials'}
                 </span>
               </div>
 
@@ -714,23 +745,6 @@ const SkillPathView = React.memo(function SkillPathView({ currentUser, onNavigat
                 </div>
               )}
 
-              {isFallbackPath && !error && (
-                <div className="p-3.5 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-violet-300">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-violet-400 shrink-0" />
-                    <span>This is a locally generated offline roadmap. Connect to the AI agent to enable custom refinements.</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => generatePath()}
-                    disabled={loading}
-                    className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold text-[11px] transition cursor-pointer shrink-0 disabled:opacity-50"
-                  >
-                    Regenerate with AI
-                  </button>
-                </div>
-              )}
-
               <div className="flex flex-col sm:flex-row gap-2.5">
                 <input
                   type="text"
@@ -740,16 +754,16 @@ const SkillPathView = React.memo(function SkillPathView({ currentUser, onNavigat
                     if (error) setError('');
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !isFallbackPath) refinePath();
+                    if (e.key === 'Enter') refinePath();
                   }}
-                  placeholder={isFallbackPath ? "AI refinement unavailable for local roadmap — click 'Regenerate with AI' above" : "e.g. Include 3 more hands-on portfolio ideas and emphasize async API handling..."}
-                  disabled={loading || isFallbackPath}
+                  placeholder="e.g. Include 3 more hands-on portfolio ideas and emphasize async API handling..."
+                  disabled={loading}
                   className="flex-1 bg-surface-raised border border-white/10 text-white placeholder:text-text-muted rounded-2xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition disabled:opacity-50"
                 />
                 <button
                   type="button"
                   onClick={refinePath}
-                  disabled={loading || !instruction.trim() || isFallbackPath}
+                  disabled={loading || !instruction.trim()}
                   className="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-2xl text-xs transition flex items-center justify-center gap-2 disabled:opacity-50 shrink-0 shadow-lg shadow-violet-500/20 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {loading ? (
