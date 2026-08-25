@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Video, VideoOff, Mic, MicOff, Monitor, MonitorOff, PhoneOff, 
   MessageSquare, Send, User, Shield, Clock, WifiOff, RefreshCw, 
-  Play, ArrowLeft, Sparkles, AlertTriangle, X, CheckCircle
+  Play, ArrowLeft, Sparkles, AlertTriangle, X, CheckCircle,
+  Maximize, Minimize
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { Booking, UserProfile, LiveSession, Review, Skill, LearningOption } from '../types';
 import { updateLiveSessionStatus } from '../lib/liveSessions';
 import { SessionCompleteSummary } from './SessionCompleteSummary';
+import { useFullscreen } from '../lib/useFullscreen';
 
 interface LiveSessionRoomViewProps {
   booking: Booking;
@@ -146,6 +148,16 @@ export default function LiveSessionRoomView({
   const channelRef = useRef<any>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
+  const videoStageRef = useRef<HTMLDivElement | null>(null);
+
+  // Fullscreen hook integration
+  const { isFullscreen, isFallback, toggleFullscreen } = useFullscreen(videoStageRef);
+
+  const isFallbackFullscreen = isFullscreen && (isFallback || (typeof document !== 'undefined' && !document.fullscreenElement && !(document as any).webkitFullscreenElement));
+
+  useEffect(() => {
+    console.log('[LiveSession] isFullscreen:', isFullscreen, 'isFallback:', isFallback);
+  }, [isFullscreen, isFallback]);
 
   const isTeacher = currentUser.id === booking.teacherId;
 
@@ -1251,7 +1263,16 @@ export default function LiveSessionRoomView({
         
         {/* Left/Main Area: Main Video Stage */}
         <div className={`${showChat ? 'lg:col-span-8' : 'lg:col-span-12'} transition-all space-y-3`}>
-          <div className="bg-surface-base rounded-3xl overflow-hidden aspect-video relative shadow-2xl border border-white/10 flex items-center justify-center">
+          <div 
+            ref={videoStageRef} 
+            className={`overflow-hidden flex items-center justify-center transition-all duration-300 motion-reduce:transition-none ${
+              isFallbackFullscreen
+                ? 'fixed inset-0 z-[200] w-screen h-screen bg-black rounded-none border-0'
+                : isFullscreen
+                ? 'w-full h-full aspect-auto bg-black rounded-none border-0'
+                : 'aspect-video bg-surface-base rounded-3xl relative shadow-2xl border border-white/10'
+            }`}
+          >
             
             {/* Subtle violet stage backlight */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-600/10 rounded-full blur-[100px] pointer-events-none" />
@@ -1387,6 +1408,30 @@ export default function LiveSessionRoomView({
               )}
             </div>
 
+            {/* Fullscreen Toggle / Exit Button */}
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+              aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+              className={`absolute top-4 right-4 backdrop-blur-md p-2.5 rounded-2xl text-white flex items-center gap-1.5 border shadow-xl z-30 transition cursor-pointer motion-reduce:transition-none ${
+                isFallbackFullscreen
+                  ? 'bg-surface-raised/95 hover:bg-rose-600/90 text-white border-white/20 ring-1 ring-white/10'
+                  : 'bg-surface-base/90 hover:bg-surface-interactive text-white hover:text-lavender-200 border-white/10'
+              }`}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize className="w-4 h-4 text-lavender-300" />
+                  {isFallbackFullscreen && (
+                    <span className="text-xs font-bold px-1 text-white">Exit</span>
+                  )}
+                </>
+              ) : (
+                <Maximize className="w-4 h-4 text-lavender-300" />
+              )}
+            </button>
+
             {/* Local Video Stream Preview (Picture-in-Picture) */}
             <div className="absolute bottom-4 right-4 w-40 sm:w-52 aspect-video bg-surface-base rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl z-20 group">
               <video
@@ -1411,6 +1456,76 @@ export default function LiveSessionRoomView({
                 </span>
               </div>
             </div>
+
+            {/* Floating Quick Control Bar (Visible in Fullscreen Mode) */}
+            {isFullscreen && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-surface-base/90 backdrop-blur-xl px-4 py-2.5 rounded-2xl border border-white/15 shadow-2xl flex items-center gap-2.5 z-30 animate-in fade-in slide-in-from-bottom-4 duration-200">
+                {/* Microphone Toggle */}
+                <button
+                  type="button"
+                  onClick={toggleMic}
+                  className={`p-3 rounded-xl font-bold transition flex items-center justify-center cursor-pointer shadow-md border ${
+                    isMicOn 
+                      ? 'bg-surface-raised text-white hover:bg-white/15 border-white/10' 
+                      : 'bg-rose-600 text-white hover:bg-rose-700 border-rose-500'
+                  }`}
+                  title={isMicOn ? 'Mute Microphone' : 'Unmute Microphone'}
+                >
+                  {isMicOn ? <Mic className="w-4 h-4 text-emerald-400" /> : <MicOff className="w-4 h-4" />}
+                </button>
+
+                {/* Camera Toggle */}
+                <button
+                  type="button"
+                  onClick={toggleCamera}
+                  className={`p-3 rounded-xl font-bold transition flex items-center justify-center cursor-pointer shadow-md border ${
+                    isCameraOn 
+                      ? 'bg-surface-raised text-white hover:bg-white/15 border-white/10' 
+                      : 'bg-rose-600 text-white hover:bg-rose-700 border-rose-500'
+                  }`}
+                  title={isCameraOn ? 'Stop Camera' : 'Start Camera'}
+                >
+                  {isCameraOn ? <Video className="w-4 h-4 text-emerald-400" /> : <VideoOff className="w-4 h-4" />}
+                </button>
+
+                {/* Screen Share Toggle */}
+                <button
+                  type="button"
+                  onClick={toggleScreenShare}
+                  className={`p-3 rounded-xl font-bold transition flex items-center justify-center cursor-pointer shadow-md border ${
+                    isScreenSharing 
+                      ? 'bg-violet-600 text-white hover:bg-violet-500 border-violet-500 shadow-md shadow-violet-500/20' 
+                      : 'bg-surface-raised text-text-sub hover:text-white border-white/10'
+                  }`}
+                  title={isScreenSharing ? 'Stop Screen Sharing' : 'Share Screen'}
+                >
+                  {isScreenSharing ? <MonitorOff className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
+                </button>
+
+                <div className="w-px h-6 bg-white/15 mx-1" />
+
+                {/* Fullscreen Exit */}
+                <button
+                  type="button"
+                  onClick={toggleFullscreen}
+                  className="p-3 rounded-xl bg-surface-raised hover:bg-white/15 text-lavender-300 font-bold border border-white/10 transition flex items-center justify-center cursor-pointer shadow-md"
+                  title="Exit Fullscreen"
+                >
+                  <Minimize className="w-4 h-4" />
+                </button>
+
+                {/* Leave Session */}
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveModal(true)}
+                  className="px-3.5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-rose-600/20 border-0"
+                  title="Leave Call"
+                >
+                  <PhoneOff className="w-4 h-4" />
+                  <span>Leave</span>
+                </button>
+              </div>
+            )}
 
             {/* Both Participants Muted Alert */}
             <AnimatePresence>

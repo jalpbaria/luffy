@@ -75,9 +75,9 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({
   const isPartial = match.isPartialMatch;
   const matchScore = match.score;
 
-  // Filter reviews for this teacher
+  // Filter reviews for this profile (as teacher or learner)
   const userReviews = allReviews
-    .filter(r => r.teacherId === user.id)
+    .filter(r => r.revieweeId ? r.revieweeId === user.id : r.teacherId === user.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handleStartBooking = () => {
@@ -407,7 +407,7 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-bold text-text-dim uppercase tracking-wider flex items-center gap-1.5">
                       <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                      Student Reviews ({userReviews.length})
+                      Reviews Received ({userReviews.length})
                     </h3>
                     <span className="text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-lg">
                       ★ {(user.rating ?? 5.0).toFixed(1)} Overall
@@ -420,29 +420,40 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({
                     </div>
                   ) : (
                     <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
-                      {userReviews.map((rev) => (
-                        <div key={rev.id} className="p-3 bg-surface-raised border border-white/5 rounded-2xl text-xs space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-white">{rev.learnerName}</span>
-                              {rev.skillName && (
-                                <span className="px-2 py-0.5 bg-violet-500/20 text-lavender-300 rounded text-[10px]">
-                                  {rev.skillName}
-                                </span>
-                              )}
+                      {userReviews.map((rev) => {
+                        const authorName = rev.reviewerRole === 'teacher'
+                          ? 'Teacher Feedback'
+                          : (rev.learnerName || 'Peer Learner');
+
+                        return (
+                          <div key={rev.id} className="p-3 bg-surface-raised border border-white/5 rounded-2xl text-xs space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-white">{authorName}</span>
+                                {rev.reviewerRole && (
+                                  <span className="px-1.5 py-0.5 bg-white/5 text-text-dim border border-white/10 rounded text-[9px] uppercase font-bold tracking-wider">
+                                    {rev.reviewerRole === 'teacher' ? 'From Teacher' : 'From Learner'}
+                                  </span>
+                                )}
+                                {rev.skillName && (
+                                  <span className="px-2 py-0.5 bg-violet-500/20 text-lavender-300 rounded text-[10px]">
+                                    {rev.skillName}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 text-amber-400">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-3 h-3 ${i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-zinc-700'}`}
+                                  />
+                                ))}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1 text-amber-400">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`w-3 h-3 ${i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-zinc-700'}`}
-                                />
-                              ))}
-                            </div>
+                            <p className="text-text-sub italic">{rev.comment || 'Great exchange!'}</p>
                           </div>
-                          <p className="text-text-sub italic">{rev.comment || 'Great exchange!'}</p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </section>
