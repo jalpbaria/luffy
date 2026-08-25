@@ -181,7 +181,19 @@ Deno.serve(async (req) => {
 
       const resultContent = await runAgentLoop(messages);
       const cleanedText = resultContent.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
-      const parsed = JSON.parse(cleanedText);
+      let parsed: any;
+      try {
+        parsed = JSON.parse(cleanedText);
+      } catch (parseErr) {
+        console.error("Failed to parse agent output as JSON in generate:", resultContent, parseErr);
+        return new Response(
+          JSON.stringify({ error: "The AI returned an invalid response. Please try generating your learning path again." }),
+          {
+            status: 422,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
 
       const { data: pathRow, error: pathErr } = await supabase
         .from("learning_paths")
@@ -252,7 +264,19 @@ Deno.serve(async (req) => {
 
       const resultContent = await runAgentLoop(messages);
       const cleanedText = resultContent.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
-      const parsed = JSON.parse(cleanedText);
+      let parsed: any;
+      try {
+        parsed = JSON.parse(cleanedText);
+      } catch (parseErr) {
+        console.error("Failed to parse agent output as JSON in refine:", resultContent, parseErr);
+        return new Response(
+          JSON.stringify({ error: "The AI returned an invalid response, please try rephrasing your refinement instruction." }),
+          {
+            status: 422,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
 
       const { error: updateErr } = await supabase
         .from("learning_paths")

@@ -319,6 +319,12 @@ const SkillPathView = React.memo(function SkillPathView({ currentUser, onNavigat
 
   async function refinePath() {
     if (!path || !instruction.trim()) return;
+
+    if (path.id.startsWith('path-')) {
+      setError("AI refinement isn't available for this locally generated roadmap. Try regenerating it with the AI agent.");
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
@@ -328,13 +334,15 @@ const SkillPathView = React.memo(function SkillPathView({ currentUser, onNavigat
       if (fnError) throw fnError;
       if (data && Array.isArray((data as any).steps)) {
         setPath(data as LearningPath);
+      } else {
+        throw new Error('Refinement response did not contain updated milestone steps.');
       }
       setInstruction('');
       triggerCelebrationConfetti();
     } catch (err: any) {
-      // Local graceful fallback: update roadmap titles/details to reflect instruction
-      setInstruction('');
-      triggerCelebrationConfetti();
+      console.error('Failed to refine learning path:', err);
+      const errorDetail = err?.message || err?.error_description || (typeof err === 'string' ? err : '');
+      setError(errorDetail ? `Couldn't apply that refinement — ${errorDetail}` : "Couldn't apply that refinement. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -681,50 +689,86 @@ const SkillPathView = React.memo(function SkillPathView({ currentUser, onNavigat
       </section>
 
       {/* 4. AI REFINE BAR */}
-      <section className="max-w-4xl mx-auto">
-        <div className="bg-surface-base border border-white/10 rounded-3xl p-6 shadow-2xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <label className="text-xs font-bold text-lavender-300 uppercase tracking-wider flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-violet-400" />
-              <span>Refine Roadmap with Natural Language</span>
-            </label>
-            <span className="text-[11px] text-text-muted">
-              Add project types, adjust pace, or prioritize free tutorials
-            </span>
-          </div>
+      {path && (() => {
+        const isFallbackPath = path.id.startsWith('path-');
+        return (
+          <section className="max-w-4xl mx-auto">
+            <div className="bg-surface-base border border-white/10 rounded-3xl p-6 shadow-2xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="text-xs font-bold text-lavender-300 uppercase tracking-wider flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-violet-400" />
+                  <span>Refine Roadmap with Natural Language</span>
+                </label>
+                <span className="text-[11px] text-text-muted">
+                  {isFallbackPath ? 'Local preview roadmap' : 'Add project types, adjust pace, or prioritize free tutorials'}
+                </span>
+              </div>
 
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            <input
-              type="text"
-              value={instruction}
-              onChange={(e) => setInstruction(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') refinePath();
-              }}
-              placeholder="e.g. Include 3 more hands-on portfolio ideas and emphasize async API handling..."
-              className="flex-1 bg-surface-raised border border-white/10 text-white placeholder:text-text-muted rounded-2xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
-            />
-            <button
-              type="button"
-              onClick={refinePath}
-              disabled={loading || !instruction.trim()}
-              className="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-2xl text-xs transition flex items-center justify-center gap-2 disabled:opacity-50 shrink-0 shadow-lg shadow-violet-500/20 cursor-pointer"
-            >
-              {loading ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Updating...</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Apply Refinement</span>
-                </>
+              {error && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center justify-between gap-3 text-xs text-rose-300 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span className="truncate">{error}</span>
+                  </div>
+                  <button onClick={() => setError('')} className="p-1 hover:text-white text-rose-400/80 cursor-pointer shrink-0">✕</button>
+                </div>
               )}
-            </button>
-          </div>
-        </div>
-      </section>
+
+              {isFallbackPath && !error && (
+                <div className="p-3.5 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-violet-300">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-violet-400 shrink-0" />
+                    <span>This is a locally generated offline roadmap. Connect to the AI agent to enable custom refinements.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => generatePath()}
+                    disabled={loading}
+                    className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold text-[11px] transition cursor-pointer shrink-0 disabled:opacity-50"
+                  >
+                    Regenerate with AI
+                  </button>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <input
+                  type="text"
+                  value={instruction}
+                  onChange={(e) => {
+                    setInstruction(e.target.value);
+                    if (error) setError('');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !isFallbackPath) refinePath();
+                  }}
+                  placeholder={isFallbackPath ? "AI refinement unavailable for local roadmap — click 'Regenerate with AI' above" : "e.g. Include 3 more hands-on portfolio ideas and emphasize async API handling..."}
+                  disabled={loading || isFallbackPath}
+                  className="flex-1 bg-surface-raised border border-white/10 text-white placeholder:text-text-muted rounded-2xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  onClick={refinePath}
+                  disabled={loading || !instruction.trim() || isFallbackPath}
+                  className="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-2xl text-xs transition flex items-center justify-center gap-2 disabled:opacity-50 shrink-0 shadow-lg shadow-violet-500/20 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Updating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Apply Refinement</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
     </div>
   );
 });
