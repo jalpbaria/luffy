@@ -14,15 +14,15 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({
   children,
   showNoise = true,
   className = '',
-  variant = 'default',
+  variant = 'cosmic',
 }) => {
   return (
-    <div className={`min-h-screen ${variant === 'cosmic' ? 'bg-[#030206]' : 'bg-[#090A0F]'} text-slate-100 relative selection:bg-violet-500/30 selection:text-violet-200 ${className}`}>
+    <div className={`min-h-screen ${variant === 'default' ? 'bg-[#090A0F]' : 'bg-[#030206]'} text-slate-100 relative selection:bg-violet-500/30 selection:text-violet-200 ${className}`}>
       {/* Background Layer: Cosmic Nebula or Standard Gradient Mesh */}
-      {variant === 'cosmic' ? (
-        <CosmicNebulaBackground />
-      ) : (
+      {variant === 'default' ? (
         <GradientMesh />
+      ) : (
+        <CosmicNebulaBackground />
       )}
 
       {/* Subtle Grain Overlay for Tactile Texture */}

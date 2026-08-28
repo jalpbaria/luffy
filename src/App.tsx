@@ -1627,7 +1627,7 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-4 text-white">
+      <AmbientBackground className="flex flex-col items-center justify-center min-h-screen gap-4 text-white">
         <InitialAppLoader />
         <div className="relative flex items-center justify-center">
           <div className="w-12 h-12 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
@@ -1636,7 +1636,7 @@ export default function App() {
           <h2 className="font-sans font-medium text-white tracking-tight text-base">Loading SkillSwap Platform...</h2>
           <p className="text-text-muted text-xs">Synchronizing swapper index and availability calendars</p>
         </div>
-      </div>
+      </AmbientBackground>
     );
   }
 
@@ -1652,7 +1652,7 @@ export default function App() {
             accountDeletedNotice={accountDeletedNotice}
           />
         </div>
-        <footer className="bg-surface-base/80 border-t border-white/5 py-4 text-center text-[11px] text-text-dim font-medium backdrop-blur-md">
+        <footer className="bg-zinc-950/40 border-t border-white/5 py-4 text-center text-[11px] text-zinc-400 font-medium backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <p>© 2026 Skill Swap Platform. Built for mutual skill barters. No money required.</p>
           </div>
@@ -1663,7 +1663,6 @@ export default function App() {
 
   return (
     <AmbientBackground 
-      variant={activeTab === 'dashboard' ? 'cosmic' : 'default'}
       className="flex flex-col min-h-screen text-slate-100 font-sans antialiased selection:bg-violet-500/30 selection:text-violet-200"
     >
       <InitialAppLoader />
