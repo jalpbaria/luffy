@@ -205,5 +205,94 @@ CREATE POLICY "Learners can update their own reviews" ON public.reviews
 CREATE POLICY "Learners can delete their own reviews" ON public.reviews
   FOR DELETE USING (auth.uid() = learner_id);
 
+-- ============================================================================
+-- Table: public.credit_transactions & Trigger for Session Swaps
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.credit_transactions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  booking_id text,
+  amount integer NOT NULL,
+  type text NOT NULL CHECK (type IN ('earned', 'spent', 'bonus', 'refund')),
+  description text NOT NULL,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.credit_transactions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own credit transactions" ON public.credit_transactions
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- Atomic Trigger Function to award +15 credits to Teacher and deduct 10 credits from Learner
+CREATE OR REPLACE FUNCTION public.handle_booking_completion_credits()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_teacher_id UUID;
+    v_learner_id UUID;
+    v_skill_name TEXT;
+BEGIN
+    IF NEW.status = 'completed' AND (OLD.status IS NULL OR OLD.status <> 'completed') THEN
+        v_teacher_id := NEW.teacher_id;
+        v_learner_id := NEW.learner_id;
+        v_skill_name := COALESCE(NEW.skill_name, 'Skill Swap');
+
+        -- 1. Deduct 10 Credits from Learner
+        IF v_learner_id IS NOT NULL THEN
+            UPDATE public.profiles
+            SET credits = GREATEST(0, COALESCE(credits, 100) - 10),
+                updated_at = timezone('utc'::text, now())
+            WHERE id = v_learner_id;
+
+            INSERT INTO public.credit_transactions (
+                user_id,
+                booking_id,
+                amount,
+                type,
+                description
+            ) VALUES (
+                v_learner_id,
+                NEW.id,
+                -10,
+                'spent',
+                'Completed learning session: ' || v_skill_name
+            );
+        END IF;
+
+        -- 2. Award 15 Credits to Teacher
+        IF v_teacher_id IS NOT NULL THEN
+            UPDATE public.profiles
+            SET credits = COALESCE(credits, 100) + 15,
+                updated_at = timezone('utc'::text, now())
+            WHERE id = v_teacher_id;
+
+            INSERT INTO public.credit_transactions (
+                user_id,
+                booking_id,
+                amount,
+                type,
+                description
+            ) VALUES (
+                v_teacher_id,
+                NEW.id,
+                15,
+                'earned',
+                'Completed teaching session: ' || v_skill_name
+            );
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS tr_booking_completion_credits ON public.bookings;
+CREATE TRIGGER tr_booking_completion_credits
+    AFTER UPDATE OF status ON public.bookings
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_booking_completion_credits();
+
 
 

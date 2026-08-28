@@ -537,7 +537,7 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({
                               I want to TEACH them
                             </label>
                             <p className="text-[10px] text-text-sub mt-0.5">
-                              Teacher role (earns 10 credits when completed)
+                              Teacher role (earns 15 credits when completed)
                             </p>
                           </div>
                         </div>

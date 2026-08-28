@@ -24,8 +24,9 @@ export interface CreditTransaction {
   id: string;
   user_id: string;
   amount: number;
-  type: 'earned' | 'spent';
-  reason: string;
+  type: 'earned' | 'spent' | 'bonus' | 'refund';
+  description?: string;
+  reason?: string;
   booking_id?: string;
   created_at: string;
 }
@@ -274,7 +275,7 @@ export const CreditsView = React.memo(function CreditsView({ currentUser, onRefr
           </div>
 
           <div className="pt-3 border-t border-white/5 text-[11px] text-text-dim">
-            Teach skills to earn +10 credits per swap
+            Teach skills to earn +15 credits per swap
           </div>
         </motion.div>
 
@@ -382,7 +383,7 @@ export const CreditsView = React.memo(function CreditsView({ currentUser, onRefr
 
                     <div className="space-y-0.5 min-w-0">
                       <p className="font-bold text-white text-xs truncate">
-                        {tx.reason || (isEarned ? 'Credit Earned' : 'Credit Spent')}
+                        {tx.description || tx.reason || (isEarned ? 'Credit Earned' : 'Credit Spent')}
                       </p>
                       <p className="text-[11px] text-text-dim flex items-center gap-1">
                         <span>{formattedDate}</span>

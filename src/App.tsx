@@ -1231,34 +1231,23 @@ export default function App() {
       const oldStatus = booking.status;
 
       if (status === 'completed' && oldStatus !== 'completed') {
-        // Teacher increases successful exchanges count
-        const teacher = allUsers.find(u => u.id === booking.teacherId);
-        if (teacher) {
-          const updatedTeacher = {
-            ...teacher,
-            successfulExchanges: teacher.successfulExchanges + 1
-          };
+        // Re-fetch current user's profile from database to get the authoritative credit balance computed by the trigger
+        if (currentUser?.id) {
+          try {
+            const { data: freshProfileRow, error: freshProfErr } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', currentUser.id)
+              .single();
 
-          // Teacher reward badge: First Swap
-          if (updatedTeacher.successfulExchanges === 1 && !updatedTeacher.badges.some(b => b.id === 'first-swap')) {
-            updatedTeacher.badges = [
-              ...updatedTeacher.badges,
-              {
-                id: 'first-swap',
-                name: 'First Swap',
-                icon: 'Users',
-                description: 'Successfully completed first skill exchange',
-                dateEarned: new Date().toISOString().split('T')[0]
-              }
-            ];
+            if (!freshProfErr && freshProfileRow) {
+              const freshUser = mapSupabaseToProfile(freshProfileRow);
+              setCurrentUser(freshUser);
+              setAllUsers(prev => prev.map(u => u.id === currentUser.id ? freshUser : u));
+            }
+          } catch (pErr) {
+            console.warn('[App] Failed to refresh profile after completion:', pErr);
           }
-
-          const { error: teacherError } = await supabase
-            .from('profiles')
-            .update(mapProfileToSupabase(updatedTeacher))
-            .eq('id', teacher.id);
-
-          if (teacherError) console.warn('Failed to update teacher profile upon completion:', teacherError);
         }
 
         // Update learning progress tracker
