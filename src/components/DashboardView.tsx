@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   LayoutDashboard,
   Compass,
@@ -572,48 +572,82 @@ const DashboardView = React.memo(function DashboardView({
     },
   ], [onNavigateToExplore, onNavigateToChat, onNavigateToTab, onNavigateToStudyHub, onNavigateToSkillPath, onNavigateToGamification, onNavigateToCredits, onNavigateToProfile]);
 
-  const prefersReducedMotion = useReducedMotion();
-
   return (
     <div
       id="dashboard-view-root"
       className="dashboard-theme w-full min-h-screen text-[var(--text-primary,#F5F2FA)] relative"
     >
-      {/* Restrained subtle violet ambient background glow with slow drifting movement */}
-      <motion.div
-        animate={
-          prefersReducedMotion
-            ? undefined
-            : {
-                x: [0, 20, -15, 0],
-                y: [0, -15, 10, 0],
-                scale: [1, 1.04, 0.98, 1],
-              }
-        }
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="absolute top-0 left-1/4 w-96 h-96 bg-[var(--accent-purple,#A66CFF)]/5 rounded-full blur-[100px] pointer-events-none -z-10"
-      />
-      <motion.div
-        animate={
-          prefersReducedMotion
-            ? undefined
-            : {
-                x: [0, -18, 14, 0],
-                y: [0, 18, -10, 0],
-                scale: [1, 0.97, 1.03, 1],
-              }
-        }
-        transition={{
-          duration: 24,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="absolute bottom-10 right-10 w-80 h-80 bg-[var(--accent-purple-bright,#C04DFF)]/5 rounded-full blur-[120px] pointer-events-none -z-10"
-      />
+      {/* ====================================================================
+          IMMERSIVE DASHBOARD BACKGROUND (Static, Multi-layered, Low-GPU)
+          ==================================================================== */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden select-none"
+      >
+        {/* Layer 1: Deep Near-Black Base Canvas with Subtle Navy & Violet Base Undertone */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundColor: '#090A10',
+            backgroundImage: `
+              radial-gradient(130% 90% at 50% -10%, rgba(20, 18, 38, 0.55) 0%, rgba(13, 14, 24, 0.4) 45%, rgba(9, 10, 16, 0.95) 100%),
+              linear-gradient(180deg, rgba(14, 13, 26, 0.4) 0%, rgba(9, 10, 16, 0) 55%, rgba(7, 8, 12, 0.85) 100%)
+            `,
+          }}
+        />
+
+        {/* Layer 2: Soft Ambient Radial Glows Positioned on Outer Edges & Corners */}
+        {/* Top-Right Ambient Purple Glow (using theme accent token #A66CFF) */}
+        <div
+          className="absolute -top-16 -right-16 w-[36rem] h-[36rem] rounded-full blur-[120px] pointer-events-none opacity-40"
+          style={{
+            background: 'radial-gradient(circle, rgba(166, 108, 255, 0.22) 0%, rgba(139, 92, 246, 0.08) 45%, transparent 70%)',
+          }}
+        />
+
+        {/* Top-Left Ambient Soft Violet Glow */}
+        <div
+          className="absolute -top-12 -left-16 w-[32rem] h-[32rem] rounded-full blur-[110px] pointer-events-none opacity-30"
+          style={{
+            background: 'radial-gradient(circle, rgba(139, 92, 246, 0.18) 0%, rgba(109, 40, 217, 0.06) 50%, transparent 70%)',
+          }}
+        />
+
+        {/* Mid-Right Soft Secondary Indigo/Blue Glow for Atmospheric Depth */}
+        <div
+          className="absolute top-1/3 -right-24 w-[34rem] h-[34rem] rounded-full blur-[130px] pointer-events-none opacity-25"
+          style={{
+            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.05) 50%, transparent 70%)',
+          }}
+        />
+
+        {/* Bottom-Left Ambient Bright Purple Glow (using theme accent token #C04DFF) */}
+        <div
+          className="absolute -bottom-20 -left-16 w-[34rem] h-[34rem] rounded-full blur-[130px] pointer-events-none opacity-30"
+          style={{
+            background: 'radial-gradient(circle, rgba(192, 77, 255, 0.18) 0%, rgba(139, 92, 246, 0.05) 50%, transparent 70%)',
+          }}
+        />
+
+        {/* Layer 3: Ultra-Low-Opacity Technical Micro-Dot Matrix */}
+        <div
+          className="absolute inset-0 opacity-[0.022] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #FFFFFF 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+            maskImage: 'radial-gradient(ellipse 85% 65% at 50% 30%, black 20%, transparent 90%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 85% 65% at 50% 30%, black 20%, transparent 90%)',
+          }}
+        />
+
+        {/* Layer 4: Soft Vignette Framing Dashboard Content Inward */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 90% 80% at 50% 35%, transparent 50%, rgba(6, 7, 10, 0.55) 100%)',
+          }}
+        />
+      </div>
 
       {/* ====================================================================
           TOP NAVIGATION BAR (Compact / Dense)
