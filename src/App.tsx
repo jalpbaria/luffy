@@ -1662,7 +1662,10 @@ export default function App() {
   }
 
   return (
-    <AmbientBackground className="flex flex-col min-h-screen text-slate-100 font-sans antialiased selection:bg-violet-500/30 selection:text-violet-200">
+    <AmbientBackground 
+      variant={activeTab === 'dashboard' ? 'cosmic' : 'default'}
+      className="flex flex-col min-h-screen text-slate-100 font-sans antialiased selection:bg-violet-500/30 selection:text-violet-200"
+    >
       <InitialAppLoader />
       
       {/* Redesigned Floating Glass Navigation */}
@@ -1857,7 +1860,7 @@ export default function App() {
       />
 
       {/* Humble Footer */}
-      <footer className="mt-auto bg-zinc-950 border-t border-zinc-900/80 py-6 text-center text-xs text-zinc-500 font-medium">
+      <footer className="mt-auto bg-zinc-950/40 backdrop-blur-sm border-t border-white/5 py-6 text-center text-xs text-zinc-400 font-medium">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded-md bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">⇆</div>
