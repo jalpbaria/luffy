@@ -578,73 +578,218 @@ const DashboardView = React.memo(function DashboardView({
       className="dashboard-theme w-full min-h-screen text-[var(--text-primary,#F5F2FA)] relative"
     >
       {/* ====================================================================
-          IMMERSIVE DASHBOARD BACKGROUND (Static, Multi-layered, Low-GPU)
+          COSMIC NEBULA DASHBOARD BACKGROUND (Static, Multi-layered, Low-GPU)
+          Inspired by deep cosmic purple nebula reference image
           ==================================================================== */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden select-none"
       >
-        {/* Layer 1: Deep Near-Black Base Canvas with Subtle Navy & Violet Base Undertone */}
+        {/* Layer 1: Deep Space Canvas Base */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 bg-[#040409]"
           style={{
-            backgroundColor: '#090A10',
             backgroundImage: `
-              radial-gradient(130% 90% at 50% -10%, rgba(20, 18, 38, 0.55) 0%, rgba(13, 14, 24, 0.4) 45%, rgba(9, 10, 16, 0.95) 100%),
-              linear-gradient(180deg, rgba(14, 13, 26, 0.4) 0%, rgba(9, 10, 16, 0) 55%, rgba(7, 8, 12, 0.85) 100%)
+              radial-gradient(120% 80% at 85% 15%, rgba(65, 30, 105, 0.45) 0%, rgba(25, 14, 48, 0.25) 40%, transparent 70%),
+              radial-gradient(100% 70% at 10% 40%, rgba(75, 32, 120, 0.4) 0%, rgba(35, 18, 62, 0.2) 45%, transparent 70%),
+              radial-gradient(110% 90% at 75% 75%, rgba(50, 22, 88, 0.35) 0%, rgba(18, 12, 36, 0.2) 50%, transparent 75%),
+              linear-gradient(180deg, rgba(8, 7, 18, 0.6) 0%, rgba(4, 4, 9, 0.2) 40%, rgba(4, 4, 9, 0.85) 100%)
             `,
           }}
         />
 
-        {/* Layer 2: Soft Ambient Radial Glows Positioned on Outer Edges & Corners */}
-        {/* Top-Right Ambient Purple Glow (using theme accent token #A66CFF) */}
-        <div
-          className="absolute -top-16 -right-16 w-[36rem] h-[36rem] rounded-full blur-[120px] pointer-events-none opacity-40"
-          style={{
-            background: 'radial-gradient(circle, rgba(166, 108, 255, 0.22) 0%, rgba(139, 92, 246, 0.08) 45%, transparent 70%)',
-          }}
-        />
+        {/* Layer 2: Organic Flowing Nebula Clouds (SVG vector wisps & velvety ribbons) */}
+        <svg
+          className="absolute inset-0 w-full h-full object-cover opacity-65 mix-blend-screen"
+          viewBox="0 0 1440 900"
+          preserveAspectRatio="xMidYMid slice"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            {/* Soft Gaussian Blurs for Cosmic Feathery Textures */}
+            <filter id="nebula-heavy-blur" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="65" />
+            </filter>
+            <filter id="nebula-soft-blur" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="40" />
+            </filter>
+            <filter id="nebula-filament-blur" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="22" />
+            </filter>
+            <filter id="star-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" />
+            </filter>
 
-        {/* Top-Left Ambient Soft Violet Glow */}
-        <div
-          className="absolute -top-12 -left-16 w-[32rem] h-[32rem] rounded-full blur-[110px] pointer-events-none opacity-30"
-          style={{
-            background: 'radial-gradient(circle, rgba(139, 92, 246, 0.18) 0%, rgba(109, 40, 217, 0.06) 50%, transparent 70%)',
-          }}
-        />
+            {/* Nebula Gradient Palettes matching reference image */}
+            <linearGradient id="nebula-violet-main" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1B0F33" stopOpacity="0" />
+              <stop offset="25%" stopColor="#4A207D" stopOpacity="0.65" />
+              <stop offset="55%" stopColor="#783BB8" stopOpacity="0.8" />
+              <stop offset="75%" stopColor="#9C52E4" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#2D124D" stopOpacity="0" />
+            </linearGradient>
 
-        {/* Mid-Right Soft Secondary Indigo/Blue Glow for Atmospheric Depth */}
-        <div
-          className="absolute top-1/3 -right-24 w-[34rem] h-[34rem] rounded-full blur-[130px] pointer-events-none opacity-25"
-          style={{
-            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.05) 50%, transparent 70%)',
-          }}
-        />
+            <linearGradient id="nebula-amethyst-crest" x1="20%" y1="0%" x2="80%" y2="100%">
+              <stop offset="0%" stopColor="#150B28" stopOpacity="0" />
+              <stop offset="35%" stopColor="#6C2FA8" stopOpacity="0.75" />
+              <stop offset="60%" stopColor="#B36CF0" stopOpacity="0.85" />
+              <stop offset="80%" stopColor="#803EC7" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#1F0E38" stopOpacity="0" />
+            </linearGradient>
 
-        {/* Bottom-Left Ambient Bright Purple Glow (using theme accent token #C04DFF) */}
-        <div
-          className="absolute -bottom-20 -left-16 w-[34rem] h-[34rem] rounded-full blur-[130px] pointer-events-none opacity-30"
-          style={{
-            background: 'radial-gradient(circle, rgba(192, 77, 255, 0.18) 0%, rgba(139, 92, 246, 0.05) 50%, transparent 70%)',
-          }}
-        />
+            <linearGradient id="nebula-cosmic-indigo" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#0B1026" stopOpacity="0" />
+              <stop offset="30%" stopColor="#252A60" stopOpacity="0.5" />
+              <stop offset="60%" stopColor="#4E348A" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#120D24" stopOpacity="0" />
+            </linearGradient>
 
-        {/* Layer 3: Ultra-Low-Opacity Technical Micro-Dot Matrix */}
-        <div
-          className="absolute inset-0 opacity-[0.022] pointer-events-none"
-          style={{
-            backgroundImage: 'radial-gradient(circle, #FFFFFF 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-            maskImage: 'radial-gradient(ellipse 85% 65% at 50% 30%, black 20%, transparent 90%)',
-            WebkitMaskImage: 'radial-gradient(ellipse 85% 65% at 50% 30%, black 20%, transparent 90%)',
-          }}
-        />
+            <radialGradient id="nebula-core-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#8A48D4" stopOpacity="0.45" />
+              <stop offset="40%" stopColor="#55248C" stopOpacity="0.25" />
+              <stop offset="75%" stopColor="#281144" stopOpacity="0.1" />
+              <stop offset="100%" stopColor="#040409" stopOpacity="0" />
+            </radialGradient>
+          </defs>
 
-        {/* Layer 4: Soft Vignette Framing Dashboard Content Inward */}
+          {/* Background Ambient Cosmic Indigo Pool (Top-Right & Mid-Left) */}
+          <path
+            d="M800,-80 C1050,40 1350,120 1520,380 C1400,600 1150,550 950,420 C820,330 680,240 720,80 Z"
+            fill="url(#nebula-cosmic-indigo)"
+            filter="url(#nebula-heavy-blur)"
+          />
+          <path
+            d="M-100,120 C180,180 340,320 280,580 C160,700 -20,680 -120,520 Z"
+            fill="url(#nebula-cosmic-indigo)"
+            filter="url(#nebula-heavy-blur)"
+          />
+
+          {/* Left / Upper-Left Primary Flowing Nebula Billows */}
+          <path
+            d="M-80,40 Q160,180 140,380 T-60,720 Q-160,540 -120,260 Z"
+            fill="url(#nebula-violet-main)"
+            filter="url(#nebula-heavy-blur)"
+          />
+          <path
+            d="M-20,120 C140,220 220,340 180,480 C120,620 -40,660 -100,540 C-80,380 40,280 -20,120 Z"
+            fill="url(#nebula-amethyst-crest)"
+            filter="url(#nebula-soft-blur)"
+            opacity="0.85"
+          />
+          {/* Wispy filament ridge on left */}
+          <path
+            d="M30,160 Q180,290 120,440 Q80,520 -40,580"
+            stroke="url(#nebula-amethyst-crest)"
+            strokeWidth="38"
+            fill="none"
+            strokeLinecap="round"
+            filter="url(#nebula-filament-blur)"
+            opacity="0.7"
+          />
+
+          {/* Right / Top-Right Sweeping Gaseous Curtain */}
+          <path
+            d="M1050,-100 Q1280,140 1340,420 T1180,820 Q980,720 1020,450 T1120,80 Z"
+            fill="url(#nebula-violet-main)"
+            filter="url(#nebula-heavy-blur)"
+          />
+          <path
+            d="M1120,20 C1280,180 1380,360 1260,560 C1160,720 1020,680 980,520 C950,380 1040,220 1120,20 Z"
+            fill="url(#nebula-amethyst-crest)"
+            filter="url(#nebula-soft-blur)"
+            opacity="0.9"
+          />
+          {/* Delicate wisp ridge on right */}
+          <path
+            d="M1200,60 Q1320,260 1220,460 Q1140,580 990,660"
+            stroke="url(#nebula-amethyst-crest)"
+            strokeWidth="42"
+            fill="none"
+            strokeLinecap="round"
+            filter="url(#nebula-filament-blur)"
+            opacity="0.75"
+          />
+
+          {/* Bottom-Center & Bottom-Right Atmospheric Cloud Bridge */}
+          <path
+            d="M520,680 C740,580 1080,620 1320,740 C1400,880 1180,980 840,940 C620,910 440,840 520,680 Z"
+            fill="url(#nebula-violet-main)"
+            filter="url(#nebula-heavy-blur)"
+            opacity="0.6"
+          />
+          <path
+            d="M680,720 Q920,640 1180,760 Q960,860 740,840 Z"
+            fill="url(#nebula-amethyst-crest)"
+            filter="url(#nebula-soft-blur)"
+            opacity="0.7"
+          />
+
+          {/* Ambient Corner Core Glows */}
+          <circle cx="120" cy="280" r="280" fill="url(#nebula-core-glow)" filter="url(#nebula-heavy-blur)" />
+          <circle cx="1280" cy="240" r="320" fill="url(#nebula-core-glow)" filter="url(#nebula-heavy-blur)" />
+          <circle cx="1080" cy="740" r="260" fill="url(#nebula-core-glow)" filter="url(#nebula-heavy-blur)" />
+        </svg>
+
+        {/* Layer 3: Faint Cosmic Dust & Static Pinpoint Stars */}
+        <svg
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          viewBox="0 0 1440 900"
+          preserveAspectRatio="xMidYMid slice"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* Subtle Soft Stardust & Bright Pinpoints scattered through space */}
+          {/* Top & Left Quadrant Stars */}
+          <circle cx="85" cy="95" r="1.2" fill="#E8D4FF" opacity="0.65" />
+          <circle cx="140" cy="180" r="0.9" fill="#FFFFFF" opacity="0.5" />
+          <circle cx="210" cy="120" r="1.6" fill="#C49BFF" opacity="0.7" filter="url(#star-glow)" />
+          <circle cx="290" cy="85" r="0.75" fill="#FFFFFF" opacity="0.4" />
+          <circle cx="95" cy="310" r="1.4" fill="#D8B4FE" opacity="0.6" />
+          <circle cx="175" cy="260" r="0.8" fill="#FFFFFF" opacity="0.45" />
+          <circle cx="235" cy="380" r="1.3" fill="#E9D5FF" opacity="0.55" />
+          <circle cx="65" cy="480" r="0.9" fill="#FFFFFF" opacity="0.35" />
+          <circle cx="130" cy="560" r="1.5" fill="#C084FC" opacity="0.6" filter="url(#star-glow)" />
+          <circle cx="270" cy="520" r="0.85" fill="#FFFFFF" opacity="0.4" />
+          <circle cx="180" cy="670" r="1.1" fill="#DDD6FE" opacity="0.5" />
+          <circle cx="90" cy="780" r="0.8" fill="#FFFFFF" opacity="0.3" />
+
+          {/* Central Deep Space Scatter (Very faint to preserve contrast) */}
+          <circle cx="480" cy="140" r="0.7" fill="#FFFFFF" opacity="0.25" />
+          <circle cx="620" cy="95" r="0.85" fill="#E9D5FF" opacity="0.3" />
+          <circle cx="750" cy="180" r="0.65" fill="#FFFFFF" opacity="0.2" />
+          <circle cx="430" cy="340" r="0.75" fill="#FFFFFF" opacity="0.2" />
+          <circle cx="580" cy="460" r="0.8" fill="#D8B4FE" opacity="0.25" />
+          <circle cx="710" cy="390" r="0.7" fill="#FFFFFF" opacity="0.2" />
+          <circle cx="820" cy="290" r="0.8" fill="#E9D5FF" opacity="0.25" />
+          <circle cx="530" cy="680" r="0.9" fill="#FFFFFF" opacity="0.3" />
+          <circle cx="670" cy="740" r="1.1" fill="#C084FC" opacity="0.35" />
+
+          {/* Right & Lower Quadrant Stars */}
+          <circle cx="1020" cy="80" r="1.5" fill="#E8D4FF" opacity="0.7" filter="url(#star-glow)" />
+          <circle cx="1140" cy="130" r="0.8" fill="#FFFFFF" opacity="0.45" />
+          <circle cx="1260" cy="90" r="1.3" fill="#D8B4FE" opacity="0.6" />
+          <circle cx="1370" cy="160" r="1.0" fill="#FFFFFF" opacity="0.5" />
+          <circle cx="1080" cy="220" r="0.9" fill="#E9D5FF" opacity="0.4" />
+          <circle cx="1190" cy="290" r="1.7" fill="#C49BFF" opacity="0.75" filter="url(#star-glow)" />
+          <circle cx="1310" cy="250" r="0.85" fill="#FFFFFF" opacity="0.4" />
+          <circle cx="1380" cy="360" r="1.2" fill="#E8D4FF" opacity="0.55" />
+          <circle cx="1040" cy="420" r="0.75" fill="#FFFFFF" opacity="0.35" />
+          <circle cx="1160" cy="490" r="1.3" fill="#DDD6FE" opacity="0.6" />
+          <circle cx="1280" cy="440" r="0.9" fill="#FFFFFF" opacity="0.45" />
+          <circle cx="1350" cy="540" r="1.4" fill="#C084FC" opacity="0.65" filter="url(#star-glow)" />
+          <circle cx="980" cy="620" r="0.8" fill="#FFFFFF" opacity="0.35" />
+          <circle cx="1090" cy="690" r="1.6" fill="#E8D4FF" opacity="0.7" filter="url(#star-glow)" />
+          <circle cx="1220" cy="660" r="1.0" fill="#D8B4FE" opacity="0.5" />
+          <circle cx="1340" cy="730" r="0.85" fill="#FFFFFF" opacity="0.4" />
+          <circle cx="1240" cy="810" r="1.2" fill="#E9D5FF" opacity="0.5" />
+          <circle cx="890" cy="820" r="0.8" fill="#FFFFFF" opacity="0.35" />
+          <circle cx="1010" cy="860" r="1.1" fill="#C084FC" opacity="0.45" />
+        </svg>
+
+        {/* Layer 4: Soft Deep Space Vignette (Preserves card contrast in central area) */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse 90% 80% at 50% 35%, transparent 50%, rgba(6, 7, 10, 0.55) 100%)',
+            background: 'radial-gradient(ellipse 95% 85% at 50% 35%, transparent 40%, rgba(4, 4, 9, 0.45) 75%, rgba(3, 3, 7, 0.82) 100%)',
           }}
         />
       </div>
