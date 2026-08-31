@@ -3,7 +3,7 @@ import {
   Video, VideoOff, Mic, MicOff, Monitor, MonitorOff, PhoneOff, 
   MessageSquare, Send, User, Shield, Clock, WifiOff, RefreshCw, 
   Play, ArrowLeft, Sparkles, AlertTriangle, X, CheckCircle,
-  Maximize, Minimize
+  Maximize, Minimize, Calendar, Copy, Check, Flag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
@@ -104,6 +104,12 @@ export default function LiveSessionRoomView({
 
   // Leave Modal State
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+
+  // Header & Report States
+  const [copiedSessionId, setCopiedSessionId] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportSubmitted, setReportSubmitted] = useState(false);
 
   // Both Muted Prompt State
   const [showBothMutedPrompt, setShowBothMutedPrompt] = useState(false);
@@ -1169,39 +1175,37 @@ export default function LiveSessionRoomView({
 
   // CLASSROOM VIEW (Immersive Live Session Studio)
   return (
-    <div className="max-w-6xl mx-auto space-y-4 text-xs text-text-sub">
+    <div className="max-w-6xl mx-auto space-y-4 text-xs text-[#cbd5e1]">
       
-      {/* Top Session Bar (Studio Header) */}
-      <div className="bg-surface-raised text-white rounded-3xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3 border border-white/10 backdrop-blur-xl">
+      {/* 1. Session Header Bar */}
+      <div className="bg-[#0f172a] text-[#f5efe6] rounded-2xl p-4 sm:p-5 shadow-xl flex flex-wrap items-center justify-between gap-4 border border-[#c5a880]/20 backdrop-blur-xl">
         
-        {/* Left: Skill & Participants */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-violet-500/20 text-lavender-300 rounded-2xl flex items-center justify-center font-bold text-sm border border-violet-500/30 shadow-inner">
-            <Video className="w-5 h-5" />
+        {/* Left: Session badge & Titles */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span className="text-[11px] font-bold tracking-wider uppercase text-[#d4af37]">
+              Live Learning Session
+            </span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-bold text-white text-sm">{booking.skillName}</h2>
-              <span className="px-2.5 py-0.5 bg-violet-900/40 text-lavender-300 rounded-full text-[10px] font-bold border border-violet-500/30">
-                1-on-1 Studio
-              </span>
-            </div>
-            <p className="text-text-dim text-[11px] mt-0.5 flex items-center gap-2">
-              <span>Instructor: <strong className="text-white">{booking.teacherName}</strong></span>
-              <span>•</span>
-              <span>Learner: <strong className="text-white">{booking.learnerName}</strong></span>
-            </p>
-          </div>
+          
+          <h1 className="text-lg sm:text-xl font-bold text-[#f5efe6] tracking-tight leading-tight">
+            {booking.skillName}
+          </h1>
+          
+          <p className="text-xs text-[#94a3b8]">
+            with <span className="font-semibold text-[#e2d9cc]">{otherUser.name}</span>
+          </p>
         </div>
 
-        {/* Center: Persistent Connection Status & Session Timer */}
-        <div className="flex items-center gap-3">
+        {/* Center/Right: Session Timer, Session ID with Copy Button + Report Issue Button */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Connection Status Badge */}
-          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-surface-base rounded-full border border-white/10 shadow-md">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#172033] rounded-xl border border-white/10 text-xs">
             {connectionStatus === 'connected' && (
               <>
                 <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse shrink-0" />
-                <span className="font-bold text-emerald-400 text-xs">Live Connected</span>
+                <span className="font-bold text-emerald-400 text-xs">Connected</span>
               </>
             )}
             {connectionStatus === 'connecting' && (
@@ -1219,83 +1223,135 @@ export default function LiveSessionRoomView({
             {connectionStatus === 'waiting' && (
               <>
                 <span className="w-2.5 h-2.5 bg-violet-400 rounded-full animate-ping shrink-0" />
-                <span className="font-medium text-lavender-300 text-xs">Waiting for peer…</span>
+                <span className="font-medium text-lavender-300 text-xs">Waiting…</span>
               </>
             )}
             {connectionStatus === 'disconnected' && (
               <>
                 <WifiOff className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span className="font-medium text-rose-300 text-xs">{otherUser.name} disconnected</span>
+                <span className="font-medium text-rose-300 text-xs">Disconnected</span>
               </>
             )}
             {connectionStatus === 'failed' && (
               <>
                 <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span className="font-medium text-rose-400 text-xs">Connection failed</span>
+                <span className="font-medium text-rose-400 text-xs">Failed</span>
               </>
             )}
           </div>
 
           {/* Session Timer */}
-          <div className="flex items-center gap-1.5 bg-surface-base px-3.5 py-1.5 rounded-full border border-white/10 text-white font-mono text-xs shadow-md">
-            <Clock className="w-3.5 h-3.5 text-violet-400" />
-            <span className="font-bold">Session: {formatTimer(elapsedSeconds)}</span>
+          <div className="flex items-center gap-1.5 bg-[#172033] px-3 py-1.5 rounded-xl border border-white/10 text-[#f5efe6] font-mono text-xs shadow-inner">
+            <Clock className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span className="font-bold">{formatTimer(elapsedSeconds)}</span>
           </div>
-        </div>
 
-        {/* Right: Chat Toggle & Leave Button */}
-        <div className="flex items-center gap-2">
+          {/* Session ID with Copy Button */}
+          <div className="flex items-center gap-1.5 bg-[#172033] px-3 py-1.5 rounded-xl border border-white/10 text-[11px] text-[#cbd5e1] font-mono shadow-inner">
+            <span className="text-[#94a3b8] font-sans">Session ID:</span>
+            <span className="font-bold text-[#f5efe6]">
+              {(liveSession?.id || booking?.id || '').substring(0, 8)}...
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const idToCopy = liveSession?.id || booking?.id || '';
+                if (idToCopy) {
+                  navigator.clipboard.writeText(idToCopy);
+                  setCopiedSessionId(true);
+                  setTimeout(() => setCopiedSessionId(false), 2000);
+                }
+              }}
+              title="Copy Session ID"
+              className="p-1 hover:text-[#d4af37] text-[#94a3b8] transition cursor-pointer rounded-lg hover:bg-white/5 border-0 bg-transparent"
+            >
+              {copiedSessionId ? (
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+
+          {/* Report Issue Button */}
           <button
             type="button"
-            onClick={() => setShowChat(!showChat)}
-            className={`p-2.5 rounded-2xl transition cursor-pointer flex items-center gap-1.5 font-bold border ${
-              showChat 
-                ? 'bg-violet-600 text-white border-violet-500 shadow-md shadow-violet-500/20' 
-                : 'bg-surface-interactive text-text-sub hover:text-white border-white/10'
-            }`}
+            onClick={() => setShowReportModal(true)}
+            className="px-3 py-1.5 bg-[#172033] hover:bg-[#202c45] text-[#e2d9cc] hover:text-[#d4af37] text-xs font-semibold rounded-xl border border-white/10 transition cursor-pointer flex items-center gap-1.5 shadow-sm"
           >
-            <MessageSquare className="w-4 h-4" />
-            <span className="hidden sm:inline">Notes & Chat</span>
-            {chatMessages.length > 0 && (
-              <span className="px-1.5 py-0.2 bg-violet-400 text-slate-950 rounded-full text-[10px] font-black">
-                {chatMessages.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowLeaveModal(true)}
-            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-rose-600/25 active:scale-95 transform border-0"
-          >
-            <PhoneOff className="w-4 h-4" />
-            <span>Leave</span>
+            <Flag className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span>Report Issue</span>
           </button>
         </div>
       </div>
 
-      {/* Main Studio Stage Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[500px] relative">
-        
-        {/* Left/Main Area: Main Video Stage */}
-        <div className={`${showChat ? 'lg:col-span-8' : 'lg:col-span-12'} transition-all space-y-3`}>
-          <div 
-            ref={videoStageRef} 
-            className={`overflow-hidden flex items-center justify-center transition-all duration-300 motion-reduce:transition-none ${
-              isFallbackFullscreen
-                ? 'fixed inset-0 z-[200] w-screen h-screen bg-black rounded-none border-0'
-                : isFullscreen
-                ? 'w-full h-full aspect-auto bg-black rounded-none border-0'
-                : 'aspect-video bg-surface-base rounded-3xl relative shadow-2xl border border-white/10'
-            }`}
-          >
-            
-            {/* Subtle violet stage backlight */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-600/10 rounded-full blur-[100px] pointer-events-none" />
+      {/* 2. Main Video Stage: Two Equal Side-by-Side Panels */}
+      <div 
+        ref={videoStageRef} 
+        className={`overflow-hidden transition-all duration-300 relative ${
+          isFallbackFullscreen
+            ? 'fixed inset-0 z-[200] w-screen h-screen bg-[#070b14] p-4 sm:p-6 flex flex-col justify-between'
+            : isFullscreen
+            ? 'w-full h-full bg-[#070b14] p-4 sm:p-6 rounded-none border-0'
+            : 'w-full'
+        }`}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full h-full">
+          
+          {/* Panel 1: Local User Video Panel */}
+          <div className="relative aspect-video bg-[#0b1120] rounded-2xl overflow-hidden border border-white/10 shadow-xl flex items-center justify-center group">
+            <video
+              ref={(el) => {
+                localVideoRef.current = el;
+                if (el) {
+                  const streamToAttach = isScreenSharing && screenStreamRef.current 
+                    ? screenStreamRef.current 
+                    : localStreamRef.current;
+                  if (streamToAttach && el.srcObject !== streamToAttach) {
+                    el.srcObject = streamToAttach;
+                    el.play().catch(() => {});
+                  }
+                }
+              }}
+              autoPlay
+              playsInline
+              muted
+              className={`w-full h-full object-cover ${!isCameraOn ? 'hidden' : ''}`}
+            />
 
+            {!isCameraOn && (
+              <div className="w-full h-full flex flex-col items-center justify-center text-[#94a3b8] bg-[#0b1120] space-y-2">
+                <div className="w-16 h-16 rounded-2xl bg-[#172033] border border-white/10 flex items-center justify-center text-[#f5efe6] text-2xl font-bold font-display shadow-inner">
+                  {currentUser.name.charAt(0)}
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-[#94a3b8]">
+                  <VideoOff className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Camera Off</span>
+                </div>
+              </div>
+            )}
+
+            {/* Bottom-Left Name & Audio Level Indicator */}
+            <div className="absolute bottom-3 left-3 bg-[#0f172a]/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-xs font-semibold text-[#f5efe6] flex items-center gap-2 border border-white/10 shadow-lg z-20">
+              <span className={`p-1 rounded-lg ${isMicOn ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                {isMicOn ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+              </span>
+              <span className="truncate">{currentUser.name} (You)</span>
+            </div>
+          </div>
+
+          {/* Panel 2: Remote Participant Video Panel */}
+          <div className="relative aspect-video bg-[#0b1120] rounded-2xl overflow-hidden border border-white/10 shadow-xl flex items-center justify-center group">
+            
             {/* Remote Video Stream */}
             <video
-              ref={remoteVideoRef}
+              ref={(el) => {
+                remoteVideoRef.current = el;
+                if (el && remoteStreamRef.current && el.srcObject !== remoteStreamRef.current) {
+                  el.srcObject = remoteStreamRef.current;
+                  el.play().catch(() => {});
+                }
+              }}
               autoPlay
               playsInline
               className={`w-full h-full object-cover ${
@@ -1305,53 +1361,44 @@ export default function LiveSessionRoomView({
 
             {/* Remote Participant Camera Off Placeholder */}
             {connectionStatus === 'connected' && !remoteUserLeft && !remoteMediaState.isCameraOn && (
-              <div className="flex flex-col items-center justify-center text-text-dim space-y-2 z-10">
-                <div className="w-20 h-20 bg-surface-raised border border-white/10 rounded-3xl flex items-center justify-center text-white text-3xl font-black shadow-2xl font-display">
+              <div className="flex flex-col items-center justify-center text-[#94a3b8] space-y-2 z-10">
+                <div className="w-16 h-16 bg-[#172033] border border-white/10 rounded-2xl flex items-center justify-center text-[#f5efe6] text-2xl font-bold font-display shadow-inner">
                   {otherUser.name.charAt(0)}
                 </div>
-                <p className="font-bold text-white text-sm">{otherUser.name}</p>
-                <div className="px-3 py-1 bg-surface-raised rounded-full border border-white/10 text-[10px] text-text-dim flex items-center gap-1.5">
-                  <VideoOff className="w-3 h-3 text-rose-400" />
+                <div className="px-3 py-1 bg-[#172033] rounded-full border border-white/10 text-[11px] text-[#94a3b8] flex items-center gap-1.5">
+                  <VideoOff className="w-3.5 h-3.5 text-rose-400" />
                   <span>Participant camera is off</span>
                 </div>
               </div>
             )}
 
-            {/* Participant Left State Card */}
+            {/* Participant Left State */}
             {(remoteUserLeft || connectionStatus === 'disconnected') && (
-              <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 max-w-md mx-auto z-20">
-                <div className="w-20 h-20 bg-surface-raised border border-white/10 rounded-3xl flex items-center justify-center text-text-dim text-3xl font-bold shadow-2xl relative font-display">
+              <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 max-w-sm mx-auto z-20">
+                <div className="w-16 h-16 bg-[#172033] border border-white/10 rounded-2xl flex items-center justify-center text-[#94a3b8] text-2xl font-bold shadow-xl relative font-display">
                   {otherUser.name.charAt(0)}
-                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-rose-600 rounded-full border-2 border-surface-base flex items-center justify-center text-xs text-white">
+                  <div className="absolute bottom-0 right-0 w-5 h-5 bg-rose-600 rounded-full border-2 border-[#0b1120] flex items-center justify-center text-[10px] text-white">
                     ×
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-black text-white text-lg font-display">
+                  <h3 className="font-bold text-[#f5efe6] text-sm">
                     {otherUser.name} has left the session
                   </h3>
-                  <p className="text-text-dim text-xs mt-1.5 leading-relaxed">
-                    They disconnected or exited the classroom. You can wait briefly for them to rejoin, or conclude the session.
+                  <p className="text-[#94a3b8] text-[11px] mt-1">
+                    They disconnected or exited. You can wait for them to rejoin or conclude.
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <div className="flex items-center justify-center gap-2 pt-1">
                   <button
                     type="button"
                     onClick={handleEndForEveryone}
-                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl text-xs transition cursor-pointer shadow-lg shadow-rose-600/20 flex items-center gap-2 transform active:scale-95 border-0"
+                    className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 border-0"
                   >
-                    <PhoneOff className="w-4 h-4" />
-                    <span>End Session for Everyone</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleLeaveOnly}
-                    className="px-4 py-2.5 bg-surface-interactive hover:bg-white/15 text-text-sub font-semibold border border-white/10 rounded-2xl text-xs transition cursor-pointer"
-                  >
-                    <span>Leave Call</span>
+                    <PhoneOff className="w-3.5 h-3.5" />
+                    <span>End for Everyone</span>
                   </button>
                 </div>
               </div>
@@ -1359,488 +1406,258 @@ export default function LiveSessionRoomView({
 
             {/* Connecting / Waiting Placeholder */}
             {connectionStatus !== 'connected' && !remoteUserLeft && connectionStatus !== 'disconnected' && (
-              <div className="flex flex-col items-center justify-center space-y-3 text-text-dim p-6 text-center max-w-md z-10">
-                <div className="w-16 h-16 bg-surface-raised border border-white/10 rounded-3xl flex items-center justify-center text-lavender-300 text-2xl shadow-2xl">
+              <div className="flex flex-col items-center justify-center space-y-2 text-[#94a3b8] p-6 text-center max-w-sm z-10">
+                <div className="w-14 h-14 bg-[#172033] border border-white/10 rounded-2xl flex items-center justify-center text-[#d4af37] text-xl shadow-inner">
                   {connectionStatus === 'failed' ? (
-                    <AlertTriangle className="w-8 h-8 text-rose-400" />
+                    <AlertTriangle className="w-6 h-6 text-rose-400" />
                   ) : connectionStatus === 'reconnecting' ? (
-                    <RefreshCw className="w-8 h-8 text-amber-400 animate-spin" />
+                    <RefreshCw className="w-6 h-6 text-amber-400 animate-spin" />
                   ) : (
-                    <User className="w-8 h-8 text-violet-400" />
+                    <User className="w-6 h-6 text-[#d4af37]" />
                   )}
                 </div>
                 <div>
-                  <h3 className="font-black text-white text-base font-display">
+                  <h3 className="font-bold text-[#f5efe6] text-xs">
                     {connectionStatus === 'waiting'
                       ? `Waiting for ${otherUser.name}...`
                       : connectionStatus === 'reconnecting'
                       ? 'Reconnecting Live Stream…'
                       : connectionStatus === 'failed'
                       ? 'Connection Interrupted'
-                      : 'Connecting WebRTC Peer Stream...'}
+                      : 'Connecting WebRTC Stream...'}
                   </h3>
-                  <p className="text-text-dim text-xs mt-1.5 leading-relaxed">
+                  <p className="text-[#94a3b8] text-[11px] mt-0.5">
                     {connectionStatus === 'waiting'
-                      ? 'Both participants must join this room to begin the live two-way video exchange.'
-                      : connectionStatus === 'reconnecting'
-                      ? 'Network connection temporarily interrupted. Attempting to restore video feed...'
+                      ? 'Waiting for participant to join the room.'
                       : connectionStatus === 'failed'
-                      ? 'The direct peer-to-peer connection could not be established. Click Retry.'
-                      : 'Negotiating STUN/TURN ICE candidates and media streams...'}
+                      ? 'Could not connect. Click retry.'
+                      : 'Negotiating peer media streams...'}
                   </p>
                 </div>
-
-                {connectionStatus === 'waiting' && (
-                  <div className="px-3.5 py-2 bg-surface-raised/90 border border-white/10 rounded-2xl text-lavender-300 text-[11px] flex items-center gap-2">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-violet-400" />
-                    <span>Listening for peer presence on private barter channel</span>
-                  </div>
-                )}
 
                 {connectionStatus === 'failed' && (
                   <button
                     type="button"
-                    onClick={() => {
-                      enterClassroom();
-                    }}
-                    className="mt-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-2xl text-xs transition cursor-pointer flex items-center gap-2 shadow-lg shadow-violet-500/20 border-0"
+                    onClick={() => enterClassroom()}
+                    className="mt-2 px-3 py-1.5 bg-[#172033] hover:bg-[#202c45] text-[#f5efe6] font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 border border-white/10"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Retry Connection</span>
+                    <span>Retry</span>
                   </button>
                 )}
               </div>
             )}
 
-            {/* Remote User Label & Media Status Overlay */}
-            <div className="absolute top-4 left-4 bg-surface-base/90 backdrop-blur-md px-3 py-1.5 rounded-2xl text-white font-semibold text-xs flex items-center gap-2 border border-white/10 shadow-lg z-20">
-              <div className={`w-2.5 h-2.5 rounded-full ${connectionStatus === 'connected' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-              <span>{otherUser.name} ({isTeacher ? 'Learner' : 'Instructor'})</span>
-              
-              {connectionStatus === 'connected' && !remoteUserLeft && (
-                <span className={`p-1 rounded-lg ${remoteMediaState.isMicOn ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                  {remoteMediaState.isMicOn ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
-                </span>
-              )}
+            {/* Bottom-Left Name & Audio Level Indicator */}
+            <div className="absolute bottom-3 left-3 bg-[#0f172a]/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-xs font-semibold text-[#f5efe6] flex items-center gap-2 border border-white/10 shadow-lg z-20">
+              <span className={`p-1 rounded-lg ${remoteMediaState.isMicOn ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                {remoteMediaState.isMicOn ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+              </span>
+              <span className="truncate">{otherUser.name}</span>
             </div>
-
-            {/* Fullscreen Toggle / Exit Button */}
-            <button
-              type="button"
-              onClick={toggleFullscreen}
-              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-              aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-              className={`absolute top-4 right-4 backdrop-blur-md p-2.5 rounded-2xl text-white flex items-center gap-1.5 border shadow-xl z-30 transition cursor-pointer motion-reduce:transition-none ${
-                isFallbackFullscreen
-                  ? 'bg-surface-raised/95 hover:bg-rose-600/90 text-white border-white/20 ring-1 ring-white/10'
-                  : 'bg-surface-base/90 hover:bg-surface-interactive text-white hover:text-lavender-200 border-white/10'
-              }`}
-            >
-              {isFullscreen ? (
-                <>
-                  <Minimize className="w-4 h-4 text-lavender-300" />
-                  {isFallbackFullscreen && (
-                    <span className="text-xs font-bold px-1 text-white">Exit</span>
-                  )}
-                </>
-              ) : (
-                <Maximize className="w-4 h-4 text-lavender-300" />
-              )}
-            </button>
-
-            {/* Local Video Stream Preview (Picture-in-Picture) */}
-            <div className="absolute bottom-4 right-4 w-40 sm:w-52 aspect-video bg-surface-base rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl z-20 group">
-              <video
-                ref={(el) => {
-                  localVideoRef.current = el;
-                  if (el) {
-                    const streamToAttach = isScreenSharing && screenStreamRef.current 
-                      ? screenStreamRef.current 
-                      : localStreamRef.current;
-                    if (streamToAttach && el.srcObject !== streamToAttach) {
-                      el.srcObject = streamToAttach;
-                      el.play().catch(() => {});
-                    }
-                  }
-                }}
-                autoPlay
-                playsInline
-                muted
-                className={`w-full h-full object-cover ${!isCameraOn ? 'hidden' : ''}`}
-              />
-
-              {!isCameraOn && (
-                <div className="w-full h-full flex flex-col items-center justify-center text-text-dim bg-surface-base">
-                  <VideoOff className="w-6 h-6 text-text-dim" />
-                  <span className="text-[10px] font-semibold mt-1">Camera Off</span>
-                </div>
-              )}
-
-              <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between bg-surface-raised/90 backdrop-blur-md px-2 py-0.5 rounded-lg text-[10px] text-white font-medium border border-white/10">
-                <span className="truncate">You ({currentUser.name})</span>
-                <span className={`p-0.5 rounded ${isMicOn ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {isMicOn ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
-                </span>
-              </div>
-            </div>
-
-            {/* Floating Quick Control Bar (Visible in Fullscreen Mode) */}
-            {isFullscreen && (
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-surface-base/90 backdrop-blur-xl px-4 py-2.5 rounded-2xl border border-white/15 shadow-2xl flex items-center gap-2.5 z-30 animate-in fade-in slide-in-from-bottom-4 duration-200">
-                {/* Microphone Toggle */}
-                <button
-                  type="button"
-                  onClick={toggleMic}
-                  className={`p-3 rounded-xl font-bold transition flex items-center justify-center cursor-pointer shadow-md border ${
-                    isMicOn 
-                      ? 'bg-surface-raised text-white hover:bg-white/15 border-white/10' 
-                      : 'bg-rose-600 text-white hover:bg-rose-700 border-rose-500'
-                  }`}
-                  title={isMicOn ? 'Mute Microphone' : 'Unmute Microphone'}
-                >
-                  {isMicOn ? <Mic className="w-4 h-4 text-emerald-400" /> : <MicOff className="w-4 h-4" />}
-                </button>
-
-                {/* Camera Toggle */}
-                <button
-                  type="button"
-                  onClick={toggleCamera}
-                  className={`p-3 rounded-xl font-bold transition flex items-center justify-center cursor-pointer shadow-md border ${
-                    isCameraOn 
-                      ? 'bg-surface-raised text-white hover:bg-white/15 border-white/10' 
-                      : 'bg-rose-600 text-white hover:bg-rose-700 border-rose-500'
-                  }`}
-                  title={isCameraOn ? 'Stop Camera' : 'Start Camera'}
-                >
-                  {isCameraOn ? <Video className="w-4 h-4 text-emerald-400" /> : <VideoOff className="w-4 h-4" />}
-                </button>
-
-                {/* Screen Share Toggle */}
-                <button
-                  type="button"
-                  onClick={toggleScreenShare}
-                  className={`p-3 rounded-xl font-bold transition flex items-center justify-center cursor-pointer shadow-md border ${
-                    isScreenSharing 
-                      ? 'bg-violet-600 text-white hover:bg-violet-500 border-violet-500 shadow-md shadow-violet-500/20' 
-                      : 'bg-surface-raised text-text-sub hover:text-white border-white/10'
-                  }`}
-                  title={isScreenSharing ? 'Stop Screen Sharing' : 'Share Screen'}
-                >
-                  {isScreenSharing ? <MonitorOff className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
-                </button>
-
-                <div className="w-px h-6 bg-white/15 mx-1" />
-
-                {/* Fullscreen Exit */}
-                <button
-                  type="button"
-                  onClick={toggleFullscreen}
-                  className="p-3 rounded-xl bg-surface-raised hover:bg-white/15 text-lavender-300 font-bold border border-white/10 transition flex items-center justify-center cursor-pointer shadow-md"
-                  title="Exit Fullscreen"
-                >
-                  <Minimize className="w-4 h-4" />
-                </button>
-
-                {/* Leave Session */}
-                <button
-                  type="button"
-                  onClick={() => setShowLeaveModal(true)}
-                  className="px-3.5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-rose-600/20 border-0"
-                  title="Leave Call"
-                >
-                  <PhoneOff className="w-4 h-4" />
-                  <span>Leave</span>
-                </button>
-              </div>
-            )}
-
-            {/* Both Participants Muted Alert */}
-            <AnimatePresence>
-              {showBothMutedPrompt && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-surface-raised/95 border border-amber-500/40 backdrop-blur-xl px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-3 text-white text-xs z-30"
-                >
-                  <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
-                  <span className="font-medium text-amber-200">Looks like you're both muted!</span>
-                  <button
-                    type="button"
-                    onClick={toggleMic}
-                    className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-full text-[11px] transition cursor-pointer flex items-center gap-1 shadow-xs border-0"
-                  >
-                    <Mic className="w-3 h-3" />
-                    <span>Unmute</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowBothMutedPrompt(false)}
-                    className="text-text-dim hover:text-white p-1 rounded-full cursor-pointer ml-1 bg-transparent border-0"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-          </div>
-
-          {/* Bottom Controls Toolbar */}
-          <div className="bg-surface-raised rounded-3xl p-3 border border-white/10 flex flex-wrap items-center justify-center gap-3 shadow-2xl backdrop-blur-xl">
-            
-            {/* Microphone Toggle */}
-            <button
-              type="button"
-              onClick={toggleMic}
-              className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2.5 cursor-pointer shadow-md border ${
-                isMicOn 
-                  ? 'bg-surface-base text-white hover:bg-white/10 border-white/10' 
-                  : 'bg-rose-600 text-white hover:bg-rose-700 border-rose-500'
-              }`}
-              title={isMicOn ? 'Mute Microphone' : 'Unmute Microphone'}
-            >
-              {isMicOn ? <Mic className="w-5 h-5 text-emerald-400" /> : <MicOff className="w-5 h-5" />}
-              <div className="hidden sm:flex flex-col items-start text-left">
-                <span className="text-xs font-bold leading-none">{isMicOn ? 'Mic On' : 'Muted'}</span>
-                <span className="text-[9px] font-normal text-text-dim mt-0.5">{isMicOn ? 'Click to Mute' : 'Click to Unmute'}</span>
-              </div>
-            </button>
-
-            {/* Camera Toggle */}
-            <button
-              type="button"
-              onClick={toggleCamera}
-              className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2.5 cursor-pointer shadow-md border ${
-                isCameraOn 
-                  ? 'bg-surface-base text-white hover:bg-white/10 border-white/10' 
-                  : 'bg-rose-600 text-white hover:bg-rose-700 border-rose-500'
-              }`}
-              title={isCameraOn ? 'Stop Camera' : 'Start Camera'}
-            >
-              {isCameraOn ? <Video className="w-5 h-5 text-emerald-400" /> : <VideoOff className="w-5 h-5" />}
-              <div className="hidden sm:flex flex-col items-start text-left">
-                <span className="text-xs font-bold leading-none">{isCameraOn ? 'Camera On' : 'Camera Off'}</span>
-                <span className="text-[9px] font-normal text-text-dim mt-0.5">{isCameraOn ? 'Click to Stop' : 'Click to Start'}</span>
-              </div>
-            </button>
-
-            {/* Screen Share Toggle */}
-            <button
-              type="button"
-              onClick={toggleScreenShare}
-              className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2.5 cursor-pointer shadow-md border ${
-                isScreenSharing 
-                  ? 'bg-violet-600 text-white hover:bg-violet-500 border-violet-500 shadow-md shadow-violet-500/20' 
-                  : 'bg-surface-base text-text-sub hover:text-white border-white/10'
-              }`}
-              title={isScreenSharing ? 'Stop Screen Sharing' : 'Share Screen'}
-            >
-              {isScreenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
-              <div className="hidden sm:flex flex-col items-start text-left">
-                <span className="text-xs font-bold leading-none">{isScreenSharing ? 'Sharing' : 'Share Screen'}</span>
-                <span className="text-[9px] font-normal text-text-dim mt-0.5">{isScreenSharing ? 'Click to Stop' : 'Code / Workspace'}</span>
-              </div>
-            </button>
-
-            {/* Notes & Chat Toggle */}
-            <button
-              type="button"
-              onClick={() => setShowChat(!showChat)}
-              className={`p-3.5 rounded-2xl font-bold transition flex items-center gap-2.5 cursor-pointer shadow-md border ${
-                showChat 
-                  ? 'bg-violet-600 text-white border-violet-500 shadow-md shadow-violet-500/20' 
-                  : 'bg-surface-base text-text-sub hover:text-white border-white/10'
-              }`}
-              title="Toggle Classroom Chat"
-            >
-              <MessageSquare className="w-5 h-5" />
-              <div className="hidden sm:flex flex-col items-start text-left">
-                <span className="text-xs font-bold leading-none">Classroom Notes</span>
-                <span className="text-[9px] font-normal text-text-dim mt-0.5">{chatMessages.length} messages</span>
-              </div>
-            </button>
-
-            {/* Leave Room Button */}
-            <button
-              type="button"
-              onClick={() => setShowLeaveModal(true)}
-              className="p-3.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl transition flex items-center gap-2.5 cursor-pointer shadow-lg shadow-rose-600/20 transform active:scale-95 border-0"
-              title="Leave Classroom Session"
-            >
-              <PhoneOff className="w-5 h-5" />
-              <div className="hidden sm:flex flex-col items-start text-left">
-                <span className="text-xs font-bold leading-none">Leave Studio</span>
-                <span className="text-[9px] font-normal text-rose-200 mt-0.5">Exit or Conclude</span>
-              </div>
-            </button>
-
           </div>
         </div>
 
-        {/* Right Desktop Chat Side Panel */}
-        {showChat && (
-          <div className="hidden lg:flex lg:col-span-4 bg-surface-raised rounded-3xl border border-white/10 shadow-2xl flex-col h-[520px] overflow-hidden backdrop-blur-xl">
-            <div className="p-3.5 bg-surface-base border-b border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-violet-400" />
-                <h3 className="font-bold text-white text-xs">Classroom Notes & Links</h3>
-              </div>
+        {/* Both Participants Muted Alert */}
+        <AnimatePresence>
+          {showBothMutedPrompt && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#0f172a]/95 border border-amber-500/40 backdrop-blur-xl px-4 py-2 rounded-full shadow-2xl flex items-center gap-3 text-white text-xs z-30"
+            >
+              <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+              <span className="font-medium text-amber-200">Looks like you're both muted!</span>
               <button
                 type="button"
-                onClick={() => setShowChat(false)}
-                className="text-text-dim hover:text-white font-bold text-xs p-1 cursor-pointer bg-transparent border-0"
+                onClick={toggleMic}
+                className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-full text-[11px] transition cursor-pointer flex items-center gap-1 shadow-xs border-0"
               >
-                <X className="w-4 h-4" />
+                <Mic className="w-3 h-3" />
+                <span>Unmute</span>
               </button>
-            </div>
-
-            {/* Chat Messages Log */}
-            <div className="p-4 flex-1 overflow-y-auto space-y-3 bg-surface-raised/40">
-              {chatMessages.length === 0 ? (
-                <div className="text-center py-12 text-text-dim text-xs space-y-1">
-                  <div className="w-10 h-10 bg-surface-base rounded-2xl flex items-center justify-center mx-auto mb-2 text-text-dim border border-white/10">
-                    <MessageSquare className="w-5 h-5" />
-                  </div>
-                  <p className="font-bold text-white">No notes yet</p>
-                  <p className="text-[11px] text-text-dim">Send code snippets, documentation links, or notes to your partner.</p>
-                </div>
-              ) : (
-                chatMessages.map((msg) => {
-                  const isSelf = msg.senderId === currentUser.id;
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}
-                    >
-                      <div className="flex items-center gap-1.5 text-[10px] text-text-dim mb-0.5">
-                        <span className="font-bold text-white">{isSelf ? 'You' : msg.senderName}</span>
-                        <span>• {msg.timestamp}</span>
-                      </div>
-                      <div
-                        className={`p-2.5 rounded-2xl max-w-[88%] text-xs leading-relaxed break-words ${
-                          isSelf
-                            ? 'bg-violet-600 text-white rounded-tr-none shadow-md shadow-violet-500/20'
-                            : 'bg-surface-base border border-white/10 text-white rounded-tl-none shadow-md'
-                        }`}
-                      >
-                        {msg.text}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-              <div ref={chatBottomRef} />
-            </div>
-
-            {/* Chat Input Form */}
-            <form onSubmit={handleSendChatMessage} className="p-3 border-t border-white/10 bg-surface-base flex items-center gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Type notes or paste code links..."
-                className="flex-1 px-3.5 py-2 bg-surface-raised border border-white/10 rounded-xl text-xs text-white placeholder:text-text-dim focus:outline-none focus:ring-2 focus:ring-violet-500"
-              />
               <button
-                type="submit"
-                disabled={!chatInput.trim()}
-                className="p-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white rounded-xl transition cursor-pointer shadow-md border-0"
+                type="button"
+                onClick={() => setShowBothMutedPrompt(false)}
+                className="text-text-dim hover:text-white p-1 rounded-full cursor-pointer ml-1 bg-transparent border-0"
               >
-                <Send className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
-            </form>
-          </div>
-        )}
-
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Mobile Chat Drawer */}
-      <AnimatePresence>
-        {showChat && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="lg:hidden fixed inset-0 bg-surface-base/80 backdrop-blur-md z-50 flex flex-col justify-end"
-            onClick={() => setShowChat(false)}
+      {/* 3. Control Bar with Four Labeled Buttons */}
+      <div className="bg-[#0f172a] rounded-2xl p-3 sm:p-4 border border-[#c5a880]/20 flex items-center justify-center gap-4 sm:gap-6 shadow-xl backdrop-blur-xl">
+        
+        {/* 1. Mic Button */}
+        <button
+          type="button"
+          onClick={toggleMic}
+          className="flex flex-col items-center gap-1.5 group cursor-pointer focus:outline-none bg-transparent border-0"
+        >
+          <div
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition shadow-md border ${
+              isMicOn
+                ? 'bg-[#172033] text-[#e2d9cc] hover:bg-[#202c45] border-white/10 group-hover:border-[#c5a880]/30'
+                : 'bg-rose-600/20 text-rose-400 hover:bg-rose-600/30 border-rose-500/40'
+            }`}
           >
+            {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5 text-rose-400" />}
+          </div>
+          <span className="text-[11px] font-semibold text-[#cbd5e1] group-hover:text-[#f5efe6] transition">
+            {isMicOn ? 'Mic' : 'Unmute'}
+          </span>
+        </button>
+
+        {/* 2. Camera Button */}
+        <button
+          type="button"
+          onClick={toggleCamera}
+          className="flex flex-col items-center gap-1.5 group cursor-pointer focus:outline-none bg-transparent border-0"
+        >
+          <div
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition shadow-md border ${
+              isCameraOn
+                ? 'bg-[#172033] text-[#e2d9cc] hover:bg-[#202c45] border-white/10 group-hover:border-[#c5a880]/30'
+                : 'bg-rose-600/20 text-rose-400 hover:bg-rose-600/30 border-rose-500/40'
+            }`}
+          >
+            {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5 text-rose-400" />}
+          </div>
+          <span className="text-[11px] font-semibold text-[#cbd5e1] group-hover:text-[#f5efe6] transition">
+            {isCameraOn ? 'Camera' : 'Start Video'}
+          </span>
+        </button>
+
+        {/* 3. Fullscreen Button */}
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className="flex flex-col items-center gap-1.5 group cursor-pointer focus:outline-none bg-transparent border-0"
+        >
+          <div className="w-12 h-12 rounded-2xl bg-[#172033] text-[#e2d9cc] hover:bg-[#202c45] border border-white/10 group-hover:border-[#c5a880]/30 flex items-center justify-center transition shadow-md">
+            {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+          </div>
+          <span className="text-[11px] font-semibold text-[#cbd5e1] group-hover:text-[#f5efe6] transition">
+            {isFullscreen ? 'Exit' : 'Fullscreen'}
+          </span>
+        </button>
+
+        {/* 4. Leave Button (Distinctive Red Action) */}
+        <button
+          type="button"
+          onClick={() => setShowLeaveModal(true)}
+          className="flex flex-col items-center gap-1.5 group cursor-pointer focus:outline-none bg-transparent border-0"
+        >
+          <div className="w-12 h-12 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center transition shadow-lg shadow-rose-900/40 border border-rose-500/50 group-hover:scale-105 transform active:scale-95">
+            <PhoneOff className="w-5 h-5" />
+          </div>
+          <span className="text-[11px] font-bold text-rose-300 group-hover:text-rose-200 transition">
+            Leave
+          </span>
+        </button>
+      </div>
+
+      {/* 4. Tip Banner */}
+      <div className="bg-[#0f172a]/80 rounded-2xl p-3.5 border border-[#84a98c]/30 flex items-center justify-center gap-2.5 text-center shadow-md backdrop-blur-md">
+        <Shield className="w-4 h-4 text-[#84a98c] shrink-0" />
+        <p className="text-xs text-[#d8cfc4]">
+          Be respectful and supportive. Help build a positive learning community.
+        </p>
+      </div>
+
+      {/* Report Issue Modal */}
+      <AnimatePresence>
+        {showReportModal && (
+          <div className="fixed inset-0 bg-surface-base/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
             <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-surface-raised border-t border-white/10 rounded-t-3xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#0f172a] rounded-3xl max-w-md w-full border border-[#c5a880]/30 shadow-2xl p-6 text-[#f5efe6] space-y-4"
             >
-              <div className="p-4 bg-surface-base border-b border-white/10 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-violet-400" />
-                  <h3 className="font-bold text-white text-sm">Classroom Notes</h3>
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/30 flex items-center justify-center">
+                    <Flag className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-[#f5efe6]">Report an Issue</h3>
+                    <p className="text-[#94a3b8] text-[11px]">Describe what went wrong in this session</p>
+                  </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowChat(false)}
-                  className="p-1.5 rounded-full bg-surface-raised text-text-dim hover:text-white font-bold text-xs border-0 cursor-pointer"
+                  onClick={() => {
+                    setShowReportModal(false);
+                    setReportSubmitted(false);
+                    setReportReason('');
+                  }}
+                  className="text-[#94a3b8] hover:text-white p-1 rounded-xl transition cursor-pointer bg-transparent border-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Chat Messages Log */}
-              <div className="p-4 flex-1 overflow-y-auto space-y-3 bg-surface-raised/50 min-h-[250px]">
-                {chatMessages.length === 0 ? (
-                  <div className="text-center py-8 text-text-dim text-xs space-y-1">
-                    <p className="font-bold text-white">No messages yet</p>
-                    <p>Send messages, code snippets, or links during your call.</p>
-                  </div>
-                ) : (
-                  chatMessages.map((msg) => {
-                    const isSelf = msg.senderId === currentUser.id;
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}
-                      >
-                        <div className="flex items-center gap-1.5 text-[10px] text-text-dim mb-0.5">
-                          <span className="font-bold text-white">{isSelf ? 'You' : msg.senderName}</span>
-                          <span>• {msg.timestamp}</span>
-                        </div>
-                        <div
-                          className={`p-2.5 rounded-2xl max-w-[85%] text-xs leading-relaxed break-words ${
-                            isSelf
-                              ? 'bg-violet-600 text-white rounded-tr-none'
-                              : 'bg-surface-base border border-white/10 text-white rounded-tl-none shadow-md'
-                          }`}
-                        >
-                          {msg.text}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={chatBottomRef} />
-              </div>
-
-              {/* Chat Input Form */}
-              <form onSubmit={handleSendChatMessage} className="p-3 border-t border-white/10 bg-surface-base flex items-center gap-2">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Type notes or paste code..."
-                  className="flex-1 px-3.5 py-2.5 bg-surface-raised border border-white/10 rounded-xl text-xs text-white placeholder:text-text-dim focus:outline-none focus:ring-2 focus:ring-violet-500"
-                />
-                <button
-                  type="submit"
-                  disabled={!chatInput.trim()}
-                  className="p-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white rounded-xl transition cursor-pointer border-0"
+              {reportSubmitted ? (
+                <div className="py-6 text-center space-y-2">
+                  <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto" />
+                  <p className="font-bold text-sm text-[#f5efe6]">Issue Reported</p>
+                  <p className="text-xs text-[#94a3b8]">
+                    Thank you for letting us know. Our community team has logged this report.
+                  </p>
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!reportReason.trim()) return;
+                    setReportSubmitted(true);
+                    setTimeout(() => {
+                      setShowReportModal(false);
+                      setReportSubmitted(false);
+                      setReportReason('');
+                    }, 2000);
+                  }}
+                  className="space-y-3"
                 >
-                  <Send className="w-4 h-4" />
-                </button>
-              </form>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#cbd5e1] mb-1.5">
+                      Reason or Details:
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={reportReason}
+                      onChange={(e) => setReportReason(e.target.value)}
+                      placeholder="e.g. Technical audio/video glitch, inappropriate behavior, or missing participant..."
+                      className="w-full px-3.5 py-2.5 bg-[#172033] border border-white/10 rounded-xl text-xs text-[#f5efe6] placeholder:text-[#64748b] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowReportModal(false)}
+                      className="px-3.5 py-2 bg-[#172033] hover:bg-[#202c45] text-[#cbd5e1] rounded-xl text-xs font-semibold border border-white/10 transition cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!reportReason.trim()}
+                      className="px-4 py-2 bg-[#d4af37] hover:bg-[#c5a880] disabled:opacity-50 text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer border-0 shadow-md"
+                    >
+                      Submit Report
+                    </button>
+                  </div>
+                </form>
+              )}
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
