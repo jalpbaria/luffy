@@ -3,7 +3,7 @@ import {
   Video, VideoOff, Mic, MicOff, Monitor, MonitorOff, PhoneOff, 
   MessageSquare, Send, User, Shield, Clock, WifiOff, RefreshCw, 
   Play, ArrowLeft, Sparkles, AlertTriangle, X, CheckCircle,
-  Maximize, Minimize, Calendar, Copy, Check, Flag
+  Maximize, Minimize, Calendar, Copy, Check, Flag, Columns2, Focus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
@@ -104,6 +104,9 @@ export default function LiveSessionRoomView({
 
   // Leave Modal State
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+
+  // Fullscreen Spotlight State ('split' | 'local' | 'remote')
+  const [spotlightMode, setSpotlightMode] = useState<'split' | 'local' | 'remote'>('split');
 
   // Header & Report States
   const [copiedSessionId, setCopiedSessionId] = useState(false);
@@ -1285,7 +1288,7 @@ export default function LiveSessionRoomView({
         </div>
       </div>
 
-      {/* 2. Main Video Stage: Two Equal Side-by-Side Panels */}
+      {/* 2. Main Video Stage: Two Equal Side-by-Side Panels or Spotlight PiP */}
       <div 
         ref={videoStageRef} 
         className={`overflow-hidden transition-all duration-300 relative ${
@@ -1296,10 +1299,74 @@ export default function LiveSessionRoomView({
             : 'w-full'
         }`}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full h-full">
+        {/* Fullscreen Spotlight Mode Selector (Only visible in Fullscreen) */}
+        {isFullscreen && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#0f172a]/95 backdrop-blur-xl px-2 py-1.5 rounded-2xl border border-[#c5a880]/30 shadow-2xl flex items-center gap-1.5 z-40">
+            <button
+              type="button"
+              onClick={() => setSpotlightMode('split')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border ${
+                spotlightMode === 'split'
+                  ? 'bg-[#d4af37] text-slate-950 border-[#d4af37] shadow-md font-bold'
+                  : 'bg-[#172033] text-[#cbd5e1] hover:text-[#f5efe6] border-white/10 hover:bg-[#202c45]'
+              }`}
+              title="Equal side-by-side view"
+            >
+              <Columns2 className="w-3.5 h-3.5" />
+              <span>Split View</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSpotlightMode('local')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border ${
+                spotlightMode === 'local'
+                  ? 'bg-[#d4af37] text-slate-950 border-[#d4af37] shadow-md font-bold'
+                  : 'bg-[#172033] text-[#cbd5e1] hover:text-[#f5efe6] border-white/10 hover:bg-[#202c45]'
+              }`}
+              title={`Spotlight ${currentUser.name}`}
+            >
+              <Focus className="w-3.5 h-3.5" />
+              <span className="truncate max-w-[130px]">{currentUser.name} (You)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSpotlightMode('remote')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border ${
+                spotlightMode === 'remote'
+                  ? 'bg-[#d4af37] text-slate-950 border-[#d4af37] shadow-md font-bold'
+                  : 'bg-[#172033] text-[#cbd5e1] hover:text-[#f5efe6] border-white/10 hover:bg-[#202c45]'
+              }`}
+              title={`Spotlight ${otherUser.name}`}
+            >
+              <Focus className="w-3.5 h-3.5" />
+              <span className="truncate max-w-[130px]">{otherUser.name}</span>
+            </button>
+          </div>
+        )}
+
+        <div className={`w-full h-full relative ${
+          isFullscreen && spotlightMode !== 'split'
+            ? 'flex items-center justify-center'
+            : 'grid grid-cols-1 md:grid-cols-2 gap-4'
+        }`}>
           
           {/* Panel 1: Local User Video Panel */}
-          <div className="relative aspect-video bg-[#0b1120] rounded-2xl overflow-hidden border border-white/10 shadow-xl flex items-center justify-center group">
+          <div 
+            onClick={() => {
+              if (isFullscreen && spotlightMode === 'remote') {
+                setSpotlightMode('local');
+              }
+            }}
+            className={`overflow-hidden rounded-2xl border shadow-xl flex items-center justify-center group transition-all duration-300 ${
+              isFullscreen && spotlightMode === 'local'
+                ? 'relative w-full h-full aspect-auto bg-[#0b1120] border-[#c5a880]/30 z-10'
+                : isFullscreen && spotlightMode === 'remote'
+                ? 'absolute bottom-6 right-6 w-48 sm:w-64 aspect-video bg-[#0b1120] border-2 border-[#d4af37]/80 shadow-2xl z-30 cursor-pointer hover:scale-105'
+                : 'relative aspect-video bg-[#0b1120] border-white/10'
+            }`}
+          >
             <video
               ref={(el) => {
                 localVideoRef.current = el;
@@ -1341,7 +1408,20 @@ export default function LiveSessionRoomView({
           </div>
 
           {/* Panel 2: Remote Participant Video Panel */}
-          <div className="relative aspect-video bg-[#0b1120] rounded-2xl overflow-hidden border border-white/10 shadow-xl flex items-center justify-center group">
+          <div 
+            onClick={() => {
+              if (isFullscreen && spotlightMode === 'local') {
+                setSpotlightMode('remote');
+              }
+            }}
+            className={`overflow-hidden rounded-2xl border shadow-xl flex items-center justify-center group transition-all duration-300 ${
+              isFullscreen && spotlightMode === 'remote'
+                ? 'relative w-full h-full aspect-auto bg-[#0b1120] border-[#c5a880]/30 z-10'
+                : isFullscreen && spotlightMode === 'local'
+                ? 'absolute bottom-6 right-6 w-48 sm:w-64 aspect-video bg-[#0b1120] border-2 border-[#d4af37]/80 shadow-2xl z-30 cursor-pointer hover:scale-105'
+                : 'relative aspect-video bg-[#0b1120] border-white/10'
+            }`}
+          >
             
             {/* Remote Video Stream */}
             <video
