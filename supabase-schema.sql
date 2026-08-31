@@ -86,18 +86,23 @@ ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 
 -- Secure RLS Policies for Bookings
 -- 1. Users can select/view bookings where they are either the teacher or the learner
+DROP POLICY IF EXISTS "Users can view their own bookings" ON public.bookings;
 CREATE POLICY "Users can view their own bookings" ON public.bookings
   FOR SELECT USING (auth.uid() = teacher_id OR auth.uid() = learner_id);
 
--- 2. Users can insert a booking where they are the learner
-CREATE POLICY "Users can insert bookings as a learner" ON public.bookings
-  FOR INSERT WITH CHECK (auth.uid() = learner_id);
+-- 2. Users can insert a booking where they are either the learner or the teacher (swapRole = 'teach' or 'learn')
+DROP POLICY IF EXISTS "Users can insert bookings as a learner" ON public.bookings;
+DROP POLICY IF EXISTS "Users can create bookings as learner or teacher" ON public.bookings;
+CREATE POLICY "Users can create bookings as learner or teacher" ON public.bookings
+  FOR INSERT WITH CHECK (auth.uid() = learner_id OR auth.uid() = teacher_id);
 
 -- 3. Users can update a booking if they are either the teacher or the learner
+DROP POLICY IF EXISTS "Users can update their own bookings" ON public.bookings;
 CREATE POLICY "Users can update their own bookings" ON public.bookings
   FOR UPDATE USING (auth.uid() = teacher_id OR auth.uid() = learner_id);
 
 -- 4. Users can delete a booking if they are either the teacher or the learner
+DROP POLICY IF EXISTS "Users can delete their own bookings" ON public.bookings;
 CREATE POLICY "Users can delete their own bookings" ON public.bookings
   FOR DELETE USING (auth.uid() = teacher_id OR auth.uid() = learner_id);
 
@@ -214,12 +219,13 @@ CREATE TABLE IF NOT EXISTS public.credit_transactions (
   booking_id text,
   amount integer NOT NULL,
   type text NOT NULL CHECK (type IN ('earned', 'spent', 'bonus', 'refund')),
-  description text NOT NULL,
+  reason text NOT NULL,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 ALTER TABLE public.credit_transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own credit transactions" ON public.credit_transactions;
 CREATE POLICY "Users can view their own credit transactions" ON public.credit_transactions
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -251,7 +257,7 @@ BEGIN
                 booking_id,
                 amount,
                 type,
-                description
+                reason
             ) VALUES (
                 v_learner_id,
                 NEW.id,
@@ -273,7 +279,7 @@ BEGIN
                 booking_id,
                 amount,
                 type,
-                description
+                reason
             ) VALUES (
                 v_teacher_id,
                 NEW.id,
